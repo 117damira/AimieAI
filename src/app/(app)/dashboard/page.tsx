@@ -1,0 +1,217 @@
+"use client";
+
+import Link from "next/link";
+import {
+  Mic,
+  PenLine,
+  ListChecks,
+  TrendingUp,
+  Target,
+  ArrowRight,
+  Flame,
+} from "lucide-react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+  Badge,
+  ProgressBar,
+  buttonVariants,
+} from "@/components/ui";
+import { WORD_OF_THE_DAY } from "@/lib/mock/word-of-the-day";
+import {
+  PROGRESS_SUMMARY,
+  DAILY_GOAL_MINUTES_DONE,
+} from "@/lib/mock/practice";
+import { EXAMS } from "@/config/exams";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useUserProfile } from "@/lib/profile/UserProfileContext";
+
+export default function DashboardPage() {
+  const { t } = useLanguage();
+  const { profile } = useUserProfile();
+  const d = t.dashboard;
+
+  if (!profile) return null;
+  const exam = EXAMS[profile.examId];
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1.5">
+        <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
+          {d.greeting(profile.firstName)}
+        </h1>
+        <p className="text-sm text-muted">{d.subtitle(exam.name)}</p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Word of the Day */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex-row items-start justify-between gap-4">
+            <div className="flex flex-col gap-1.5">
+              <CardTitle>{d.wordOfDay.title}</CardTitle>
+              <CardDescription>{d.wordOfDay.description}</CardDescription>
+            </div>
+            <Badge variant="primary">{d.wordOfDay.badge}</Badge>
+          </CardHeader>
+          <CardContent className="flex items-center gap-4">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-2xl">
+              {WORD_OF_THE_DAY.icon}
+            </span>
+            <div className="flex flex-col gap-1">
+              <span className="font-display text-xl font-semibold text-foreground">
+                {WORD_OF_THE_DAY.word}
+              </span>
+              <span className="text-sm text-muted">
+                {WORD_OF_THE_DAY.definition}
+              </span>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Link
+              href="/vocabulary"
+              className={buttonVariants({ variant: "secondary", size: "sm" })}
+            >
+              {d.wordOfDay.cta}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </CardFooter>
+        </Card>
+
+        {/* Daily Goal */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-success-50 text-success-600">
+                <Target className="h-[18px] w-[18px]" />
+              </span>
+              <CardTitle>{d.dailyGoal.title}</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <ProgressBar
+              value={DAILY_GOAL_MINUTES_DONE}
+              max={profile.dailyGoalMinutes}
+              colorClassName="bg-success-500"
+              label={d.dailyGoal.minutesLabel(
+                DAILY_GOAL_MINUTES_DONE,
+                profile.dailyGoalMinutes
+              )}
+              showPercentage
+            />
+            <div className="flex items-center gap-1.5 text-sm text-muted">
+              <Flame className="h-4 w-4 text-warning-500" />
+              {d.dailyGoal.streakLine(PROGRESS_SUMMARY.currentStreakDays)}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Speaking Practice */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-info-50 text-info-600">
+                <Mic className="h-[18px] w-[18px]" />
+              </span>
+              <CardTitle>{d.speaking.title}</CardTitle>
+            </div>
+            <CardDescription>{d.speaking.description}</CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Link
+              href="/speaking"
+              className={buttonVariants({ variant: "secondary", size: "sm" })}
+            >
+              {d.speaking.cta}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </CardFooter>
+        </Card>
+
+        {/* Writing Practice */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+                <PenLine className="h-[18px] w-[18px]" />
+              </span>
+              <CardTitle>{d.writing.title}</CardTitle>
+            </div>
+            <CardDescription>{d.writing.description}</CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Link
+              href="/writing"
+              className={buttonVariants({ variant: "secondary", size: "sm" })}
+            >
+              {d.writing.cta}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </CardFooter>
+        </Card>
+
+        {/* Weekly Quiz */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-warning-50 text-warning-600">
+                <ListChecks className="h-[18px] w-[18px]" />
+              </span>
+              <CardTitle>{d.quiz.title}</CardTitle>
+            </div>
+            <CardDescription>{d.quiz.description}</CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Link
+              href="/quiz"
+              className={buttonVariants({ variant: "secondary", size: "sm" })}
+            >
+              {d.quiz.cta}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </CardFooter>
+        </Card>
+
+        {/* Progress Summary */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+                <TrendingUp className="h-[18px] w-[18px]" />
+              </span>
+              <CardTitle>{d.progress.title}</CardTitle>
+            </div>
+            <Link
+              href="/progress"
+              className="flex items-center gap-1 text-sm font-medium text-primary-600 hover:underline"
+            >
+              {d.progress.viewDetails}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {[
+              { label: d.progress.wordsLearned, value: PROGRESS_SUMMARY.wordsLearned },
+              { label: d.progress.quizzesDone, value: PROGRESS_SUMMARY.quizzesCompleted },
+              { label: d.progress.speakingSessions, value: PROGRESS_SUMMARY.speakingSessions },
+              { label: d.progress.writingSessions, value: PROGRESS_SUMMARY.writingSessions },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="flex flex-col gap-1 rounded-2xl bg-background p-4"
+              >
+                <span className="font-display text-2xl font-semibold text-foreground">
+                  {stat.value}
+                </span>
+                <span className="text-xs text-muted">{stat.label}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Test-Path *)",
+      "PowerShell(node -v)",
+      "PowerShell(winget *)",
+      "PowerShell(npm *)",
+      "Skill(claude-in-chrome)",
+      "Skill(claude-api)",
+      "PowerShell(New-Item *)",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -Last 100)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(npm run *)",
+      "PowerShell(npx tsc --noEmit -p . 2>&1 | Select-Object -First 100)",
+      "PowerShell(npx next lint 2>&1 | Select-Object -First 150)"
+    ]
+  }
+}
