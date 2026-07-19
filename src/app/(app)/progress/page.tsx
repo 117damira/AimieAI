@@ -44,10 +44,10 @@ export default function ProgressPage() {
   const { stats } = profile;
 
   const STATS = [
-    { label: "Words learned", value: stats.wordsLearned, icon: BookOpenText },
-    { label: "Quizzes completed", value: stats.quizzesCompleted, icon: ListChecks },
-    { label: "Speaking sessions", value: stats.speakingSessions, icon: Mic },
-    { label: "Writing sessions", value: stats.writingSessions, icon: PenLine },
+    { label: t.progress.wordsLearned, value: stats.wordsLearned, icon: BookOpenText },
+    { label: t.progress.quizzesCompleted, value: stats.quizzesCompleted, icon: ListChecks },
+    { label: t.progress.speakingSessions, value: stats.speakingSessions, icon: Mic },
+    { label: t.progress.writingSessions, value: stats.writingSessions, icon: PenLine },
   ];
 
   const today = new Date();
@@ -78,8 +78,8 @@ export default function ProgressPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Progress"
-        description="Track how your DELF preparation is coming along."
+        title={t.progress.pageTitle}
+        description={t.progress.pageDescription}
       />
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -103,16 +103,16 @@ export default function ProgressPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Flame className="h-[18px] w-[18px] text-warning-500" />
-              <CardTitle>Current streak</CardTitle>
+              <CardTitle>{t.progress.currentStreak}</CardTitle>
             </div>
             <CardDescription>
-              Consecutive days of practice — don&apos;t break the chain.
+              {t.progress.currentStreakDescription}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <span className="font-display text-4xl font-semibold text-foreground">
               {stats.currentStreakDays}
-              <span className="ml-2 text-base font-normal text-muted">days</span>
+              <span className="ml-2 text-base font-normal text-muted">{t.progress.daysUnit}</span>
             </span>
           </CardContent>
         </Card>
@@ -121,16 +121,16 @@ export default function ProgressPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Award className="h-[18px] w-[18px] text-warning-600" />
-              <CardTitle>Estimated exam readiness</CardTitle>
+              <CardTitle>{t.progress.estimatedExamReadiness}</CardTitle>
             </div>
             <CardDescription>
-              Average AI-evaluated score across your writing and speaking sessions.
+              {t.progress.estimatedExamReadinessDescription}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {overallReadiness === null ? (
               <p className="text-sm text-muted">
-                Complete a Writing or Speaking session to see your readiness estimate.
+                {t.progress.readinessEmptyState}
               </p>
             ) : (
               <div className="flex flex-col gap-3">
@@ -149,20 +149,24 @@ export default function ProgressPage() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <BarChart3 className="h-[18px] w-[18px] text-primary-500" />
-            <CardTitle>Weekly activity</CardTitle>
+            <CardTitle>{t.progress.weeklyActivity}</CardTitle>
           </div>
-          <CardDescription>Sessions completed over the last 7 days.</CardDescription>
+          <CardDescription>{t.progress.weeklyActivityDescription}</CardDescription>
         </CardHeader>
         <CardContent>
-          <WeeklyActivityChart days={weeklyDays} />
+          <WeeklyActivityChart
+            days={weeklyDays}
+            writingLabel={t.progress.writingLabel}
+            speakingLabel={t.progress.speakingLabel}
+          />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Skill breakdown</CardTitle>
+          <CardTitle>{t.progress.skillBreakdown}</CardTitle>
           <CardDescription>
-            Exam readiness by skill, based on your session history.
+            {t.progress.skillBreakdownDescription}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
@@ -170,14 +174,14 @@ export default function ProgressPage() {
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 font-medium text-foreground">
                 <PenLine className="h-4 w-4 text-primary-500" />
-                Writing
+                {t.progress.writingLabel}
               </span>
               <span className="text-muted">
-                {stats.writingSessions} session{stats.writingSessions === 1 ? "" : "s"}
+                {t.progress.sessionsCount(stats.writingSessions)}
               </span>
             </div>
             {writingReadiness === null ? (
-              <p className="text-xs text-muted">No writing sessions yet.</p>
+              <p className="text-xs text-muted">{t.progress.noWritingSessions}</p>
             ) : (
               <ProgressBar
                 value={writingReadiness}
@@ -191,14 +195,14 @@ export default function ProgressPage() {
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 font-medium text-foreground">
                 <Mic className="h-4 w-4 text-info-600" />
-                Speaking
+                {t.progress.speakingLabel}
               </span>
               <span className="text-muted">
-                {stats.speakingSessions} session{stats.speakingSessions === 1 ? "" : "s"}
+                {t.progress.sessionsCount(stats.speakingSessions)}
               </span>
             </div>
             {speakingReadiness === null ? (
-              <p className="text-xs text-muted">No speaking sessions yet.</p>
+              <p className="text-xs text-muted">{t.progress.noSpeakingSessions}</p>
             ) : (
               <ProgressBar
                 value={speakingReadiness}
@@ -215,14 +219,14 @@ export default function ProgressPage() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <HistoryIcon className="h-[18px] w-[18px] text-primary-500" />
-            <CardTitle>Learning history</CardTitle>
+            <CardTitle>{t.progress.learningHistory}</CardTitle>
           </div>
-          <CardDescription>Your most recent completed sessions.</CardDescription>
+          <CardDescription>{t.progress.learningHistoryDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           {recentHistory.length === 0 ? (
             <div className="flex h-32 items-center justify-center rounded-2xl border border-dashed border-border bg-background text-sm text-muted">
-              No sessions yet — your history will appear here.
+              {t.progress.historyEmptyState}
             </div>
           ) : (
             <ul className="flex flex-col divide-y divide-border">
@@ -246,8 +250,10 @@ export default function ProgressPage() {
                       )}
                     </span>
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium capitalize text-foreground">
-                        {entry.activity} practice
+                      <span className="text-sm font-medium text-foreground">
+                        {entry.activity === "writing"
+                          ? t.progress.writingPracticeEntry
+                          : t.progress.speakingPracticeEntry}
                       </span>
                       <span className="text-xs text-muted">{entry.date}</span>
                     </div>

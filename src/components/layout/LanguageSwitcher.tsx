@@ -11,12 +11,12 @@ const LANGUAGE_OPTIONS: { code: Language; label: string }[] = [
 ];
 
 export function LanguageSwitcher() {
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
 
   return (
     <div
       role="group"
-      aria-label="Select language"
+      aria-label={t.common.selectLanguage}
       className="flex items-center gap-0.5 rounded-xl bg-background p-1"
     >
       {LANGUAGE_OPTIONS.map((option) => (

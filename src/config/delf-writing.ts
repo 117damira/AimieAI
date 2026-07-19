@@ -4,6 +4,10 @@ import type { DelfLevel, DelfLevelConfig } from "@/types/writing-evaluation";
  * DELF Production Écrite requirements per CEFR level. Task type, structure,
  * and word counts follow the official DELF exam format so the AI evaluator
  * grades against the same rubric a real examiner would use.
+ *
+ * `taskType` and `expectedStructure` describe the exercise in the app's UI
+ * language (en/ru/kz) — only `samplePrompt.*` is the actual French exam
+ * content, which is never translated.
  */
 export const DELF_LEVEL_ORDER: DelfLevel[] = ["A1", "A2", "B1", "B2"];
 
@@ -11,12 +15,28 @@ export const DELF_WRITING_LEVELS: Record<DelfLevel, DelfLevelConfig> = {
   A1: {
     level: "A1",
     label: "A1 · Découverte",
-    taskType: "Short message or form",
-    expectedStructure: [
-      "Greeting",
-      "2–3 simple sentences conveying the required information",
-      "Closing / sign-off",
-    ],
+    taskType: {
+      en: "Short message or form",
+      ru: "Короткое сообщение или бланк",
+      kz: "Қысқа хабарлама немесе бланк",
+    },
+    expectedStructure: {
+      en: [
+        "Greeting",
+        "2–3 simple sentences conveying the required information",
+        "Closing / sign-off",
+      ],
+      ru: [
+        "Приветствие",
+        "2–3 простых предложения с нужной информацией",
+        "Прощание / подпись",
+      ],
+      kz: [
+        "Сәлемдесу",
+        "Қажетті ақпаратты жеткізетін 2–3 қарапайым сөйлем",
+        "Қоштасу / қол қою",
+      ],
+    },
     minWords: 40,
     maxWords: 60,
     difficulty: "Beginner",
@@ -36,12 +56,28 @@ export const DELF_WRITING_LEVELS: Record<DelfLevel, DelfLevelConfig> = {
   A2: {
     level: "A2",
     label: "A2 · Survie",
-    taskType: "Informal letter or note describing an event",
-    expectedStructure: [
-      "Greeting and reason for writing",
-      "1–2 short paragraphs describing the event or situation",
-      "Closing with a friendly sign-off",
-    ],
+    taskType: {
+      en: "Informal letter or note describing an event",
+      ru: "Неформальное письмо или записка с описанием события",
+      kz: "Оқиғаны сипаттайтын бейресми хат немесе жазба",
+    },
+    expectedStructure: {
+      en: [
+        "Greeting and reason for writing",
+        "1–2 short paragraphs describing the event or situation",
+        "Closing with a friendly sign-off",
+      ],
+      ru: [
+        "Приветствие и причина письма",
+        "1–2 коротких абзаца с описанием события или ситуации",
+        "Дружеское прощание",
+      ],
+      kz: [
+        "Сәлемдесу және хат жазу себебі",
+        "Оқиғаны немесе жағдайды сипаттайтын 1–2 қысқа абзац",
+        "Достық қоштасу",
+      ],
+    },
     minWords: 60,
     maxWords: 80,
     difficulty: "Elementary",
@@ -61,12 +97,28 @@ export const DELF_WRITING_LEVELS: Record<DelfLevel, DelfLevelConfig> = {
   B1: {
     level: "B1",
     label: "B1 · Seuil",
-    taskType: "Opinion essay or personal letter",
-    expectedStructure: [
-      "Introduction presenting the topic and your position",
-      "Development with 2–3 arguments, each supported by an example",
-      "Conclusion summarizing your opinion",
-    ],
+    taskType: {
+      en: "Opinion essay or personal letter",
+      ru: "Эссе-мнение или личное письмо",
+      kz: "Пікір эссесі немесе жеке хат",
+    },
+    expectedStructure: {
+      en: [
+        "Introduction presenting the topic and your position",
+        "Development with 2–3 arguments, each supported by an example",
+        "Conclusion summarizing your opinion",
+      ],
+      ru: [
+        "Введение с темой и вашей позицией",
+        "Развитие с 2–3 аргументами, каждый с примером",
+        "Заключение с кратким изложением вашего мнения",
+      ],
+      kz: [
+        "Тақырып пен ұстанымыңызды таныстыратын кіріспе",
+        "Әрқайсысы мысалмен расталған 2–3 дәлел",
+        "Пікіріңізді қорытындылайтын қорытынды",
+      ],
+    },
     minWords: 160,
     maxWords: 180,
     difficulty: "Intermediate",
@@ -86,12 +138,28 @@ export const DELF_WRITING_LEVELS: Record<DelfLevel, DelfLevelConfig> = {
   B2: {
     level: "B2",
     label: "B2 · Avancé",
-    taskType: "Argumentative essay or formal letter",
-    expectedStructure: [
-      "Introduction presenting the issue at stake",
-      "Structured argumentation (thesis/antithesis or multiple arguments with counterpoints)",
-      "Conclusion synthesizing the discussion and stating a personal position",
-    ],
+    taskType: {
+      en: "Argumentative essay or formal letter",
+      ru: "Аргументированное эссе или официальное письмо",
+      kz: "Дәлелді эссе немесе ресми хат",
+    },
+    expectedStructure: {
+      en: [
+        "Introduction presenting the issue at stake",
+        "Structured argumentation (thesis/antithesis or multiple arguments with counterpoints)",
+        "Conclusion synthesizing the discussion and stating a personal position",
+      ],
+      ru: [
+        "Введение с описанием проблемы",
+        "Структурированная аргументация (тезис/антитезис или несколько аргументов с контраргументами)",
+        "Заключение с итогами обсуждения и личной позицией",
+      ],
+      kz: [
+        "Мәселені таныстыратын кіріспе",
+        "Құрылымды дәлелдеу (тезис/антитезис немесе қарсы пікірлері бар бірнеше дәлел)",
+        "Талқылауды қорытындылап, жеке ұстанымды білдіретін қорытынды",
+      ],
+    },
     minWords: 250,
     maxWords: 300,
     difficulty: "Upper-Intermediate",

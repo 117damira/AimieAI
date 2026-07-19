@@ -5,6 +5,7 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { resolvePracticeLevel } from "@/lib/utils/level";
 import { DELF_SPEAKING_LEVELS, flattenSpeakingParts } from "@/config/delf-speaking";
 import {
@@ -32,6 +33,7 @@ const LIVE_AUTO_ADVANCE_DELAY_MS = 2200;
 
 export default function SpeakingPracticePage() {
   const { profile, recordActivity } = useUserProfile();
+  const { t } = useLanguage();
   const level = profile ? resolvePracticeLevel(profile.targetLevel) : "A1";
   const levelConfig = DELF_SPEAKING_LEVELS[level];
   const queue = useMemo(() => flattenSpeakingParts(levelConfig), [levelConfig]);
@@ -62,7 +64,7 @@ export default function SpeakingPracticePage() {
         body: JSON.stringify({ level, language, turnSelections: selections }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Report generation failed");
+      if (!res.ok) throw new Error(data.error || t.speaking.reportGenerationFailed);
       const nextSelection = data.selection as ReportSelection;
       setReportSelection(nextSelection);
       setPhase("report");
@@ -71,7 +73,7 @@ export default function SpeakingPracticePage() {
         Math.round((nextSelection.estimatedScore / nextSelection.scoreOutOf) * 100)
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : t.common.somethingWentWrong);
       setPhase("turn-feedback");
     }
   }
@@ -111,14 +113,14 @@ export default function SpeakingPracticePage() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Evaluation failed");
+      if (!res.ok) throw new Error(data.error || t.speaking.evaluationFailed);
       const selection = data.selection as TurnSelection;
       setTurnSelections((prev) => [...prev, selection]);
       setCurrentTurnSelection(selection);
       setResponseText("");
       setPhase("turn-feedback");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : t.common.somethingWentWrong);
       setPhase("asking");
     }
   }
@@ -143,8 +145,8 @@ export default function SpeakingPracticePage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Speaking Practice"
-        description="Practice the official DELF speaking format for your level, with instant AI feedback."
+        title={t.speaking.pageTitle}
+        description={t.speaking.pageDescription}
       />
 
       {error && (
@@ -192,7 +194,9 @@ export default function SpeakingPracticePage() {
               feedback={turnFeedback}
               onContinue={handleContinue}
               continueLabel={
-                currentIndex + 1 < queue.length ? "Next question" : "Finish & see report"
+                currentIndex + 1 < queue.length
+                  ? t.speaking.nextQuestion
+                  : t.speaking.finishSeeReport
               }
               autoAdvancing={mode === "live"}
             />
@@ -202,7 +206,7 @@ export default function SpeakingPracticePage() {
             <Card className="border-dashed">
               <CardContent className="flex items-center justify-center gap-3 py-12 text-sm text-muted">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Compiling your examiner report...
+                {t.speaking.compilingReport}
               </CardContent>
             </Card>
           )}
@@ -214,9 +218,9 @@ export default function SpeakingPracticePage() {
           <Card>
             <CardHeader className="flex-row items-center justify-between gap-4">
               <div>
-                <CardTitle>Examiner Report</CardTitle>
+                <CardTitle>{t.speaking.examinerReport}</CardTitle>
                 <CardDescription>
-                  {mode === "live" ? "AI Live Examiner" : "Written Speaking Practice"} ·{" "}
+                  {mode === "live" ? t.speaking.modeLive : t.speaking.modeWritten} ·{" "}
                   {levelConfig.label}
                 </CardDescription>
               </div>
@@ -226,7 +230,7 @@ export default function SpeakingPracticePage() {
           <SpeakingExaminerReport report={report} />
           <div className="flex justify-end">
             <Button variant="secondary" onClick={handleRestart}>
-              Practice again
+              {t.speaking.practiceAgain}
             </Button>
           </div>
         </div>

@@ -3,6 +3,7 @@
 import { DAILY_GOAL_PRESETS } from "@/config/onboarding";
 import { Input } from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export function DailyGoalStep({
   value,
@@ -11,6 +12,7 @@ export function DailyGoalStep({
   value: number;
   onChange: (minutes: number) => void;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
@@ -32,14 +34,14 @@ export function DailyGoalStep({
               <span className="font-display text-base font-semibold text-foreground">
                 {minutes}
               </span>
-              <span className="text-[11px] text-muted">min/day</span>
+              <span className="text-[11px] text-muted">{t.onboarding.minPerDayUnit}</span>
             </button>
           );
         })}
       </div>
       <Input
         type="number"
-        label="Or enter a custom goal (minutes)"
+        label={t.onboarding.customGoalLabel}
         min={5}
         max={240}
         value={value}

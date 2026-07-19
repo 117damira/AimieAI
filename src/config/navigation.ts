@@ -9,24 +9,26 @@ import {
   User,
   Settings,
 } from "lucide-react";
+import type { Dictionary } from "@/lib/i18n/translations";
 
 export interface NavItem {
-  label: string;
+  key: keyof Dictionary["nav"];
   href: string;
   icon: LucideIcon;
 }
 
-/** Links shown in the authenticated app sidebar. */
+/** Links shown in the authenticated app sidebar. Display labels come from
+ * `t.nav[item.key]` at render time — see Sidebar.tsx. */
 export const SIDEBAR_NAV: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Vocabulary", href: "/vocabulary", icon: BookOpenText },
-  { label: "Speaking Practice", href: "/speaking", icon: Mic },
-  { label: "Writing Practice", href: "/writing", icon: PenLine },
-  { label: "Weekly Quiz", href: "/quiz", icon: ListChecks },
-  { label: "Progress", href: "/progress", icon: TrendingUp },
+  { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { key: "vocabulary", href: "/vocabulary", icon: BookOpenText },
+  { key: "speakingPractice", href: "/speaking", icon: Mic },
+  { key: "writingPractice", href: "/writing", icon: PenLine },
+  { key: "weeklyQuiz", href: "/quiz", icon: ListChecks },
+  { key: "progress", href: "/progress", icon: TrendingUp },
 ];
 
 export const SIDEBAR_FOOTER_NAV: NavItem[] = [
-  { label: "Profile", href: "/profile", icon: User },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { key: "profile", href: "/profile", icon: User },
+  { key: "settings", href: "/settings", icon: Settings },
 ];

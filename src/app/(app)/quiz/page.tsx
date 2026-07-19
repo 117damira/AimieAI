@@ -1,3 +1,5 @@
+"use client";
+
 import { ListChecks, Circle } from "lucide-react";
 import {
   Card,
@@ -11,13 +13,16 @@ import {
 } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { QUIZ_QUESTIONS } from "@/lib/mock/practice";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export default function WeeklyQuizPage() {
+  const { t, language } = useLanguage();
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Weekly Quiz"
-        description="Review the vocabulary you've learned this week and reinforce your memory."
+        title={t.quiz.pageTitle}
+        description={t.quiz.pageDescription}
       />
 
       <Card>
@@ -28,17 +33,17 @@ export default function WeeklyQuizPage() {
             </span>
             <div className="flex flex-col">
               <span className="font-display font-semibold text-foreground">
-                {QUIZ_QUESTIONS.length} words to review
+                {t.quiz.wordsToReview(QUIZ_QUESTIONS.length)}
               </span>
               <span className="text-sm text-muted">
-                Based on your vocabulary from this week
+                {t.quiz.basedOnVocabulary}
               </span>
             </div>
           </div>
           <ProgressBar
             value={0}
             max={QUIZ_QUESTIONS.length}
-            label="Progress"
+            label={t.quiz.progressLabel}
             className="w-full sm:w-56"
             showPercentage
           />
@@ -50,15 +55,15 @@ export default function WeeklyQuizPage() {
           <Card key={question.id}>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Badge variant="neutral">Question {index + 1}</Badge>
+                <Badge variant="neutral">{t.quiz.questionBadge(index + 1)}</Badge>
                 <Badge variant="primary">{question.word}</Badge>
               </div>
               <CardTitle className="mt-1 text-base">
-                {question.question}
+                {question.question[language]}
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
-              {question.options.map((option) => (
+              {question.options[language].map((option) => (
                 <button
                   key={option}
                   type="button"
@@ -77,10 +82,9 @@ export default function WeeklyQuizPage() {
       <Card className="border-dashed">
         <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
           <CardDescription>
-            Quiz scoring and review will be enabled once the assessment
-            engine is connected.
+            {t.quiz.comingSoonMessage}
           </CardDescription>
-          <Button disabled>Submit Quiz</Button>
+          <Button disabled>{t.quiz.submitQuiz}</Button>
         </CardContent>
       </Card>
     </div>

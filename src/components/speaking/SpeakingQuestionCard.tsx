@@ -1,5 +1,8 @@
+"use client";
+
 import { Clock, Sparkles } from "lucide-react";
 import { Badge, Card, CardHeader, CardTitle } from "@/components/ui";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export function SpeakingQuestionCard({
   partLabel,
@@ -10,6 +13,7 @@ export function SpeakingQuestionCard({
   prompt: string;
   suggestedDurationSeconds: number;
 }) {
+  const { t } = useLanguage();
   return (
     <Card>
       <CardHeader>
@@ -19,8 +23,8 @@ export function SpeakingQuestionCard({
             {partLabel}
           </Badge>
           <Badge variant="neutral">
-            <Clock className="h-3.5 w-3.5" />~
-            {Math.max(1, Math.round(suggestedDurationSeconds / 60))} min
+            <Clock className="h-3.5 w-3.5" />
+            {t.speaking.minutesUnit(Math.max(1, Math.round(suggestedDurationSeconds / 60)))}
           </Badge>
         </div>
         <CardTitle className="mt-1">{prompt}</CardTitle>

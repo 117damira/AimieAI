@@ -1,6 +1,9 @@
+"use client";
+
 import { CheckCircle2, XCircle, Sparkles } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, Button } from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { TurnFeedback } from "@/types/speaking-evaluation";
 
 export function SpeakingTurnFeedback({
@@ -14,12 +17,13 @@ export function SpeakingTurnFeedback({
   continueLabel: string;
   autoAdvancing: boolean;
 }) {
+  const { t } = useLanguage();
   return (
     <Card className="border-dashed">
       <CardHeader>
         <div className="flex items-center gap-2">
           <Sparkles className="h-[18px] w-[18px] text-primary-500" />
-          <CardTitle>Examiner feedback</CardTitle>
+          <CardTitle>{t.speaking.examinerFeedback}</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -30,7 +34,7 @@ export function SpeakingTurnFeedback({
             <XCircle className="h-4 w-4 text-danger-600" />
           )}
           <span className={cn(feedback.relevance ? "text-success-600" : "text-danger-600")}>
-            {feedback.relevance ? "Answered the question" : "Needs more development"}
+            {feedback.relevance ? t.speaking.answeredQuestion : t.speaking.needsMoreDevelopment}
           </span>
         </div>
 

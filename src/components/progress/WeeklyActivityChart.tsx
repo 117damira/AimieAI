@@ -11,7 +11,15 @@ function barHeightPercent(value: number, max: number): number {
   return Math.max((value / max) * 100, 8);
 }
 
-export function WeeklyActivityChart({ days }: { days: WeeklyActivityDay[] }) {
+export function WeeklyActivityChart({
+  days,
+  writingLabel,
+  speakingLabel,
+}: {
+  days: WeeklyActivityDay[];
+  writingLabel: string;
+  speakingLabel: string;
+}) {
   const max = Math.max(1, ...days.flatMap((day) => [day.writing, day.speaking]));
 
   return (
@@ -19,11 +27,11 @@ export function WeeklyActivityChart({ days }: { days: WeeklyActivityDay[] }) {
       <div className="flex items-center gap-4 text-xs text-muted">
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-primary-500" />
-          Writing
+          {writingLabel}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-info-500" />
-          Speaking
+          {speakingLabel}
         </span>
       </div>
 

@@ -3,6 +3,7 @@
 import { Trash2 } from "lucide-react";
 import { Modal, Button } from "@/components/ui";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export interface DeleteAccountConfirmDialogProps {
   open: boolean;
@@ -14,6 +15,7 @@ export function DeleteAccountConfirmDialog({
   onClose,
 }: DeleteAccountConfirmDialogProps) {
   const { clearProfile } = useUserProfile();
+  const { t } = useLanguage();
 
   function handleConfirm() {
     // AppShell redirects to /onboarding as soon as profile is null — see
@@ -27,16 +29,16 @@ export function DeleteAccountConfirmDialog({
     <Modal
       open={open}
       onClose={onClose}
-      title="Delete your account?"
-      description="This permanently removes your profile, progress, and history from this device. This can't be undone."
+      title={t.deleteAccountModal.title}
+      description={t.deleteAccountModal.description}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Cancel
+            {t.deleteAccountModal.cancel}
           </Button>
           <Button variant="danger" onClick={handleConfirm}>
             <Trash2 className="h-4 w-4" />
-            Delete account
+            {t.deleteAccountModal.confirm}
           </Button>
         </>
       }

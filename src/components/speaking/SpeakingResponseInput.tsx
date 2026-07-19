@@ -2,6 +2,7 @@
 
 import { Mic, Loader2 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button } from "@/components/ui";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export function SpeakingResponseInput({
   value,
@@ -14,12 +15,13 @@ export function SpeakingResponseInput({
   onSubmit: () => void;
   isSubmitting: boolean;
 }) {
+  const { t } = useLanguage();
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Your Answer</CardTitle>
+        <CardTitle>{t.speaking.yourAnswer}</CardTitle>
         <CardDescription>
-          Type your response below (voice recording is coming soon).
+          {t.speaking.typeResponseBelow}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -28,7 +30,7 @@ export function SpeakingResponseInput({
             type="button"
             disabled
             className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-600 text-white opacity-60"
-            aria-label="Voice recording (coming soon)"
+            aria-label={t.speaking.voiceComingSoon}
           >
             <Mic className="h-5 w-5" />
           </button>
@@ -37,7 +39,7 @@ export function SpeakingResponseInput({
           rows={5}
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          placeholder="Écrivez votre réponse ici..."
+          placeholder={t.speaking.responsePlaceholder}
           className="w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-sm leading-6 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400"
         />
         <div className="flex justify-end">
@@ -45,10 +47,10 @@ export function SpeakingResponseInput({
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Analyzing...
+                {t.speaking.analyzing}
               </>
             ) : (
-              "Submit answer"
+              t.speaking.submitAnswer
             )}
           </Button>
         </div>

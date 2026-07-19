@@ -2,6 +2,7 @@
 
 import { ONBOARDING_LEVEL_ORDER, ONBOARDING_LEVEL_LABELS } from "@/config/onboarding";
 import { cn } from "@/lib/utils/cn";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { OnboardingLevel } from "@/types/user";
 
 export function LevelStep({
@@ -11,6 +12,7 @@ export function LevelStep({
   value: OnboardingLevel | null;
   onChange: (level: OnboardingLevel) => void;
 }) {
+  const { language } = useLanguage();
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {ONBOARDING_LEVEL_ORDER.map((level) => {
@@ -32,7 +34,7 @@ export function LevelStep({
             <span className="font-display text-base font-semibold text-foreground">
               {meta.label}
             </span>
-            <span className="text-xs text-muted">{meta.description}</span>
+            <span className="text-xs text-muted">{meta.description[language]}</span>
           </button>
         );
       })}

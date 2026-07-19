@@ -3,6 +3,7 @@
 import { EXAMS } from "@/config/exams";
 import { Badge } from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { ExamId } from "@/types/exam";
 
 export function ExamStep({
@@ -12,6 +13,7 @@ export function ExamStep({
   value: ExamId | null;
   onChange: (examId: ExamId) => void;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       {Object.values(EXAMS).map((exam) => {
@@ -33,8 +35,10 @@ export function ExamStep({
             <span className="font-display text-base font-semibold text-foreground">
               {exam.name}
             </span>
-            <span className="text-xs text-muted">{exam.language}</span>
-            {!exam.isActive && <Badge variant="neutral">Coming soon</Badge>}
+            <span className="text-xs text-muted">
+              {t.onboarding.examLanguageNames[exam.language] ?? exam.language}
+            </span>
+            {!exam.isActive && <Badge variant="neutral">{t.onboarding.comingSoon}</Badge>}
           </button>
         );
       })}

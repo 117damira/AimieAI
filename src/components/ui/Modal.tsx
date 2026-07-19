@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export interface ModalProps {
   open: boolean;
@@ -24,6 +25,7 @@ export function Modal({
   footer,
   className,
 }: ModalProps) {
+  const { t } = useLanguage();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -80,7 +82,7 @@ export function Modal({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t.common.close}
             className="shrink-0 rounded-full p-1.5 text-muted transition-colors hover:bg-background hover:text-foreground cursor-pointer"
           >
             <X className="h-5 w-5" />

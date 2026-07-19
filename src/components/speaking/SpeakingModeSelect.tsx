@@ -1,3 +1,5 @@
+"use client";
+
 import { Sparkles, PenLine, ArrowRight } from "lucide-react";
 import {
   Card,
@@ -9,6 +11,7 @@ import {
   Badge,
   Button,
 } from "@/components/ui";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { DelfSpeakingLevelConfig } from "@/config/delf-speaking";
 
 export function SpeakingModeSelect({
@@ -18,12 +21,14 @@ export function SpeakingModeSelect({
   levelConfig: DelfSpeakingLevelConfig;
   onSelectMode: (mode: "live" | "written") => void;
 }) {
+  const { t, language } = useLanguage();
+
   return (
     <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
           <CardTitle>{levelConfig.label} · DELF Production Orale</CardTitle>
-          <CardDescription>{levelConfig.structureDescription}</CardDescription>
+          <CardDescription>{levelConfig.structureDescription[language]}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {levelConfig.parts.map((part, i) => (
@@ -37,7 +42,7 @@ export function SpeakingModeSelect({
                   {part.partLabel}
                 </span>
               </div>
-              <span className="text-xs text-muted">{part.instructions}</span>
+              <span className="text-xs text-muted">{part.instructions[language]}</span>
             </div>
           ))}
         </CardContent>
@@ -48,16 +53,15 @@ export function SpeakingModeSelect({
           <CardHeader>
             <div className="flex items-center gap-2">
               <Sparkles className="h-[18px] w-[18px] text-primary-500" />
-              <CardTitle>AI Live Examiner</CardTitle>
+              <CardTitle>{t.speaking.modeSelect.aiLiveExaminerTitle}</CardTitle>
             </div>
             <CardDescription>
-              A full exam simulation: the AI asks each question in order,
-              gives brief feedback, and moves on — just like the real thing.
+              {t.speaking.modeSelect.aiLiveExaminerDescription}
             </CardDescription>
           </CardHeader>
           <CardFooter>
             <Button onClick={() => onSelectMode("live")}>
-              Start exam simulation
+              {t.speaking.modeSelect.startSimulation}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </CardFooter>
@@ -66,16 +70,15 @@ export function SpeakingModeSelect({
           <CardHeader>
             <div className="flex items-center gap-2">
               <PenLine className="h-[18px] w-[18px] text-primary-500" />
-              <CardTitle>Written Speaking Practice</CardTitle>
+              <CardTitle>{t.speaking.modeSelect.writtenTitle}</CardTitle>
             </div>
             <CardDescription>
-              Go at your own pace: answer one question at a time and get full
-              feedback immediately after each one.
+              {t.speaking.modeSelect.writtenDescription}
             </CardDescription>
           </CardHeader>
           <CardFooter>
             <Button variant="secondary" onClick={() => onSelectMode("written")}>
-              Start practice
+              {t.speaking.modeSelect.startPractice}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </CardFooter>

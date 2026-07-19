@@ -4,6 +4,7 @@ import { useState } from "react";
 import { LogOut } from "lucide-react";
 import { Modal, Button } from "@/components/ui";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export interface LogoutConfirmDialogProps {
   open: boolean;
@@ -12,6 +13,7 @@ export interface LogoutConfirmDialogProps {
 
 export function LogoutConfirmDialog({ open, onClose }: LogoutConfirmDialogProps) {
   const { clearProfile } = useUserProfile();
+  const { t } = useLanguage();
   const [reason, setReason] = useState("");
 
   function handleConfirm() {
@@ -31,30 +33,30 @@ export function LogoutConfirmDialog({ open, onClose }: LogoutConfirmDialogProps)
     <Modal
       open={open}
       onClose={handleClose}
-      title="Log out?"
-      description="You'll need to sign back in to access your dashboard."
+      title={t.logoutModal.title}
+      description={t.logoutModal.description}
       footer={
         <>
           <Button variant="secondary" onClick={handleClose}>
-            Cancel
+            {t.logoutModal.cancel}
           </Button>
           <Button variant="danger" onClick={handleConfirm}>
             <LogOut className="h-4 w-4" />
-            Log out
+            {t.logoutModal.confirm}
           </Button>
         </>
       }
     >
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="font-medium text-foreground">
-          What made you decide to leave today?{" "}
-          <span className="font-normal text-muted">(optional)</span>
+          {t.logoutModal.reasonLabel}{" "}
+          <span className="font-normal text-muted">{t.logoutModal.reasonOptional}</span>
         </span>
         <textarea
           rows={3}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="Share any feedback..."
+          placeholder={t.logoutModal.reasonPlaceholder}
           className="w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-sm leading-6 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400"
         />
       </label>

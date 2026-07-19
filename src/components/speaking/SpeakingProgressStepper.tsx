@@ -1,4 +1,7 @@
+"use client";
+
 import { ProgressBar } from "@/components/ui";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export function SpeakingProgressStepper({
   currentIndex,
@@ -9,11 +12,12 @@ export function SpeakingProgressStepper({
   total: number;
   partLabel: string;
 }) {
+  const { t } = useLanguage();
   return (
     <ProgressBar
       value={currentIndex + 1}
       max={total}
-      label={`Question ${currentIndex + 1} of ${total} · ${partLabel}`}
+      label={t.speaking.questionProgress(currentIndex + 1, total, partLabel)}
       colorClassName="bg-primary-500"
     />
   );

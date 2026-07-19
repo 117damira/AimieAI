@@ -1,3 +1,5 @@
+"use client";
+
 import { CheckCircle2, XCircle, Quote, Sparkles } from "lucide-react";
 import {
   Card,
@@ -10,6 +12,7 @@ import {
 } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { WORD_OF_THE_DAY, VOCABULARY_HISTORY } from "@/lib/mock/word-of-the-day";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 const MASTERY_VARIANT = {
   new: "primary",
@@ -18,11 +21,13 @@ const MASTERY_VARIANT = {
 } as const;
 
 export default function VocabularyPage() {
+  const { t, language } = useLanguage();
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Word of the Day"
-        description="A personalized vocabulary pick for your level — with context on how (and how not) to use it."
+        title={t.vocabulary.pageTitle}
+        description={t.vocabulary.pageDescription}
       />
 
       {/* Word card */}
@@ -42,7 +47,7 @@ export default function VocabularyPage() {
               </span>
             </div>
             <p className="text-sm leading-6 text-muted">
-              {WORD_OF_THE_DAY.definition}
+              {WORD_OF_THE_DAY.definition[language]}
             </p>
           </div>
         </CardContent>
@@ -54,12 +59,12 @@ export default function VocabularyPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-[18px] w-[18px] text-success-600" />
-              <CardTitle>Use it when</CardTitle>
+              <CardTitle>{t.vocabulary.useItWhen}</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             <ul className="flex flex-col gap-3">
-              {WORD_OF_THE_DAY.goodContexts.map((context) => (
+              {WORD_OF_THE_DAY.goodContexts[language].map((context) => (
                 <li key={context} className="flex items-start gap-2 text-sm text-foreground">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success-600" />
                   {context}
@@ -73,12 +78,12 @@ export default function VocabularyPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <XCircle className="h-[18px] w-[18px] text-danger-600" />
-              <CardTitle>Avoid it when</CardTitle>
+              <CardTitle>{t.vocabulary.avoidItWhen}</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             <ul className="flex flex-col gap-3">
-              {WORD_OF_THE_DAY.badContexts.map((context) => (
+              {WORD_OF_THE_DAY.badContexts[language].map((context) => (
                 <li key={context} className="flex items-start gap-2 text-sm text-foreground">
                   <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-danger-600" />
                   {context}
@@ -92,7 +97,7 @@ export default function VocabularyPage() {
       {/* Example sentences */}
       <Card>
         <CardHeader>
-          <CardTitle>Example sentences</CardTitle>
+          <CardTitle>{t.vocabulary.exampleSentences}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {WORD_OF_THE_DAY.exampleSentences.map((sentence) => (
@@ -111,19 +116,19 @@ export default function VocabularyPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Your turn</CardTitle>
+            <CardTitle>{t.vocabulary.yourTurn}</CardTitle>
             <CardDescription>
-              Write your own sentence using &ldquo;{WORD_OF_THE_DAY.word}&rdquo;.
+              {t.vocabulary.yourTurnDescription(WORD_OF_THE_DAY.word)}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <textarea
               rows={4}
-              placeholder={`Écrivez une phrase avec "${WORD_OF_THE_DAY.word}"...`}
+              placeholder={t.vocabulary.sentencePlaceholder(WORD_OF_THE_DAY.word)}
               className="w-full resize-none rounded-xl border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400"
             />
             <Button className="self-start" disabled>
-              Get AI Feedback
+              {t.vocabulary.getAiFeedback}
             </Button>
           </CardContent>
         </Card>
@@ -132,17 +137,16 @@ export default function VocabularyPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Sparkles className="h-[18px] w-[18px] text-primary-500" />
-              <CardTitle>AI Feedback</CardTitle>
-              <Badge variant="neutral">Coming soon</Badge>
+              <CardTitle>{t.vocabulary.aiFeedback}</CardTitle>
+              <Badge variant="neutral">{t.common.comingSoon}</Badge>
             </div>
             <CardDescription>
-              Examiner-style feedback on your sentence will appear here.
+              {t.vocabulary.aiFeedbackDescription}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex h-32 items-center justify-center rounded-2xl border border-dashed border-border bg-background text-center text-sm text-muted">
-              This is where personalized AI feedback will be shown once the
-              feedback engine is connected.
+              {t.vocabulary.aiFeedbackEmptyState}
             </div>
           </CardContent>
         </Card>
@@ -151,9 +155,9 @@ export default function VocabularyPage() {
       {/* Vocabulary history */}
       <Card>
         <CardHeader>
-          <CardTitle>Your vocabulary</CardTitle>
+          <CardTitle>{t.vocabulary.yourVocabulary}</CardTitle>
           <CardDescription>
-            Words you&apos;ve learned recently. Review them all in the Weekly Quiz.
+            {t.vocabulary.yourVocabularyDescription}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col divide-y divide-border">
@@ -164,10 +168,10 @@ export default function VocabularyPage() {
             >
               <div className="flex flex-col">
                 <span className="font-medium text-foreground">{entry.word}</span>
-                <span className="text-sm text-muted">{entry.definition}</span>
+                <span className="text-sm text-muted">{entry.definition[language]}</span>
               </div>
               <Badge variant={MASTERY_VARIANT[entry.mastery]}>
-                {entry.mastery}
+                {t.vocabulary.masteryLabels[entry.mastery]}
               </Badge>
             </div>
           ))}

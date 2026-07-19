@@ -5,9 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { GraduationCap, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { SIDEBAR_NAV, SIDEBAR_FOOTER_NAV } from "@/config/navigation";
+import { SIDEBAR_NAV, SIDEBAR_FOOTER_NAV, type NavItem } from "@/config/navigation";
 import { ACTIVE_EXAM } from "@/config/exams";
 import { APP_NAME } from "@/config/app";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { LogoutConfirmDialog } from "./LogoutConfirmDialog";
 
 function NavLink({
@@ -19,7 +20,7 @@ function NavLink({
 }: {
   href: string;
   label: string;
-  icon: (typeof SIDEBAR_NAV)[number]["icon"];
+  icon: NavItem["icon"];
   active: boolean;
   onNavigate?: () => void;
 }) {
@@ -42,6 +43,7 @@ function NavLink({
 
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const { t } = useLanguage();
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   return (
@@ -54,7 +56,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <span className="font-display text-base font-semibold text-foreground">
             {APP_NAME}
           </span>
-          <span className="text-xs text-muted">{ACTIVE_EXAM.name} track</span>
+          <span className="text-xs text-muted">{t.sidebar.track(ACTIVE_EXAM.name)}</span>
         </div>
       </Link>
 
@@ -62,7 +64,9 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         {SIDEBAR_NAV.map((item) => (
           <NavLink
             key={item.href}
-            {...item}
+            href={item.href}
+            icon={item.icon}
+            label={t.nav[item.key]}
             active={pathname === item.href}
             onNavigate={onNavigate}
           />
@@ -73,7 +77,9 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         {SIDEBAR_FOOTER_NAV.map((item) => (
           <NavLink
             key={item.href}
-            {...item}
+            href={item.href}
+            icon={item.icon}
+            label={t.nav[item.key]}
             active={pathname === item.href}
             onNavigate={onNavigate}
           />
@@ -84,7 +90,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-danger-50 hover:text-danger-600 cursor-pointer"
         >
           <LogOut className="h-[18px] w-[18px]" />
-          Log out
+          {t.sidebar.logOut}
         </button>
       </div>
 

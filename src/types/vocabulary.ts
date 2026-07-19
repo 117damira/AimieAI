@@ -1,19 +1,23 @@
+import type { FeedbackLanguage } from "./writing-evaluation";
+
 export interface WordOfTheDay {
   id: string;
   word: string;
   partOfSpeech: string;
   pronunciation: string;
-  definition: string;
+  /** Definition and usage notes explain the French word in the UI's
+   * language — only `word` and `exampleSentences` are actual French content. */
+  definition: Record<FeedbackLanguage, string>;
   icon: string;
-  goodContexts: string[];
-  badContexts: string[];
+  goodContexts: Record<FeedbackLanguage, string[]>;
+  badContexts: Record<FeedbackLanguage, string[]>;
   exampleSentences: string[];
 }
 
 export interface VocabularyEntry {
   id: string;
   word: string;
-  definition: string;
+  definition: Record<FeedbackLanguage, string>;
   learnedOn: string;
   mastery: "new" | "learning" | "mastered";
 }

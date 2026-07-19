@@ -12,9 +12,11 @@ import {
   Input,
   Button,
 } from "@/components/ui";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,41 +27,41 @@ export default function LoginPage() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle>Welcome back</CardTitle>
+        <CardTitle>{t.auth.login.title}</CardTitle>
         <CardDescription>
-          Log in to continue your DELF preparation.
+          {t.auth.login.description}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           <Input
-            label="Email"
+            label={t.auth.login.email}
             type="email"
             name="email"
-            placeholder="you@example.com"
+            placeholder={t.auth.login.emailPlaceholder}
             autoComplete="email"
             required
           />
           <Input
-            label="Password"
+            label={t.auth.login.password}
             type="password"
             name="password"
-            placeholder="••••••••"
+            placeholder={t.auth.login.passwordPlaceholder}
             autoComplete="current-password"
             required
           />
           <Button type="submit" className="mt-2 w-full">
-            Log in
+            {t.auth.login.submit}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-muted">
-          Don&apos;t have an account?{" "}
+          {t.auth.login.noAccount}{" "}
           <Link
             href="/register"
             className="font-medium text-primary-600 hover:underline"
           >
-            Create one
+            {t.auth.login.createOne}
           </Link>
         </p>
       </CardContent>

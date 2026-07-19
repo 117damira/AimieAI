@@ -1,6 +1,7 @@
 "use client";
 
 import { Input, Button } from "@/components/ui";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export function ExamDateStep({
   value,
@@ -9,11 +10,12 @@ export function ExamDateStep({
   value: string | null;
   onChange: (date: string | null) => void;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="flex flex-col gap-3">
       <Input
         type="date"
-        label="Exam date"
+        label={t.onboarding.examDateLabel}
         value={value ?? ""}
         onChange={(event) => onChange(event.target.value || null)}
       />
@@ -24,7 +26,7 @@ export function ExamDateStep({
         className="self-start"
         onClick={() => onChange(null)}
       >
-        Not sure yet
+        {t.onboarding.notSureYet}
       </Button>
     </div>
   );

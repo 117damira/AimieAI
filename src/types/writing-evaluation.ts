@@ -14,8 +14,9 @@ export type DelfDifficulty =
 export interface DelfLevelConfig {
   level: DelfLevel;
   label: string;
-  taskType: string;
-  expectedStructure: string[];
+  /** Describes the exercise format in the UI's language — not exam content. */
+  taskType: Record<FeedbackLanguage, string>;
+  expectedStructure: Record<FeedbackLanguage, string[]>;
   minWords: number;
   maxWords: number;
   difficulty: DelfDifficulty;

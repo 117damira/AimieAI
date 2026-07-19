@@ -12,6 +12,7 @@ import {
   Button,
 } from "@/components/ui";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { OnboardingStepper } from "@/components/onboarding/OnboardingStepper";
 import { ExamStep } from "@/components/onboarding/ExamStep";
 import { LevelStep } from "@/components/onboarding/LevelStep";
@@ -30,32 +31,10 @@ interface Draft {
 
 const TOTAL_STEPS = 5;
 
-const STEP_COPY = [
-  {
-    title: "Which exam are you preparing for?",
-    description: "We'll tailor your dashboard and exercises to this exam.",
-  },
-  {
-    title: "What's your current level?",
-    description: "Be honest — you can always adjust this later in Settings.",
-  },
-  {
-    title: "When is your exam?",
-    description: "We'll use this to help pace your study plan.",
-  },
-  {
-    title: "What's your daily study goal?",
-    description: "A realistic daily target you can stick to.",
-  },
-  {
-    title: "You're all set",
-    description: "Review your answers before we build your dashboard.",
-  },
-];
-
 export default function OnboardingPage() {
   const router = useRouter();
   const { completeOnboarding } = useUserProfile();
+  const { t } = useLanguage();
   const [step, setStep] = useState(1);
   const [draft, setDraft] = useState<Draft>({
     examId: null,
@@ -85,7 +64,7 @@ export default function OnboardingPage() {
     setStep((s) => Math.max(1, s - 1));
   }
 
-  const copy = STEP_COPY[step - 1];
+  const copy = t.onboarding.steps[step - 1];
 
   return (
     <Card className="w-full max-w-lg">
@@ -123,10 +102,10 @@ export default function OnboardingPage() {
       </CardContent>
       <CardFooter className="justify-between">
         <Button variant="ghost" onClick={handleBack} disabled={step === 1}>
-          Back
+          {t.onboarding.back}
         </Button>
         <Button onClick={handleNext} disabled={!canAdvance}>
-          {step === TOTAL_STEPS ? "Get started" : "Continue"}
+          {step === TOTAL_STEPS ? t.onboarding.getStarted : t.onboarding.continueButton}
         </Button>
       </CardFooter>
     </Card>

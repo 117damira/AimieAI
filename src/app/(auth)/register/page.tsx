@@ -13,10 +13,12 @@ import {
   Button,
 } from "@/components/ui";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export default function RegisterPage() {
   const router = useRouter();
   const { seedIdentity } = useUserProfile();
+  const { t } = useLanguage();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -34,49 +36,49 @@ export default function RegisterPage() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle>Create your account</CardTitle>
+        <CardTitle>{t.auth.register.title}</CardTitle>
         <CardDescription>
-          Start your personalized DELF preparation in a minute.
+          {t.auth.register.description}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="First name"
+              label={t.auth.register.firstName}
               name="firstName"
-              placeholder="Amina"
+              placeholder={t.auth.register.firstNamePlaceholder}
               autoComplete="given-name"
               required
             />
             <Input
-              label="Last name"
+              label={t.auth.register.lastName}
               name="lastName"
-              placeholder="Haddad"
+              placeholder={t.auth.register.lastNamePlaceholder}
               autoComplete="family-name"
               required
             />
           </div>
           <Input
-            label="Email"
+            label={t.auth.register.email}
             type="email"
             name="email"
-            placeholder="you@example.com"
+            placeholder={t.auth.register.emailPlaceholder}
             autoComplete="email"
             required
           />
           <Button type="submit" className="mt-2 w-full">
-            Create account
+            {t.auth.register.submit}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-muted">
-          Already have an account?{" "}
+          {t.auth.register.haveAccount}{" "}
           <Link
             href="/login"
             className="font-medium text-primary-600 hover:underline"
           >
-            Log in
+            {t.auth.register.logIn}
           </Link>
         </p>
       </CardContent>

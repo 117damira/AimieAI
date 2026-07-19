@@ -6,11 +6,13 @@ import { X } from "lucide-react";
 import { Sidebar, SidebarContent } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const router = useRouter();
   const { profile, isHydrated } = useUserProfile();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (isHydrated && !profile) router.replace("/onboarding");
@@ -32,7 +34,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={() => setMobileNavOpen(false)}
-              aria-label="Close menu"
+              aria-label={t.common.closeMenu}
               className="absolute right-4 top-6 flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-background"
             >
               <X className="h-5 w-5" />

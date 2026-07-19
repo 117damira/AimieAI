@@ -1,4 +1,4 @@
-import type { DelfLevel } from "@/types/writing-evaluation";
+import type { DelfLevel, FeedbackLanguage } from "@/types/writing-evaluation";
 
 /**
  * DELF Production Orale structure per CEFR level, following the official
@@ -7,6 +7,10 @@ import type { DelfLevel } from "@/types/writing-evaluation";
  *
  * Only A1-B2 are defined — see lib/utils/level.ts for how the "Beginner"
  * onboarding level is clamped onto this set.
+ *
+ * `structureDescription` and each part's `instructions` describe the
+ * exercise in the app's UI language (en/ru/kz) — `partLabel` and `prompt`
+ * are the actual French exam content and are never translated.
  */
 
 export interface SpeakingQuestionSpec {
@@ -18,14 +22,14 @@ export interface SpeakingQuestionSpec {
 export interface SpeakingExercisePart {
   id: string;
   partLabel: string; // official DELF exercise name, e.g. "Entretien dirigé"
-  instructions: string;
+  instructions: Record<FeedbackLanguage, string>;
   questions: SpeakingQuestionSpec[];
 }
 
 export interface DelfSpeakingLevelConfig {
   level: DelfLevel;
   label: string;
-  structureDescription: string;
+  structureDescription: Record<FeedbackLanguage, string>;
   parts: SpeakingExercisePart[];
   evaluationCriteria: string[];
 }
@@ -34,14 +38,20 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
   A1: {
     level: "A1",
     label: "A1 · Découverte",
-    structureDescription:
-      "Three short parts: a guided interview, an information exchange, and a simple role-play.",
+    structureDescription: {
+      en: "Three short parts: a guided interview, an information exchange, and a simple role-play.",
+      ru: "Три коротких части: направленное интервью, обмен информацией и простая ролевая игра.",
+      kz: "Үш қысқа бөлім: бағытталған сұхбат, ақпарат алмасу және қарапайым рөлдік ойын.",
+    },
     parts: [
       {
         id: "a1-entretien-dirige",
         partLabel: "Entretien dirigé",
-        instructions:
-          "Answer the examiner's questions about yourself, simply and directly.",
+        instructions: {
+          en: "Answer the examiner's questions about yourself, simply and directly.",
+          ru: "Ответьте на вопросы экзаменатора о себе просто и прямо.",
+          kz: "Емтихан алушының өзіңіз туралы сұрақтарына қарапайым әрі тікелей жауап беріңіз.",
+        },
         questions: [
           {
             id: "a1-ed-1",
@@ -65,8 +75,11 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
       {
         id: "a1-echange-informations",
         partLabel: "Échange d'informations",
-        instructions:
-          "Using the topic given, formulate two or three simple questions as if asking the examiner.",
+        instructions: {
+          en: "Using the topic given, formulate two or three simple questions as if asking the examiner.",
+          ru: "Используя заданную тему, сформулируйте два-три простых вопроса, как будто вы спрашиваете экзаменатора.",
+          kz: "Берілген тақырыпты пайдаланып, емтихан алушыдан сұрағандай екі-үш қарапайым сұрақ құрастырыңыз.",
+        },
         questions: [
           {
             id: "a1-ei-1",
@@ -79,8 +92,11 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
       {
         id: "a1-dialogue-simule",
         partLabel: "Dialogue simulé",
-        instructions:
-          "Play the role described and respond as you would in a real everyday situation.",
+        instructions: {
+          en: "Play the role described and respond as you would in a real everyday situation.",
+          ru: "Сыграйте описанную роль и отвечайте так, как в реальной повседневной ситуации.",
+          kz: "Сипатталған рөлді ойнап, нақты күнделікті жағдайдағыдай жауап беріңіз.",
+        },
         questions: [
           {
             id: "a1-ds-1",
@@ -106,13 +122,20 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
   A2: {
     level: "A2",
     label: "A2 · Survie",
-    structureDescription:
-      "Three parts: a guided interview, a short prepared talk, and a role-play in an everyday situation.",
+    structureDescription: {
+      en: "Three parts: a guided interview, a short prepared talk, and a role-play in an everyday situation.",
+      ru: "Три части: направленное интервью, короткое подготовленное выступление и ролевая игра в повседневной ситуации.",
+      kz: "Үш бөлім: бағытталған сұхбат, қысқа дайындалған сөз және күнделікті жағдайдағы рөлдік ойын.",
+    },
     parts: [
       {
         id: "a2-entretien-dirige",
         partLabel: "Entretien dirigé",
-        instructions: "Present yourself, then answer a couple of follow-up questions.",
+        instructions: {
+          en: "Present yourself, then answer a couple of follow-up questions.",
+          ru: "Представьтесь, затем ответьте на пару дополнительных вопросов.",
+          kz: "Өзіңізді таныстырып, содан кейін бірнеше қосымша сұраққа жауап беріңіз.",
+        },
         questions: [
           {
             id: "a2-ed-1",
@@ -130,7 +153,11 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
       {
         id: "a2-monologue-suivi",
         partLabel: "Monologue suivi",
-        instructions: "Speak for about a minute on the topic below, without being interrupted.",
+        instructions: {
+          en: "Speak for about a minute on the topic below, without being interrupted.",
+          ru: "Говорите около минуты на тему ниже, не прерываясь.",
+          kz: "Төмендегі тақырыпта үзілместен шамамен бір минут сөйлеңіз.",
+        },
         questions: [
           {
             id: "a2-ms-1",
@@ -142,7 +169,11 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
       {
         id: "a2-dialogue-simule",
         partLabel: "Dialogue simulé",
-        instructions: "Handle the everyday situation as naturally as you can.",
+        instructions: {
+          en: "Handle the everyday situation as naturally as you can.",
+          ru: "Разыграйте повседневную ситуацию как можно естественнее.",
+          kz: "Күнделікті жағдайды мүмкіндігінше табиғи түрде шешіңіз.",
+        },
         questions: [
           {
             id: "a2-ds-1",
@@ -168,13 +199,20 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
   B1: {
     level: "B1",
     label: "B1 · Seuil",
-    structureDescription:
-      "Three parts: a brief personal presentation, an interactive role-play, and a viewpoint discussion based on a short document.",
+    structureDescription: {
+      en: "Three parts: a brief personal presentation, an interactive role-play, and a viewpoint discussion based on a short document.",
+      ru: "Три части: краткая презентация себя, интерактивная ролевая игра и обсуждение точки зрения по короткому документу.",
+      kz: "Үш бөлім: қысқа жеке таныстыру, интерактивті рөлдік ойын және қысқа құжат негізіндегі көзқарасты талқылау.",
+    },
     parts: [
       {
         id: "b1-entretien-dirige",
         partLabel: "Entretien dirigé",
-        instructions: "Briefly present yourself and your motivations.",
+        instructions: {
+          en: "Briefly present yourself and your motivations.",
+          ru: "Кратко представьтесь и расскажите о своей мотивации.",
+          kz: "Өзіңізді және ниетіңізді қысқаша таныстырыңыз.",
+        },
         questions: [
           {
             id: "b1-ed-1",
@@ -187,8 +225,11 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
       {
         id: "b1-exercice-interaction",
         partLabel: "Exercice en interaction",
-        instructions:
-          "Negotiate a solution to the everyday situation described, as if speaking with the examiner.",
+        instructions: {
+          en: "Negotiate a solution to the everyday situation described, as if speaking with the examiner.",
+          ru: "Договоритесь о решении описанной повседневной ситуации, как будто разговариваете с экзаменатором.",
+          kz: "Емтихан алушымен сөйлескендей, сипатталған күнделікті жағдайға шешім табыңыз.",
+        },
         questions: [
           {
             id: "b1-ei-1",
@@ -206,8 +247,11 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
       {
         id: "b1-point-de-vue",
         partLabel: "Expression d'un point de vue à partir d'un document déclencheur",
-        instructions:
-          "Give your opinion on the short prompt below, then be ready to discuss it further.",
+        instructions: {
+          en: "Give your opinion on the short prompt below, then be ready to discuss it further.",
+          ru: "Выскажите своё мнение по короткому заданию ниже, а затем будьте готовы обсудить его подробнее.",
+          kz: "Төмендегі қысқа тапсырма туралы пікіріңізді айтыңыз, содан кейін оны әрі қарай талқылауға дайын болыңыз.",
+        },
         questions: [
           {
             id: "b1-pv-1",
@@ -233,14 +277,20 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
   B2: {
     level: "B2",
     label: "B2 · Avancé",
-    structureDescription:
-      "A single extended task: present a structured argument from a document, then defend it under examiner questioning.",
+    structureDescription: {
+      en: "A single extended task: present a structured argument from a document, then defend it under examiner questioning.",
+      ru: "Одна расширенная задача: представить структурированный аргумент по документу, а затем защитить его, отвечая на вопросы экзаменатора.",
+      kz: "Бір ұзартылған тапсырма: құжат негізінде құрылымды дәлел ұсынып, содан кейін емтихан алушының сұрақтарына жауап беру арқылы оны қорғау.",
+    },
     parts: [
       {
         id: "b2-point-de-vue",
         partLabel: "Présentation et défense d'un point de vue",
-        instructions:
-          "Present a structured argument on the document below, then respond to follow-up challenges.",
+        instructions: {
+          en: "Present a structured argument on the document below, then respond to follow-up challenges.",
+          ru: "Представьте структурированный аргумент по документу ниже, а затем ответьте на дополнительные возражения.",
+          kz: "Төмендегі құжат бойынша құрылымды дәлел ұсыныңыз, содан кейін қосымша қарсылықтарға жауап беріңіз.",
+        },
         questions: [
           {
             id: "b2-pv-1",

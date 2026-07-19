@@ -22,7 +22,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
       <button
         type="button"
         onClick={onMenuClick}
-        aria-label="Open menu"
+        aria-label={t.topbar.ariaOpenMenu}
         className="flex h-10 w-10 items-center justify-center rounded-xl text-foreground hover:bg-primary-50 lg:hidden"
       >
         <Menu className="h-5 w-5" />
@@ -35,7 +35,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
         <button
           type="button"
           onClick={() => setStreakModalOpen(true)}
-          aria-label="View streak calendar"
+          aria-label={t.topbar.ariaViewStreak}
           className="hidden cursor-pointer sm:inline-flex"
         >
           <Badge
@@ -49,7 +49,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
         <button
           type="button"
           onClick={() => setProfileModalOpen(true)}
-          aria-label="Open profile menu"
+          aria-label={t.topbar.ariaOpenProfile}
           className="cursor-pointer rounded-full transition-transform hover:scale-105"
         >
           <Avatar initials={profile.avatarInitials} size="sm" />

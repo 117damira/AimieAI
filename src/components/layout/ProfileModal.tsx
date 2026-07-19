@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Modal, Avatar, Input, Button, ToggleRow } from "@/components/ui";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { EXAMS } from "@/config/exams";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { LogoutConfirmDialog } from "./LogoutConfirmDialog";
@@ -117,6 +118,7 @@ function cnTone(tone: "default" | "danger") {
 
 export function ProfileModal({ open, onClose }: ProfileModalProps) {
   const { profile } = useUserProfile();
+  const { t } = useLanguage();
   const [expanded, setExpanded] = useState<"password" | "notifications" | null>(null);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -146,70 +148,70 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
           {/* Preferences */}
           <div className="flex flex-col gap-1 border-t border-border pt-4">
             <span className="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-muted">
-              Preferences
+              {t.profileModal.preferences}
             </span>
             <div className="flex items-center justify-between gap-4 py-2.5">
               <div className="flex items-center gap-3">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-background text-muted">
                   <Globe className="h-4 w-4" />
                 </span>
-                <span className="text-sm font-medium text-foreground">Language</span>
+                <span className="text-sm font-medium text-foreground">{t.profileModal.language}</span>
               </div>
               <LanguageSwitcher />
             </div>
-            <InfoRow icon={GraduationCap} label="Exam" value={exam.name} />
-            <InfoRow icon={BarChart3} label="Current level" value={profile.targetLevel} />
+            <InfoRow icon={GraduationCap} label={t.profileModal.exam} value={exam.name} />
+            <InfoRow icon={BarChart3} label={t.profileModal.currentLevel} value={profile.targetLevel} />
             <InfoRow
               icon={Target}
-              label="Study goal"
-              value={`${profile.dailyGoalMinutes} min/day`}
+              label={t.profileModal.studyGoal}
+              value={t.profileModal.minPerDay(profile.dailyGoalMinutes)}
             />
           </div>
 
           {/* Account */}
           <div className="flex flex-col gap-1 border-t border-border pt-4">
             <span className="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-muted">
-              Account
+              {t.profileModal.account}
             </span>
-            <ActionRow icon={UserIcon} label="Profile" href="/profile" onClick={onClose} />
-            <ActionRow icon={SettingsIcon} label="Settings" href="/settings" onClick={onClose} />
+            <ActionRow icon={UserIcon} label={t.profileModal.profileLink} href="/profile" onClick={onClose} />
+            <ActionRow icon={SettingsIcon} label={t.profileModal.settingsLink} href="/settings" onClick={onClose} />
             <ActionRow
               icon={KeyRound}
-              label="Change password"
+              label={t.profileModal.changePassword}
               onClick={() => toggleExpanded("password")}
               expanded={expanded === "password"}
             />
             {expanded === "password" && (
               <div className="flex flex-col gap-3 rounded-xl bg-background p-4">
-                <Input label="Current password" type="password" placeholder="••••••••" />
-                <Input label="New password" type="password" placeholder="••••••••" />
-                <Input label="Confirm new password" type="password" placeholder="••••••••" />
+                <Input label={t.profileModal.currentPassword} type="password" placeholder="••••••••" />
+                <Input label={t.profileModal.newPassword} type="password" placeholder="••••••••" />
+                <Input label={t.profileModal.confirmNewPassword} type="password" placeholder="••••••••" />
                 <Button disabled size="sm" className="self-end">
-                  Save password
+                  {t.profileModal.savePassword}
                 </Button>
               </div>
             )}
             <ActionRow
               icon={Bell}
-              label="Notifications"
+              label={t.profileModal.notificationsLink}
               onClick={() => toggleExpanded("notifications")}
               expanded={expanded === "notifications"}
             />
             {expanded === "notifications" && (
               <div className="flex flex-col divide-y divide-border rounded-xl bg-background px-4">
                 <ToggleRow
-                  title="Daily reminder"
-                  description="A nudge if you haven't practiced yet today."
+                  title={t.notifications.dailyReminder.title}
+                  description={t.notifications.dailyReminder.description}
                   enabled
                 />
                 <ToggleRow
-                  title="Weekly summary email"
-                  description="A recap of your progress every Monday."
+                  title={t.notifications.weeklySummary.title}
+                  description={t.notifications.weeklySummary.description}
                   enabled
                 />
                 <ToggleRow
-                  title="Product updates"
-                  description="News about new features and exams."
+                  title={t.notifications.productUpdates.title}
+                  description={t.notifications.productUpdates.description}
                   enabled={false}
                 />
               </div>
@@ -219,12 +221,12 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
           {/* Danger zone */}
           <div className="flex flex-col gap-1 border-t border-border pt-4">
             <span className="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-muted">
-              Danger zone
+              {t.profileModal.dangerZone}
             </span>
-            <ActionRow icon={LogOut} label="Log out" onClick={() => setLogoutOpen(true)} />
+            <ActionRow icon={LogOut} label={t.profileModal.logOut} onClick={() => setLogoutOpen(true)} />
             <ActionRow
               icon={Trash2}
-              label="Delete account"
+              label={t.profileModal.deleteAccount}
               tone="danger"
               onClick={() => setDeleteOpen(true)}
             />

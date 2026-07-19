@@ -35,6 +35,7 @@ import type {
 } from "@/types/writing-evaluation";
 import { cn } from "@/lib/utils/cn";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { resolvePracticeLevel } from "@/lib/utils/level";
 
 const FEEDBACK_LANGUAGES: FeedbackLanguage[] = ["en", "ru", "kz"];
@@ -57,6 +58,7 @@ const GRAMMAR_CATEGORY_LABELS: Record<GrammarError["category"], Record<FeedbackL
 
 export default function WritingPracticePage() {
   const { profile, recordActivity } = useUserProfile();
+  const { t, language: uiLanguage } = useLanguage();
   const [language, setLanguage] = useState<FeedbackLanguage>("en");
   const [text, setText] = useState("");
   const [evaluation, setEvaluation] = useState<WritingEvaluation | null>(null);
@@ -105,7 +107,7 @@ export default function WritingPracticePage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Evaluation failed");
+        throw new Error(data.error || t.writing.evaluationFailed);
       }
       const nextEvaluation = data.evaluation as WritingEvaluation;
       setEvaluation(nextEvaluation);
@@ -113,7 +115,7 @@ export default function WritingPracticePage() {
       const { estimatedScore, scoreOutOf } = nextEvaluation.examReadiness;
       recordActivity("writing", Math.round((estimatedScore / scoreOutOf) * 100));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : t.common.somethingWentWrong);
     } finally {
       setIsSubmitting(false);
     }
@@ -122,8 +124,8 @@ export default function WritingPracticePage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Writing Practice"
-        description="Draft a response to an exam-style prompt for your level and get AI feedback structured like official DELF scoring."
+        title={t.writing.pageTitle}
+        description={t.writing.pageDescription}
       />
 
       {/* Prompt */}
@@ -134,9 +136,9 @@ export default function WritingPracticePage() {
               <PenLine className="h-3.5 w-3.5" />
               {levelConfig.samplePrompt.delfExercise}
             </Badge>
-            <Badge variant="neutral">{levelConfig.taskType}</Badge>
+            <Badge variant="neutral">{levelConfig.taskType[uiLanguage]}</Badge>
             <Badge variant="neutral">
-              {levelConfig.minWords}–{levelConfig.maxWords} words
+              {levelConfig.minWords}–{levelConfig.maxWords} {t.writing.wordsUnit}
             </Badge>
           </div>
           <CardTitle className="mt-1">{levelConfig.samplePrompt.title}</CardTitle>
@@ -144,9 +146,9 @@ export default function WritingPracticePage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-1.5 rounded-2xl bg-background p-4">
-            <span className="text-xs font-medium text-muted">Expected structure</span>
+            <span className="text-xs font-medium text-muted">{t.writing.expectedStructure}</span>
             <ul className="flex flex-col gap-1 text-sm text-foreground">
-              {levelConfig.expectedStructure.map((s) => (
+              {levelConfig.expectedStructure[uiLanguage].map((s) => (
                 <li key={s} className="flex items-start gap-2">
                   <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary-400" />
                   {s}
@@ -160,9 +162,9 @@ export default function WritingPracticePage() {
       {/* Editor */}
       <Card>
         <CardHeader className="flex-row items-center justify-between gap-4">
-          <CardTitle>1. Your response</CardTitle>
+          <CardTitle>{t.writing.yourResponse}</CardTitle>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted">AI feedback:</span>
+            <span className="text-xs text-muted">{t.writing.aiFeedbackLabel}</span>
             <div className="flex items-center gap-1 rounded-full border border-border bg-background p-1">
               {FEEDBACK_LANGUAGES.map((lang) => (
                 <button
@@ -188,7 +190,7 @@ export default function WritingPracticePage() {
             rows={12}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Écrivez votre réponse ici..."
+            placeholder={t.writing.responsePlaceholder}
             className="w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-sm leading-6 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400"
           />
           <div className="flex items-center justify-between">
@@ -198,16 +200,16 @@ export default function WritingPracticePage() {
                 wordCountInRange ? "text-success-600" : "text-warning-600"
               )}
             >
-              {wordCount} / {levelConfig.minWords}–{levelConfig.maxWords} words
+              {wordCount} / {levelConfig.minWords}–{levelConfig.maxWords} {t.writing.wordsUnit}
             </span>
             <Button onClick={handleSubmit} disabled={!text.trim() || isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Evaluating...
+                  {t.writing.evaluating}
                 </>
               ) : (
-                "Submit for Evaluation"
+                t.writing.submitForEvaluation
               )}
             </Button>
           </div>
@@ -226,18 +228,18 @@ export default function WritingPracticePage() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Sparkles className="h-[18px] w-[18px] text-primary-500" />
-                <CardTitle>Task Completion</CardTitle>
+                <CardTitle>{t.writing.taskCompletion}</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               <div className="flex flex-wrap gap-3">
                 <StatusPill
                   ok={evaluation.taskCompletion.addressedPrompt}
-                  label="Addressed the prompt"
+                  label={t.writing.addressedPrompt}
                 />
                 <StatusPill
                   ok={evaluation.taskCompletion.respectedFormat}
-                  label="Respected the format"
+                  label={t.writing.respectedFormat}
                 />
               </div>
               <p className="text-sm text-muted">{evaluation.taskCompletion.notes}</p>
@@ -248,13 +250,13 @@ export default function WritingPracticePage() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <LayoutList className="h-[18px] w-[18px] text-primary-500" />
-                <CardTitle>Structure</CardTitle>
+                <CardTitle>{t.writing.structure}</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               <div className="flex flex-wrap gap-3">
-                <StatusPill ok={evaluation.structure.hasIntroduction} label="Introduction" />
-                <StatusPill ok={evaluation.structure.hasMainIdeas} label="Main ideas" />
+                <StatusPill ok={evaluation.structure.hasIntroduction} label={t.writing.introduction} />
+                <StatusPill ok={evaluation.structure.hasMainIdeas} label={t.writing.mainIdeas} />
                 <StatusPill
                   ok={
                     !evaluation.structure.conclusionRequired ||
@@ -262,8 +264,8 @@ export default function WritingPracticePage() {
                   }
                   label={
                     evaluation.structure.conclusionRequired
-                      ? "Conclusion"
-                      : "Conclusion (not required)"
+                      ? t.writing.conclusion
+                      : t.writing.conclusionNotRequired
                   }
                 />
               </div>
@@ -275,13 +277,13 @@ export default function WritingPracticePage() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <SpellCheck className="h-[18px] w-[18px] text-primary-500" />
-                <CardTitle>Language Accuracy</CardTitle>
+                <CardTitle>{t.writing.languageAccuracy}</CardTitle>
               </div>
               <CardDescription>{evaluation.languageAccuracy.summary}</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               {evaluation.languageAccuracy.errors.length === 0 ? (
-                <p className="text-sm text-muted">No grammar mistakes found.</p>
+                <p className="text-sm text-muted">{t.writing.noGrammarMistakes}</p>
               ) : (
                 evaluation.languageAccuracy.errors.map((err, i) => (
                   <div
@@ -310,14 +312,14 @@ export default function WritingPracticePage() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <BookOpenText className="h-[18px] w-[18px] text-primary-500" />
-                <CardTitle>Vocabulary</CardTitle>
+                <CardTitle>{t.writing.vocabularyTitle}</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <VocabItem label="Word choice" value={evaluation.vocabulary.wordChoice} />
-              <VocabItem label="Variety" value={evaluation.vocabulary.variety} />
+              <VocabItem label={t.writing.wordChoice} value={evaluation.vocabulary.wordChoice} />
+              <VocabItem label={t.writing.variety} value={evaluation.vocabulary.variety} />
               <VocabItem
-                label="Level appropriateness"
+                label={t.writing.levelAppropriateness}
                 value={evaluation.vocabulary.levelAppropriateness}
               />
             </CardContent>
@@ -327,10 +329,10 @@ export default function WritingPracticePage() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Award className="h-[18px] w-[18px] text-warning-600" />
-                <CardTitle>Exam Readiness</CardTitle>
+                <CardTitle>{t.writing.examReadiness}</CardTitle>
               </div>
               <CardDescription>
-                Estimated DELF Production Écrite score for this response.
+                {t.writing.examReadinessDescription}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
@@ -347,19 +349,22 @@ export default function WritingPracticePage() {
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <FeedbackList
-                  title="Strengths"
+                  title={t.writing.strengths}
                   items={evaluation.examReadiness.strengths}
                   tone="success"
+                  noneNoted={t.writing.noneNoted}
                 />
                 <FeedbackList
-                  title="Weaknesses"
+                  title={t.writing.weaknesses}
                   items={evaluation.examReadiness.weaknesses}
                   tone="danger"
+                  noneNoted={t.writing.noneNoted}
                 />
                 <FeedbackList
-                  title="Improvement tips"
+                  title={t.writing.improvementTips}
                   items={evaluation.examReadiness.improvementTips}
                   tone="primary"
+                  noneNoted={t.writing.noneNoted}
                 />
               </div>
             </CardContent>
@@ -370,11 +375,10 @@ export default function WritingPracticePage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Sparkles className="h-[18px] w-[18px] text-primary-500" />
-              <CardTitle>AI Evaluation</CardTitle>
+              <CardTitle>{t.writing.aiEvaluationTitle}</CardTitle>
             </div>
             <CardDescription>
-              Submit your response to get feedback on task completion, structure,
-              language accuracy, vocabulary, and estimated DELF score.
+              {t.writing.aiEvaluationDescription}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -410,10 +414,12 @@ function FeedbackList({
   title,
   items,
   tone,
+  noneNoted,
 }: {
   title: string;
   items: string[];
   tone: "success" | "danger" | "primary";
+  noneNoted: string;
 }) {
   const toneClass = {
     success: "text-success-600",
@@ -424,7 +430,7 @@ function FeedbackList({
     <div className="flex flex-col gap-2 rounded-2xl bg-background p-4">
       <span className={cn("text-xs font-semibold", toneClass)}>{title}</span>
       {items.length === 0 ? (
-        <span className="text-xs text-muted">None noted.</span>
+        <span className="text-xs text-muted">{noneNoted}</span>
       ) : (
         <ul className="flex flex-col gap-1.5 text-xs text-foreground">
           {items.map((item, i) => (

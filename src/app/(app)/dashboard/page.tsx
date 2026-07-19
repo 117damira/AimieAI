@@ -27,7 +27,7 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
 
 export default function DashboardPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { profile } = useUserProfile();
   const d = t.dashboard;
 
@@ -67,7 +67,7 @@ export default function DashboardPage() {
                 {WORD_OF_THE_DAY.word}
               </span>
               <span className="text-sm text-muted">
-                {WORD_OF_THE_DAY.definition}
+                {WORD_OF_THE_DAY.definition[language]}
               </span>
             </div>
           </CardContent>
