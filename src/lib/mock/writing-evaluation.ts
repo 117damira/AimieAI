@@ -30,8 +30,8 @@ import type {
  * and "correction" excerpts are always French too; only their explanation
  * is localized.
  *
- * To extend to DALF C1/C2: add "C1" | "C2" to the DelfLevel type, add
- * matching entries to DELF_WRITING_LEVELS, then add profiles below — the
+ * To extend to a higher exam level: add it to the DelfLevel type, add a
+ * matching entry to DELF_WRITING_LEVELS, then add a profile below — the
  * functions here need no changes.
  */
 

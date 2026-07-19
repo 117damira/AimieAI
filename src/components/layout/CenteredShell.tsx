@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { GraduationCap } from "lucide-react";
+import { APP_NAME } from "@/config/app";
 
 export function CenteredShell({ children }: { children: React.ReactNode }) {
   return (
@@ -9,7 +10,7 @@ export function CenteredShell({ children }: { children: React.ReactNode }) {
           <GraduationCap className="h-5 w-5" />
         </span>
         <span className="font-display text-xl font-semibold text-foreground">
-          Examly
+          {APP_NAME}
         </span>
       </Link>
       {children}

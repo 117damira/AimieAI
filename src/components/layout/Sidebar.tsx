@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { GraduationCap, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { SIDEBAR_NAV, SIDEBAR_FOOTER_NAV } from "@/config/navigation";
 import { ACTIVE_EXAM } from "@/config/exams";
+import { APP_NAME } from "@/config/app";
+import { LogoutConfirmDialog } from "./LogoutConfirmDialog";
 
 function NavLink({
   href,
@@ -39,6 +42,7 @@ function NavLink({
 
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   return (
     <>
@@ -48,7 +52,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </span>
         <div className="flex flex-col leading-tight">
           <span className="font-display text-base font-semibold text-foreground">
-            Examly
+            {APP_NAME}
           </span>
           <span className="text-xs text-muted">{ACTIVE_EXAM.name} track</span>
         </div>
@@ -74,14 +78,20 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             onNavigate={onNavigate}
           />
         ))}
-        <Link
-          href="/"
-          className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-danger-50 hover:text-danger-600"
+        <button
+          type="button"
+          onClick={() => setLogoutDialogOpen(true)}
+          className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-danger-50 hover:text-danger-600 cursor-pointer"
         >
           <LogOut className="h-[18px] w-[18px]" />
           Log out
-        </Link>
+        </button>
       </div>
+
+      <LogoutConfirmDialog
+        open={logoutDialogOpen}
+        onClose={() => setLogoutDialogOpen(false)}
+      />
     </>
   );
 }

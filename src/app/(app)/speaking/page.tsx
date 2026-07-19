@@ -31,7 +31,7 @@ type Phase = "asking" | "evaluating-turn" | "turn-feedback" | "compiling-report"
 const LIVE_AUTO_ADVANCE_DELAY_MS = 2200;
 
 export default function SpeakingPracticePage() {
-  const { profile } = useUserProfile();
+  const { profile, recordActivity } = useUserProfile();
   const level = profile ? resolvePracticeLevel(profile.targetLevel) : "A1";
   const levelConfig = DELF_SPEAKING_LEVELS[level];
   const queue = useMemo(() => flattenSpeakingParts(levelConfig), [levelConfig]);
@@ -63,8 +63,13 @@ export default function SpeakingPracticePage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Report generation failed");
-      setReportSelection(data.selection as ReportSelection);
+      const nextSelection = data.selection as ReportSelection;
+      setReportSelection(nextSelection);
       setPhase("report");
+      recordActivity(
+        "speaking",
+        Math.round((nextSelection.estimatedScore / nextSelection.scoreOutOf) * 100)
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setPhase("turn-feedback");

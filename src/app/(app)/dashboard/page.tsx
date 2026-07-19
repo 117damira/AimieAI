@@ -22,10 +22,6 @@ import {
   buttonVariants,
 } from "@/components/ui";
 import { WORD_OF_THE_DAY } from "@/lib/mock/word-of-the-day";
-import {
-  PROGRESS_SUMMARY,
-  DAILY_GOAL_MINUTES_DONE,
-} from "@/lib/mock/practice";
 import { EXAMS } from "@/config/exams";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
@@ -37,6 +33,11 @@ export default function DashboardPage() {
 
   if (!profile) return null;
   const exam = EXAMS[profile.examId];
+  const { stats } = profile;
+  // Minutes studied today isn't tracked by any real activity flow yet — a
+  // brand-new (or any) account has no per-day timer, so this stays 0 rather
+  // than showing a fabricated number.
+  const minutesDoneToday = 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -93,18 +94,18 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <ProgressBar
-              value={DAILY_GOAL_MINUTES_DONE}
+              value={minutesDoneToday}
               max={profile.dailyGoalMinutes}
               colorClassName="bg-success-500"
               label={d.dailyGoal.minutesLabel(
-                DAILY_GOAL_MINUTES_DONE,
+                minutesDoneToday,
                 profile.dailyGoalMinutes
               )}
               showPercentage
             />
             <div className="flex items-center gap-1.5 text-sm text-muted">
               <Flame className="h-4 w-4 text-warning-500" />
-              {d.dailyGoal.streakLine(PROGRESS_SUMMARY.currentStreakDays)}
+              {d.dailyGoal.streakLine(stats.currentStreakDays)}
             </div>
           </CardContent>
         </Card>
@@ -194,10 +195,10 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {[
-              { label: d.progress.wordsLearned, value: PROGRESS_SUMMARY.wordsLearned },
-              { label: d.progress.quizzesDone, value: PROGRESS_SUMMARY.quizzesCompleted },
-              { label: d.progress.speakingSessions, value: PROGRESS_SUMMARY.speakingSessions },
-              { label: d.progress.writingSessions, value: PROGRESS_SUMMARY.writingSessions },
+              { label: d.progress.wordsLearned, value: stats.wordsLearned },
+              { label: d.progress.quizzesDone, value: stats.quizzesCompleted },
+              { label: d.progress.speakingSessions, value: stats.speakingSessions },
+              { label: d.progress.writingSessions, value: stats.writingSessions },
             ].map((stat) => (
               <div
                 key={stat.label}

@@ -10,6 +10,7 @@ import {
 import { PublicNavbar } from "@/components/layout/PublicNavbar";
 import { Card, CardContent, Badge, buttonVariants } from "@/components/ui";
 import { EXAMS, ACTIVE_EXAM } from "@/config/exams";
+import { APP_NAME } from "@/config/app";
 
 const VALUE_PROPS = [
   {
@@ -55,7 +56,7 @@ export default function HomePage() {
             real examiner
           </h1>
           <p className="max-w-2xl text-lg leading-8 text-muted">
-            Examly gives students professional, structured feedback on
+            {APP_NAME} gives students professional, structured feedback on
             speaking and writing — helping you understand, correct, and
             improve your mistakes, not just memorize vocabulary.
           </p>
@@ -139,7 +140,7 @@ export default function HomePage() {
 
       <footer className="border-t border-border py-8">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-3 px-6 text-sm text-muted sm:flex-row">
-          <span>© 2026 Examly. Built for language learners.</span>
+          <span>© 2026 {APP_NAME}. Built for language learners.</span>
           <span>Made for the {ACTIVE_EXAM.name} MVP</span>
         </div>
       </footer>

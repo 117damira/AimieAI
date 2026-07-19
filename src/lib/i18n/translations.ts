@@ -10,6 +10,14 @@ export interface Dictionary {
     description: (days: number) => string;
     legendActive: string;
     legendInactive: string;
+    currentStreak: string;
+    longestStreak: string;
+    thisWeek: string;
+    thisMonth: string;
+    consistency: string;
+    consistencyDescription: (percent: number) => string;
+    daysUnit: string;
+    noHistory: string;
   };
   dashboard: {
     greeting: (firstName: string) => string;
@@ -60,9 +68,20 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
     streakModal: {
       title: "Your streak",
       description: (days) =>
-        `You've practiced ${days} day${days === 1 ? "" : "s"} in a row. Keep it going!`,
+        days === 0
+          ? "Complete a practice session to start your streak."
+          : `You've practiced ${days} day${days === 1 ? "" : "s"} in a row. Keep it going!`,
       legendActive: "Practiced",
       legendInactive: "No practice",
+      currentStreak: "Current streak",
+      longestStreak: "Longest streak",
+      thisWeek: "This week",
+      thisMonth: "This month",
+      consistency: "Consistency",
+      consistencyDescription: (percent) =>
+        `Practiced ${percent}% of the last 30 days`,
+      daysUnit: "days",
+      noHistory: "No sessions yet — practice to fill in your calendar.",
     },
     dashboard: {
       greeting: (firstName) => `Welcome back, ${firstName}`,
@@ -113,9 +132,20 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
     streakModal: {
       title: "Ваша серия",
       description: (days) =>
-        `Вы занимаетесь уже ${days} дн. подряд. Не останавливайтесь!`,
+        days === 0
+          ? "Завершите занятие, чтобы начать серию."
+          : `Вы занимаетесь уже ${days} дн. подряд. Не останавливайтесь!`,
       legendActive: "Занимались",
       legendInactive: "Нет занятий",
+      currentStreak: "Текущая серия",
+      longestStreak: "Лучшая серия",
+      thisWeek: "На этой неделе",
+      thisMonth: "В этом месяце",
+      consistency: "Стабильность",
+      consistencyDescription: (percent) =>
+        `Занимались ${percent}% из последних 30 дней`,
+      daysUnit: "дн.",
+      noHistory: "Пока нет занятий — начните практиковаться, чтобы заполнить календарь.",
     },
     dashboard: {
       greeting: (firstName) => `С возвращением, ${firstName}`,
@@ -166,9 +196,20 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
     streakModal: {
       title: "Сіздің серияңыз",
       description: (days) =>
-        `Сіз ${days} күн қатарынан жаттықтыңыз. Жалғастыра беріңіз!`,
+        days === 0
+          ? "Серияны бастау үшін жаттығуды аяқтаңыз."
+          : `Сіз ${days} күн қатарынан жаттықтыңыз. Жалғастыра беріңіз!`,
       legendActive: "Жаттыққан",
       legendInactive: "Жаттықпаған",
+      currentStreak: "Ағымдағы серия",
+      longestStreak: "Ең ұзақ серия",
+      thisWeek: "Осы апта",
+      thisMonth: "Осы ай",
+      consistency: "Тұрақтылық",
+      consistencyDescription: (percent) =>
+        `Соңғы 30 күннің ${percent}% жаттықтыңыз`,
+      daysUnit: "күн",
+      noHistory: "Әзірге жаттығу жоқ — күнтізбені толтыру үшін жаттығуды бастаңыз.",
     },
     dashboard: {
       greeting: (firstName) => `Қайта қош келдіңіз, ${firstName}`,

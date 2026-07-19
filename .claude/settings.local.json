@@ -12,7 +12,11 @@
       "PowerShell(Get-Process *)",
       "PowerShell(npm run *)",
       "PowerShell(npx tsc --noEmit -p . 2>&1 | Select-Object -First 100)",
-      "PowerShell(npx next lint 2>&1 | Select-Object -First 150)"
+      "PowerShell(npx next lint 2>&1 | Select-Object -First 150)",
+      "Skill(dataviz)",
+      "Bash(node scripts/validate_palette.js \"#7c5cf5,#38bdf8\" --mode light)",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/ --max-time 5)"
     ]
   }
 }

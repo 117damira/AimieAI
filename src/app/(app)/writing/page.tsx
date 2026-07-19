@@ -56,7 +56,7 @@ const GRAMMAR_CATEGORY_LABELS: Record<GrammarError["category"], Record<FeedbackL
 };
 
 export default function WritingPracticePage() {
-  const { profile } = useUserProfile();
+  const { profile, recordActivity } = useUserProfile();
   const [language, setLanguage] = useState<FeedbackLanguage>("en");
   const [text, setText] = useState("");
   const [evaluation, setEvaluation] = useState<WritingEvaluation | null>(null);
@@ -107,8 +107,11 @@ export default function WritingPracticePage() {
       if (!res.ok) {
         throw new Error(data.error || "Evaluation failed");
       }
-      setEvaluation(data.evaluation as WritingEvaluation);
+      const nextEvaluation = data.evaluation as WritingEvaluation;
+      setEvaluation(nextEvaluation);
       setSelection(data.selection as EvaluationSelection);
+      const { estimatedScore, scoreOutOf } = nextEvaluation.examReadiness;
+      recordActivity("writing", Math.round((estimatedScore / scoreOutOf) * 100));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { GraduationCap } from "lucide-react";
 import { buttonVariants } from "@/components/ui";
+import { APP_NAME } from "@/config/app";
 
 export function PublicNavbar() {
   return (
@@ -11,7 +12,7 @@ export function PublicNavbar() {
             <GraduationCap className="h-5 w-5" />
           </span>
           <span className="font-display text-lg font-semibold text-foreground">
-            Examly
+            {APP_NAME}
           </span>
         </Link>
 

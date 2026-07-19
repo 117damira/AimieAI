@@ -3,14 +3,15 @@
 import { useState } from "react";
 import { Menu, Flame } from "lucide-react";
 import { Avatar, Badge } from "@/components/ui";
-import { PROGRESS_SUMMARY } from "@/lib/mock/practice";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { StreakModal } from "./StreakModal";
+import { ProfileModal } from "./ProfileModal";
 
 export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   const [streakModalOpen, setStreakModalOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const { t } = useLanguage();
   const { profile } = useUserProfile();
 
@@ -42,15 +43,26 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
             className="transition-transform hover:scale-105"
           >
             <Flame className="h-3.5 w-3.5" />
-            {t.topbar.streak(PROGRESS_SUMMARY.currentStreakDays)}
+            {t.topbar.streak(profile.stats.currentStreakDays)}
           </Badge>
         </button>
-        <Avatar initials={profile.avatarInitials} size="sm" />
+        <button
+          type="button"
+          onClick={() => setProfileModalOpen(true)}
+          aria-label="Open profile menu"
+          className="cursor-pointer rounded-full transition-transform hover:scale-105"
+        >
+          <Avatar initials={profile.avatarInitials} size="sm" />
+        </button>
       </div>
 
       <StreakModal
         open={streakModalOpen}
         onClose={() => setStreakModalOpen(false)}
+      />
+      <ProfileModal
+        open={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
       />
     </header>
   );

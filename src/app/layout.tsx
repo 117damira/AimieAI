@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { LanguageProvider } from "@/lib/i18n/LanguageContext";
 import { UserProfileProvider } from "@/lib/profile/UserProfileContext";
+import { APP_NAME } from "@/config/app";
 import "./globals.css";
 
 const inter = Inter({
@@ -15,7 +16,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Examly — AI Exam Preparation",
+  title: `${APP_NAME} — AI Exam Preparation`,
   description:
     "AI-powered exam preparation platform with professional examiner-style feedback. Starting with DELF.",
 };

@@ -1,42 +1,11 @@
 "use client";
 
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Badge, Input, Button } from "@/components/ui";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Badge, Input, Button, ToggleRow } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import { EXAMS } from "@/config/exams";
+import { APP_NAME } from "@/config/app";
 import { cn } from "@/lib/utils/cn";
-
-function ToggleRow({
-  title,
-  description,
-  enabled,
-}: {
-  title: string;
-  description: string;
-  enabled: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4 py-3">
-      <div className="flex flex-col">
-        <span className="text-sm font-medium text-foreground">{title}</span>
-        <span className="text-sm text-muted">{description}</span>
-      </div>
-      <span
-        className={cn(
-          "flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors",
-          enabled ? "bg-primary-500" : "bg-border"
-        )}
-      >
-        <span
-          className={cn(
-            "h-5 w-5 rounded-full bg-white shadow transition-transform",
-            enabled && "translate-x-5"
-          )}
-        />
-      </span>
-    </div>
-  );
-}
 
 export default function SettingsPage() {
   const { profile } = useUserProfile();
@@ -52,7 +21,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Account</CardTitle>
-          <CardDescription>Your login email for Examly.</CardDescription>
+          <CardDescription>Your login email for {APP_NAME}.</CardDescription>
         </CardHeader>
         <CardContent>
           <Input label="Email" type="email" defaultValue={profile.email} disabled />

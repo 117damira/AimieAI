@@ -1,4 +1,4 @@
-import type { WritingPrompt, QuizQuestion, ProgressSummary } from "@/types";
+import type { WritingPrompt, QuizQuestion } from "@/types";
 
 export const WRITING_PROMPT: WritingPrompt = {
   id: "wp_1",
@@ -37,14 +37,3 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     ],
   },
 ];
-
-export const DAILY_GOAL_MINUTES_DONE = 12;
-
-export const PROGRESS_SUMMARY: ProgressSummary = {
-  wordsLearned: 42,
-  quizzesCompleted: 6,
-  speakingSessions: 9,
-  writingSessions: 5,
-  currentStreakDays: 4,
-  weeklyGoalProgress: 65,
-};

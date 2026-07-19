@@ -6,3 +6,4 @@ export * from "./Avatar";
 export * from "./Badge";
 export * from "./Modal";
 export * from "./AnimatedNumber";
+export * from "./ToggleRow";

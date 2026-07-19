@@ -5,8 +5,8 @@ import type { DelfLevel } from "@/types/writing-evaluation";
  * exam format so the mock evaluator grades against the same rubric a real
  * examiner would use. Mirrors the shape of config/delf-writing.ts.
  *
- * Only A1-B2 are defined — see lib/utils/level.ts for how "Beginner"/"C1"/
- * "C2" onboarding levels are clamped onto this set.
+ * Only A1-B2 are defined — see lib/utils/level.ts for how the "Beginner"
+ * onboarding level is clamped onto this set.
  */
 
 export interface SpeakingQuestionSpec {
