@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   PenLine,
   Sparkles,
@@ -24,10 +24,6 @@ import {
 } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DELF_WRITING_LEVELS } from "@/config/delf-writing";
-import {
-  localizeEvaluation,
-  type EvaluationSelection,
-} from "@/lib/mock/writing-evaluation";
 import type {
   FeedbackLanguage,
   GrammarError,
@@ -53,22 +49,41 @@ export default function WritingPracticePage() {
   const { profile, recordActivity } = useUserProfile();
   const { t, language: uiLanguage } = useLanguage();
   const [text, setText] = useState("");
-  const [selection, setSelection] = useState<EvaluationSelection | null>(null);
+  const [evaluation, setEvaluation] = useState<WritingEvaluation | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lastRequestRef = useRef<{ level: string; prompt: string; response: string } | null>(null);
+  const prevLanguageRef = useRef(uiLanguage);
 
   const wordCount = useMemo(
     () => text.trim().split(/\s+/).filter(Boolean).length,
     [text]
   );
 
-  // Derived directly from `selection` + the current global UI language — no
-  // request, no extra state. The underlying analysis (errors picked, score,
-  // structure flags) stays the same; only the feedback text re-localizes
-  // instantly whenever the learner switches languages via Topbar.
-  const evaluation: WritingEvaluation | null = selection
-    ? { level: selection.level, wordCount: selection.wordCount, ...localizeEvaluation(selection, uiLanguage) }
-    : null;
+  // Re-fetch in the newly selected language if the learner switches it
+  // mid-review — the evaluation can come from a real Claude call (already
+  // localized server-side, no client-side re-localization available) or
+  // the mock, so both paths just re-request rather than assuming a
+  // language-neutral selection is available to re-render locally.
+  useEffect(() => {
+    if (prevLanguageRef.current === uiLanguage) return;
+    prevLanguageRef.current = uiLanguage;
+    const lastRequest = lastRequestRef.current;
+    if (!lastRequest) return;
+    void (async () => {
+      try {
+        const res = await fetch("/api/writing/evaluate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...lastRequest, language: uiLanguage }),
+        });
+        const data = await res.json();
+        if (res.ok) setEvaluation(data.evaluation as WritingEvaluation);
+      } catch {
+        // Keep showing the previous-language evaluation rather than erroring out.
+      }
+    })();
+  }, [uiLanguage]);
 
   if (!profile) return null;
   const level = resolvePracticeLevel(profile.targetLevel);
@@ -79,24 +94,25 @@ export default function WritingPracticePage() {
   async function handleSubmit() {
     setIsSubmitting(true);
     setError(null);
-    setSelection(null);
+    setEvaluation(null);
+    const requestBody = {
+      level,
+      prompt: levelConfig.samplePrompt.instructions,
+      response: text,
+    };
+    lastRequestRef.current = requestBody;
     try {
       const res = await fetch("/api/writing/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          level,
-          prompt: levelConfig.samplePrompt.instructions,
-          response: text,
-          language: uiLanguage,
-        }),
+        body: JSON.stringify({ ...requestBody, language: uiLanguage }),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || t.writing.evaluationFailed);
       }
       const nextEvaluation = data.evaluation as WritingEvaluation;
-      setSelection(data.selection as EvaluationSelection);
+      setEvaluation(nextEvaluation);
       const { estimatedScore, scoreOutOf } = nextEvaluation.examReadiness;
       recordActivity("writing", Math.round((estimatedScore / scoreOutOf) * 100));
     } catch (err) {

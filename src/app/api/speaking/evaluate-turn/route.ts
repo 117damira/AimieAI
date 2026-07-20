@@ -76,7 +76,15 @@ export async function POST(req: NextRequest) {
   await new Promise((resolve) => setTimeout(resolve, SIMULATED_ANALYSIS_DELAY_MS));
 
   try {
-    const selection = analyzeTurn(level, partId, questionId, prompt ?? "", transcript, wordCount);
+    const selection = analyzeTurn(
+      level,
+      partId,
+      questionId,
+      prompt ?? "",
+      transcript,
+      wordCount,
+      recognitionConfidence ?? null
+    );
     const feedback = localizeTurnFeedback(selection, language, previousCoachingTips ?? []);
     // The offline mock never generates reactive follow-ups — that's a
     // bounded, Claude-only enhancement.

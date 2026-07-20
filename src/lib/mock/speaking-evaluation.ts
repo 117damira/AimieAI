@@ -7,6 +7,15 @@ import type {
   SpeakingGrammarMistake,
   TurnFeedback,
 } from "@/types/speaking-evaluation";
+import {
+  countFillerWords,
+  countSentences,
+  extractContentWords,
+  FILLER_WORDS,
+  lexicalDiversity,
+  sentenceLengths,
+} from "@/lib/evaluation/text-utils";
+import { findGrammarMistakes, getGrammarRule } from "@/lib/evaluation/grammar-rules";
 
 /**
  * Offline fallback DELF speaking evaluator, used by the API routes when no
@@ -16,25 +25,17 @@ import type {
  * synthesizeReportFromTurns() aggregates the real accumulated CompletedTurn
  * data (actual transcripts, scores, grammar errors) into a final report.
  *
+ * Every field here is computed from the real transcript — nothing is
+ * selected at random from a canned per-level pool, and nothing is shown
+ * unless it's actually earned by what the student said. Text-analysis
+ * primitives and grammar-mistake detection are shared with Writing and
+ * Vocabulary (see lib/evaluation/).
+ *
  * Exam prompts and the student's own answers stay in French; only this
  * AI-generated feedback text is translated.
  */
 
 type TranslatedText = Record<FeedbackLanguage, string>;
-
-interface MockSpeakingLevelProfile {
-  pronunciationNotes: TranslatedText[];
-  fluencyNotes: TranslatedText[];
-  vocabularyRangeNotes: TranslatedText[];
-  taskCompletionNotes: TranslatedText[];
-  coherenceNotes: TranslatedText[];
-  sentenceVarietyNotes: TranslatedText[];
-  naturalnessNotes: TranslatedText[];
-  strengths: TranslatedText[];
-  weaknesses: TranslatedText[];
-  improvementTips: TranslatedText[];
-  baseScore: number;
-}
 
 /** A curated set of real French words genuinely known to be commonly
  * mispronounced by learners, each with a defensible phonetic reason —
@@ -163,340 +164,10 @@ function buildHowToFix(correction: string, language: FeedbackLanguage): string {
   return templates[language];
 }
 
-const FILLER_WORDS = ["euh", "du coup", "genre", "en fait", "quoi", "voilà", "bah"];
-
-/**
- * Real, transcript-grounded grammar detection — every rule only fires when
- * its pattern genuinely appears in what the student said; `original` is
- * always the actual matched substring (never a canned phrase), and
- * `correction` is computed FROM that substring. This replaces the previous
- * design where 1-2 mistakes were picked at random from a fixed per-level
- * pool regardless of the transcript — that was fabricating errors.
- */
-interface GrammarRule {
-  id: string;
-  category: SpeakingGrammarMistake["category"];
-  regex: RegExp;
-  correction: (matched: string) => string;
-  explanation: TranslatedText;
-  betterExample: string;
-}
-
-const JE_CONJUGATION_MAP: Record<string, string> = {
-  aimer: "j'aime",
-  vouloir: "je veux",
-  pouvoir: "je peux",
-  aller: "je vais",
-  faire: "je fais",
-  habiter: "j'habite",
-  parler: "je parle",
-  manger: "je mange",
-  travailler: "je travaille",
-  étudier: "j'étudie",
-  avoir: "j'ai",
-  être: "je suis",
-  jouer: "je joue",
-  regarder: "je regarde",
-  écouter: "j'écoute",
-};
-
-const SUBJONCTIF_JE_MAP: Record<string, string> = { vais: "aille", peux: "puisse", veux: "veuille", fais: "fasse" };
-const SUBJONCTIF_IL_MAP: Record<string, string> = { est: "soit", a: "ait", peut: "puisse", doit: "doive", va: "aille" };
-
-const ETRE_VERB_PARTICIPLE_PATTERN = /^(allé|arrivé|parti|venu|entré|sorti|monté|descendu|resté|tombé|né)/i;
-const AVOIR_CONJ_BY_PRONOUN: Record<string, string> = {
-  tu: "as", il: "a", elle: "a", nous: "avons", vous: "avez", ils: "ont", elles: "ont",
-};
-const ETRE_CONJ_BY_PRONOUN: Record<string, string> = {
-  tu: "es", il: "est", elle: "est", nous: "sommes", vous: "êtes", ils: "sont", elles: "sont",
-};
-const FEMININE_ADJECTIVE_MAP: Record<string, string> = {
-  blanc: "blanche", grand: "grande", petit: "petite", beau: "belle", nouveau: "nouvelle", vieux: "vieille", bon: "bonne",
-};
-
-const GRAMMAR_RULES: GrammarRule[] = [
-  {
-    id: "etre-age",
-    category: "verb",
-    regex: /\bje\s+suis\s+([a-zà-ÿ0-9-]+)\s+ans?\b/i,
-    correction: (m) => m.replace(/\bje\s+suis\b/i, "j'ai"),
-    explanation: {
-      en: "Age is expressed with \"avoir\" (avoir + age), not \"être\".",
-      ru: "Возраст выражается с помощью глагола «avoir» (avoir + возраст), а не «être».",
-      kz: "Жас мөлшері «avoir» етістігімен беріледі (avoir + жас), «être» емес.",
-    },
-    betterExample: "J'ai vingt ans et mon frère a dix-huit ans.",
-  },
-  {
-    id: "gender-article",
-    category: "agreement",
-    regex: /\bun\s+(maison|voiture|ville|chose|idée|université|semaine|année|table|chambre|cuisine)(?![a-zà-ÿ])/i,
-    correction: (m) => m.replace(/\bun\b/i, "une"),
-    explanation: {
-      en: "This noun is feminine, so it takes \"une\", not \"un\".",
-      ru: "Это существительное женского рода, поэтому употребляется с «une», а не «un».",
-      kz: "Бұл зат есім әйел тегінде, сондықтан «une» қолданылады, «un» емес.",
-    },
-    betterExample: "J'habite dans une maison avec un grand jardin.",
-  },
-  {
-    id: "infinitive-not-conjugated",
-    category: "sentence-structure",
-    regex: new RegExp(`\\bje\\s+(${Object.keys(JE_CONJUGATION_MAP).join("|")})\\b`, "i"),
-    correction: (m) => {
-      const verb = m.trim().split(/\s+/)[1]?.toLowerCase() ?? "";
-      return JE_CONJUGATION_MAP[verb] ?? m;
-    },
-    explanation: {
-      en: "The verb must be conjugated, not left in the infinitive.",
-      ru: "Глагол нужно спрягать, а не оставлять в инфинитиве.",
-      kz: "Етістік тұйық түрде қалмай, жіктелуі керек.",
-    },
-    betterExample: "J'aime le sport et je joue au football le week-end.",
-  },
-  {
-    id: "passe-compose-aux",
-    category: "verb",
-    // Trailing lookahead (not `\b`) because `\b` never matches right after an
-    // accented vowel like "é" in JS regex (it isn't a `\w` character) — with
-    // `\b` here, masculine singular forms ("j'ai allé") would silently fail
-    // to match while "e"/"s"-suffixed forms happened to still work.
-    regex: /\bj['’]ai\s+(allée?s?|arrivée?s?|partie?s?|venue?s?|entrée?s?|sortie?s?|montée?s?|descendue?s?|restée?s?|tombée?s?|née?s?)(?![a-zà-ÿ])/i,
-    correction: (m) => m.replace(/j['’]ai/i, "je suis"),
-    explanation: {
-      en: "This verb takes \"être\" as its auxiliary in the passé composé, not \"avoir\".",
-      ru: "Этот глагол в passé composé спрягается с «être», а не с «avoir».",
-      kz: "Бұл етістік passé composé-де «être» көмекші етістігімен тіркеседі, «avoir» емес.",
-    },
-    betterExample: "Hier, je suis allé(e) au cinéma avec des amis.",
-  },
-  {
-    id: "preposition-penser-de",
-    category: "other",
-    regex: /\bje\s+pense\s+de\s+\w+/i,
-    correction: (m) => m.replace(/\spense\s+de\s+/i, " pense "),
-    explanation: {
-      en: "\"Penser\" + infinitive doesn't take \"de\" when expressing an intention.",
-      ru: "«Penser» + инфинитив не требует предлога «de» при выражении намерения.",
-      kz: "Ниетті білдіргенде «penser» + тұйық етістік «de» септеулігін қажет етпейді.",
-    },
-    betterExample: "Je pense sortir ce soir avec ma sœur.",
-  },
-  {
-    id: "agreement-participle-elle",
-    category: "agreement",
-    // `(?![a-zà-ÿ])` instead of `\b(?!e)` — see the passe-compose-aux rule's
-    // comment above; this also doubles as the "not already agreed" check,
-    // since a following "e" (as in "allée") already fails the lookahead.
-    regex: /\belle\s+est\s+(allé|arrivé|parti|venu|entré|sorti|monté|descendu|resté|tombé|né)(?![a-zà-ÿ])/i,
-    correction: (m) => `${m}e`,
-    explanation: {
-      en: "With \"être\", the past participle agrees with the subject: it needs an \"e\" for a feminine subject.",
-      ru: "С «être» причастие прошедшего времени согласуется с подлежащим: для женского рода нужна «e».",
-      kz: "«Être»-мен есімше бастауышпен келіседі: әйелдік тек үшін «e» қажет.",
-    },
-    betterExample: "Elle est allée au marché ce matin.",
-  },
-  {
-    id: "subjonctif-il-faut-que",
-    category: "verb",
-    regex: /\bil\s+faut\s+que\s+je\s+(vais|peux|veux|fais)\b/i,
-    correction: (m) => {
-      const match = m.match(/(vais|peux|veux|fais)$/i);
-      const verb = match ? match[1].toLowerCase() : "";
-      const subj = SUBJONCTIF_JE_MAP[verb] ?? verb;
-      const jePart = /^[aeiouhâêîôûéèë]/i.test(subj) ? "j'" : "je ";
-      return m.replace(/je\s+(vais|peux|veux|fais)$/i, `${jePart}${subj}`);
-    },
-    explanation: {
-      en: "\"Il faut que\" requires the subjunctive, not the indicative.",
-      ru: "«Il faut que» требует сослагательного наклонения, а не изъявительного.",
-      kz: "«Il faut que» бағыныңқы райды талап етеді, ашық рай емес.",
-    },
-    betterExample: "Il faut que j'aille au rendez-vous avant midi.",
-  },
-  {
-    id: "double-comparative",
-    category: "sentence-structure",
-    regex: /\bplus\s+meilleur\b/i,
-    correction: (m) => m.replace(/plus\s+meilleur/i, "meilleur"),
-    explanation: {
-      en: "\"Meilleur\" is already the comparative of \"bon\" — adding \"plus\" doubles the comparison.",
-      ru: "«Meilleur» уже является сравнительной формой «bon» — добавление «plus» создаёт двойное сравнение.",
-      kz: "«Meilleur» «bon» сөзінің салыстырмалы түрі — «plus» қосу қосарланған салыстыру жасайды.",
-    },
-    betterExample: "Ce restaurant est meilleur que l'autre.",
-  },
-  {
-    id: "anglicism-definitivement",
-    category: "other",
-    regex: /\bdéfinitivement\b/i,
-    correction: (m) => m.replace(/définitivement/i, "tout à fait"),
-    explanation: {
-      en: "\"Définitivement\" is an anglicism here; \"tout à fait\" is the natural French equivalent.",
-      ru: "«Définitivement» здесь — англицизм; естественный французский эквивалент — «tout à fait».",
-      kz: "Бұл жерде «définitivement» — ағылшыншылдық; табиғи француз баламасы — «tout à fait».",
-    },
-    betterExample: "Je suis tout à fait d'accord avec cette proposition.",
-  },
-  {
-    id: "subjonctif-bien-que",
-    category: "verb",
-    regex: /\bbien\s+(qu['’]il|qu['’]elle)\s+(est|a|peut|doit|va)\b/i,
-    correction: (m) => {
-      const match = m.match(/(est|a|peut|doit|va)$/i);
-      const verb = match ? match[1].toLowerCase() : "";
-      const subj = SUBJONCTIF_IL_MAP[verb] ?? verb;
-      return m.replace(new RegExp(`${verb}$`, "i"), subj);
-    },
-    explanation: {
-      en: "\"Bien que\" always triggers the subjunctive, not the indicative.",
-      ru: "«Bien que» всегда требует сослагательного наклонения, а не изъявительного.",
-      kz: "«Bien que» әрқашан бағыныңқы райды талап етеді, ашық рай емес.",
-    },
-    betterExample: "Bien qu'il soit difficile de changer ses habitudes, il faut essayer.",
-  },
-  {
-    id: "nuance-absolu",
-    category: "other",
-    regex: /\b(totalement|complètement)\s+faux\b/i,
-    correction: (m) => m.replace(/(totalement|complètement)\s+faux/i, "en grande partie inexact"),
-    explanation: {
-      en: "At higher levels, absolute statements benefit from more nuanced hedging language.",
-      ru: "На продвинутом уровне категоричные утверждения лучше смягчать более нюансированными формулировками.",
-      kz: "Жоғары деңгейде категориялық тұжырымдарды нәзігірек тілмен жеткізген жөн.",
-    },
-    betterExample: "Cela me semble en grande partie inexact, à mon avis.",
-  },
-  {
-    id: "stacked-connectors",
-    category: "sentence-structure",
-    regex: /\bcependant,?\s+néanmoins\b/i,
-    correction: (m) => m.replace(/,?\s+néanmoins/i, ""),
-    explanation: {
-      en: "Avoid stacking two contrastive connectors in a row — pick one to keep the argument clear.",
-      ru: "Избегайте нагромождения двух противительных союзов подряд — выберите один для ясности аргумента.",
-      kz: "Екі қарсы мәнді жалғаулықты қатар қоймаңыз — дәлелдің анықтығы үшін біреуін таңдаңыз.",
-    },
-    betterExample: "Cependant, il faut reconnaître que la situation est complexe.",
-  },
-  {
-    id: "etre-infinitive-passe-compose",
-    category: "verb",
-    regex: /\b(nous|vous|tu|il|elle|ils|elles)\s+être\s+([a-zà-ÿ]+)(?![a-zà-ÿ])/i,
-    correction: (m) => {
-      const match = m.match(/^(nous|vous|tu|il|elle|ils|elles)\s+être\s+([a-zà-ÿ]+)$/i);
-      if (!match) return m;
-      const [, pronounRaw, participle] = match;
-      const pronoun = pronounRaw.toLowerCase();
-      const conjMap = ETRE_VERB_PARTICIPLE_PATTERN.test(participle) ? ETRE_CONJ_BY_PRONOUN : AVOIR_CONJ_BY_PRONOUN;
-      const aux = conjMap[pronoun] ?? participle;
-      return `${pronounRaw} ${aux} ${participle}`;
-    },
-    explanation: {
-      en: "\"Être\" was left as the infinitive instead of being conjugated for the passé composé. The correct auxiliary — \"avoir\" for most verbs, or a conjugated form of \"être\" for a small set of motion/state verbs — depends on the specific verb.",
-      ru: "«Être» осталось в инфинитиве вместо того, чтобы быть спрягаемым для passé composé. Правильный вспомогательный глагол — «avoir» для большинства глаголов или спрягаемая форма «être» для небольшой группы глаголов движения/состояния — зависит от конкретного глагола.",
-      kz: "Passé composé үшін «être» жіктелудің орнына тұйық түрде қалып қойды. Дұрыс көмекші етістік — көптеген етістіктер үшін «avoir», ал қозғалыс/күй етістіктерінің шағын тобы үшін жіктелген «être» — нақты етістікке байланысты.",
-    },
-    betterExample: "Nous avons joué au football hier avec mes amis.",
-  },
-  {
-    id: "adjective-gender-agreement",
-    category: "agreement",
-    regex: /\b(maison|voiture|ville|chose|idée|université|semaine|année|table|chambre|cuisine)\s+(blanc|grand|petit|beau|nouveau|vieux|bon)\b/i,
-    correction: (m) => {
-      const match = m.match(/^(\S+)\s+(\S+)$/);
-      if (!match) return m;
-      const [, noun, adj] = match;
-      const feminine = FEMININE_ADJECTIVE_MAP[adj.toLowerCase()] ?? adj;
-      return `${noun} ${feminine}`;
-    },
-    explanation: {
-      en: "This noun is feminine, so the adjective describing it must also take its feminine form.",
-      ru: "Это существительное женского рода, поэтому описывающее его прилагательное тоже должно быть в женском роде.",
-      kz: "Бұл зат есім әйел тегінде, сондықтан оны сипаттайтын сын есім де әйелдік түрде болуы керек.",
-    },
-    betterExample: "J'habite dans une grande maison blanche avec un joli jardin.",
-  },
-];
-
-/** The full sentence containing a match at `index` — split on sentence
- * punctuation, never mid-word, so a mistake can be shown highlighted in its
- * real context instead of as an isolated phrase. */
-function findContainingSentence(transcript: string, index: number, matchLength: number): string {
-  const before = transcript.slice(0, index);
-  const start = Math.max(before.lastIndexOf("."), before.lastIndexOf("!"), before.lastIndexOf("?")) + 1;
-  const afterStart = index + matchLength;
-  const relativeEnd = transcript.slice(afterStart).search(/[.!?]/);
-  const end = relativeEnd === -1 ? transcript.length : afterStart + relativeEnd + 1;
-  return transcript.slice(start, end).trim();
-}
-
-/** Scans the actual transcript against every rule and returns only genuine
- * matches — never invents a mistake that wasn't said. Capped at 6 (not a
- * tighter number) so a transcript with several real mistakes doesn't have
- * genuine ones silently dropped. */
-function findGrammarMistakes(
-  transcript: string
-): { ruleId: string; original: string; correction: string; sentence: string }[] {
-  const results: { ruleId: string; original: string; correction: string; sentence: string }[] = [];
-  for (const rule of GRAMMAR_RULES) {
-    const match = transcript.match(rule.regex);
-    if (match && match.index !== undefined) {
-      results.push({
-        ruleId: rule.id,
-        original: match[0],
-        correction: rule.correction(match[0]),
-        sentence: findContainingSentence(transcript, match.index, match[0].length),
-      });
-      if (results.length >= 6) break;
-    }
-  }
-  return results;
-}
-
-/** Words that carry no topical meaning — excluded when comparing the
- * question's real content words against the transcript's, so relevance
- * detection isn't fooled by shared pronouns/articles/question-verbs. */
-const FRENCH_STOPWORDS = new Set([
-  "je", "tu", "il", "elle", "on", "nous", "vous", "ils", "elles", "le", "la", "les", "un", "une", "des", "de", "du",
-  "et", "ou", "mais", "donc", "car", "que", "qui", "quoi", "dont", "dans", "sur", "avec", "pour", "par", "sans", "sous",
-  "votre", "vos", "notre", "nos", "leur", "leurs", "cette", "cet", "ces", "mon", "ma", "mes", "ton", "ta", "tes", "son", "sa", "ses",
-  "est", "es", "suis", "sont", "êtes", "sommes", "être", "avoir", "ai", "as", "avons", "avez", "ont",
-  "me", "te", "se", "lui", "y", "en", "au", "aux", "ne", "pas", "plus", "très", "bien", "aussi", "comme", "autre", "autres",
-  "pouvez", "voulez", "faire", "fait", "faites", "proposez", "expliquez", "présentez", "parlez", "dites", "pensez",
-]);
-
-const ACCENT_MAP: Record<string, string> = {
-  à: "a", â: "a", ä: "a", é: "e", è: "e", ê: "e", ë: "e", î: "i", ï: "i",
-  ô: "o", ö: "o", ù: "u", û: "u", ü: "u", ç: "c", œ: "oe", æ: "ae",
-};
-
-function normalizeWord(word: string): string {
-  return word
-    .toLowerCase()
-    .split("")
-    .map((ch) => ACCENT_MAP[ch] ?? ch)
-    .join("");
-}
-
-function extractContentWords(text: string): string[] {
-  return text
-    .replace(/[.,!?;:"'«»()]/g, " ")
-    .split(/\s+/)
-    .map(normalizeWord)
-    .filter((w) => w.length >= 4 && !FRENCH_STOPWORDS.has(w));
-}
-
 /** Real relevance detection — compares the actual question's content words
- * against the actual transcript's, instead of the previous `wordCount >= 5`
- * heuristic, which marked any sufficiently long answer relevant regardless
- * of whether it addressed the question at all. */
-/** Self-introduction questions ("Présentez-vous", "Comment vous
- * appelez-vous ?") don't share literal vocabulary with a valid answer — a
- * correct response talks about the candidate, not the question's own
- * wording — so keyword overlap alone would wrongly flag genuine
- * introductions as off-topic. Recognized directly instead. */
+ * against the actual transcript's. Self-introduction questions ("Présentez-
+ * vous", "Comment vous appelez-vous ?") don't share literal vocabulary with
+ * a valid answer, so that pattern is recognized directly instead. */
 const SELF_INTRO_QUESTION_PATTERN = /présent|appelez|votre nom|qui êtes-vous/i;
 const SELF_INTRO_ANSWER_PATTERN = /je m['’]appelle|mon nom est|j['’]ai\s+\d+\s+ans|j['’]habite/i;
 /** Unambiguous self-introduction markers only ("j'habite"/"j'ai X ans" are
@@ -522,9 +193,6 @@ function computeRelevance(prompt: string, transcript: string, wordCount: number)
 }
 
 function buildOffTopicNote(prompt: string, looksLikeSelfIntro: boolean, language: FeedbackLanguage): string {
-  // A self-introduction answered to a non-self-intro question is the most
-  // common off-topic pattern — name it specifically instead of a generic
-  // mismatch note, so the explanation states what the student actually did.
   if (looksLikeSelfIntro) {
     const selfIntroTemplates: TranslatedText = {
       en: `You introduced yourself instead of answering what was asked ("${prompt}"). Make sure to respond directly to the actual question next time.`,
@@ -551,13 +219,7 @@ type StructureIssue = "not-relevant" | "missing-support" | "missing-example" | "
 const SUPPORTING_DETAIL_PATTERN = /\b(parce que|car|donc|puisque)\b/i;
 const EXAMPLE_PATTERN = /\b(par exemple|comme|tel que|telle que)\b/i;
 const CONCLUSION_PATTERN = /\b(donc|enfin|voilà|en résumé|bref|en conclusion)\b/i;
-
-function countSentences(text: string): number {
-  return text
-    .split(/[.!?]+/)
-    .map((s) => s.trim())
-    .filter(Boolean).length;
-}
+const CONNECTOR_PATTERN = /\b(donc|parce que|car|ensuite|puis|alors|cependant|néanmoins|d'abord|enfin)\b/i;
 
 function classifyStructure(transcript: string, relevant: boolean, wordCount: number): StructureIssue {
   if (!relevant) return "not-relevant";
@@ -676,7 +338,7 @@ function buildImprovedAnswer(
 }
 
 /** One personalized, actionable coaching tip per turn, picked from a
- * ranked pool of candidates keyed to this turn's real signals — never a
+ * ranked list of candidates keyed to this turn's real signals — never a
  * generic boilerplate line, and never repeated verbatim within a session
  * (the caller supplies previously-shown tips to exclude). */
 type CoachingTipId =
@@ -756,10 +418,6 @@ const COACHING_TIPS: Record<CoachingTipId, TranslatedText> = {
   },
 };
 
-/** Ranked candidate list (language-neutral) — computed once in analyzeTurn
- * from this turn's real signals; the actual pick (with anti-repeat) happens
- * in localizeTurnFeedback once the feedback language and prior tips are
- * known. */
 function buildCoachingTipCandidates(
   relevant: boolean,
   structureIssue: StructureIssue,
@@ -773,7 +431,7 @@ function buildCoachingTipCandidates(
   if (structureIssue === "missing-example") candidates.push("missing-example");
   if (structureIssue === "missing-conclusion") candidates.push("missing-conclusion");
   if (matchedMistakes.length > 0) {
-    const rule = GRAMMAR_RULES.find((r) => r.id === matchedMistakes[0].ruleId);
+    const rule = getGrammarRule(matchedMistakes[0].ruleId);
     if (rule) candidates.push(`grammar-${rule.category}` as CoachingTipId);
   }
   if (fillerCount >= 2) candidates.push("filler-heavy");
@@ -797,570 +455,322 @@ function pickCoachingTip(
   return COACHING_TIPS[candidates[0]][language];
 }
 
-const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
-  A1: {
-    pronunciationNotes: [
-      {
-        en: "Pronunciation is understandable overall, with a few vowel sounds that need refinement.",
-        ru: "Произношение в целом понятное, но некоторые гласные звуки требуют доработки.",
-        kz: "Айтылым жалпы түсінікті, бірақ кейбір дауысты дыбыстарды жетілдіру қажет.",
-      },
-      {
-        en: "Some final consonants are dropped, which is common at this level.",
-        ru: "Некоторые конечные согласные не произносятся, что типично для этого уровня.",
-        kz: "Кейбір соңғы дауыссыз дыбыстар айтылмайды, бұл бұл деңгейге тән.",
-      },
-    ],
-    fluencyNotes: [
-      {
-        en: "Speech is slow but steady, with pauses to search for basic words.",
-        ru: "Речь медленная, но ровная, с паузами для поиска простых слов.",
-        kz: "Сөйлеу баяу, бірақ тұрақты, қарапайым сөздерді іздеу үшін кідірістер бар.",
-      },
-      {
-        en: "Short, simple sentences are delivered confidently.",
-        ru: "Короткие простые предложения произносятся уверенно.",
-        kz: "Қысқа, қарапайым сөйлемдер сенімді түрде айтылады.",
-      },
-    ],
-    vocabularyRangeNotes: [
-      {
-        en: "Vocabulary is limited to common, high-frequency words — appropriate for A1.",
-        ru: "Словарный запас ограничен распространёнными словами — уместно для уровня A1.",
-        kz: "Сөздік қор жиі қолданылатын сөздермен шектелген — A1 деңгейіне сай.",
-      },
-    ],
-    taskCompletionNotes: [
-      {
-        en: "Addressed the question directly with the basic information requested.",
-        ru: "Прямо ответил(а) на вопрос, дав запрошенную базовую информацию.",
-        kz: "Сұралған негізгі ақпаратты беріп, сұраққа тікелей жауап берді.",
-      },
-      {
-        en: "Covered the main point of the question, though a couple of details were missing.",
-        ru: "Раскрыл(а) основную суть вопроса, хотя некоторые детали отсутствовали.",
-        kz: "Сұрақтың негізгі мәнін ашты, бірақ кейбір детальдар жетіспеді.",
-      },
-    ],
-    coherenceNotes: [
-      {
-        en: "Ideas were presented in a simple, easy-to-follow order.",
-        ru: "Мысли были изложены в простом, легко воспринимаемом порядке.",
-        kz: "Ойлар қарапайым, оңай түсінілетін ретпен айтылды.",
-      },
-      {
-        en: "The answer stayed on one clear idea without wandering off topic.",
-        ru: "Ответ оставался в рамках одной чёткой мысли, не отклоняясь от темы.",
-        kz: "Жауап тақырыптан ауытқымай, бір анық ойға негізделді.",
-      },
-    ],
-    sentenceVarietyNotes: [
-      {
-        en: "Uses mostly simple, short sentences — appropriate for A1, with little variation yet.",
-        ru: "Использует в основном простые, короткие предложения — уместно для уровня A1, разнообразия пока немного.",
-        kz: "Негізінен қарапайым, қысқа сөйлемдерді қолданады — A1 деңгейіне сай, әзірге әртүрлілік аз.",
-      },
-      {
-        en: "A few sentences link two ideas with \"et\" or \"mais\", showing early variety.",
-        ru: "Несколько предложений связывают две мысли через «et» или «mais», показывая начальное разнообразие.",
-        kz: "Бірнеше сөйлем екі ойды «et» немесе «mais» арқылы байланыстырады, бұл бастапқы әртүрлілікті көрсетеді.",
-      },
-    ],
-    naturalnessNotes: [
-      {
-        en: "Sounds like a direct, simple answer — natural for this level, though a little translated in places.",
-        ru: "Звучит как прямой, простой ответ — естественно для этого уровня, хотя местами ощущается перевод.",
-        kz: "Тікелей, қарапайым жауап сияқты естіледі — бұл деңгейге табиғи, дегенмен кейбір жерлерде аударма сияқты.",
-      },
-      {
-        en: "Phrasing is straightforward and easy to follow, typical of an A1 learner.",
-        ru: "Формулировки прямые и легко воспринимаются, что типично для уровня A1.",
-        kz: "Тіркестер қарапайым және түсінуге жеңіл, бұл A1 деңгейіндегі оқушыға тән.",
-      },
-    ],
-    strengths: [
-      {
-        en: "Answers personal questions clearly and directly",
-        ru: "Ясно и прямо отвечает на личные вопросы",
-        kz: "Жеке сұрақтарға анық әрі тікелей жауап береді",
-      },
-      {
-        en: "Stays on topic throughout each answer",
-        ru: "Не отклоняется от темы на протяжении всего ответа",
-        kz: "Жауап бойы тақырыптан ауытқымайды",
-      },
-      {
-        en: "Good use of everyday vocabulary",
-        ru: "Хорошее использование повседневной лексики",
-        kz: "Күнделікті лексиканы жақсы қолданады",
-      },
-      {
-        en: "Completes the simple role-play task",
-        ru: "Успешно выполняет простое ролевое задание",
-        kz: "Қарапайым рөлдік тапсырманы сәтті орындайды",
-      },
-    ],
-    weaknesses: [
-      {
-        en: "A few basic agreement and conjugation mistakes",
-        ru: "Несколько базовых ошибок в согласовании и спряжении",
-        kz: "Бірнеше қарапайым келісім және жіктеу қателері бар",
-      },
-      {
-        en: "Limited ability to elaborate beyond the direct question",
-        ru: "Ограниченная способность развивать ответ за пределы прямого вопроса",
-        kz: "Тікелей сұрақтан тыс жауапты дамыту мүмкіндігі шектеулі",
-      },
-      {
-        en: "Noticeable filler words while searching for vocabulary",
-        ru: "Заметны слова-паразиты во время поиска нужных слов",
-        kz: "Сөз іздеу кезінде толықтырғыш сөздер байқалады",
-      },
-    ],
-    improvementTips: [
-      {
-        en: "Practice conjugating common verbs in the present tense",
-        ru: "Потренируйте спряжение распространённых глаголов в настоящем времени",
-        kz: "Жиі қолданылатын етістіктерді осы шақта жіктеуді жаттығыңыз",
-      },
-      {
-        en: "Review gender for common nouns (le/la, un/une)",
-        ru: "Повторите род для распространённых существительных (le/la, un/une)",
-        kz: "Жиі кездесетін зат есімдердің тегін қайталаңыз (le/la, un/une)",
-      },
-      {
-        en: "Try short pauses instead of filler words like \"euh\"",
-        ru: "Используйте короткие паузы вместо слов-паразитов вроде «euh»",
-        kz: "«Euh» сияқты толықтырғыш сөздердің орнына қысқа кідірістерді қолданып көріңіз",
-      },
-      {
-        en: "Add one extra detail to each answer to sound more natural",
-        ru: "Добавляйте одну дополнительную деталь к каждому ответу для более естественного звучания",
-        kz: "Табиғи естілу үшін әр жауапқа бір қосымша деталь қосыңыз",
-      },
-    ],
-    baseScore: 17,
-  },
-  A2: {
-    pronunciationNotes: [
-      {
-        en: "Pronunciation is clear enough to follow easily, with occasional stress on the wrong syllable.",
-        ru: "Произношение достаточно чёткое для лёгкого понимания, иногда ударение падает не туда.",
-        kz: "Айтылым жеңіл түсінуге жеткілікті анық, кейде екпін дұрыс емес буынға түседі.",
-      },
-      {
-        en: "Nasal vowels are mostly accurate.",
-        ru: "Носовые гласные в основном произносятся правильно.",
-        kz: "Мұрын дауыстылары негізінен дұрыс айтылады.",
-      },
-    ],
-    fluencyNotes: [
-      {
-        en: "Maintains a steady pace with only brief hesitations.",
-        ru: "Сохраняет ровный темп речи с лишь краткими заминками.",
-        kz: "Тек қысқа кідірістермен тұрақты қарқынды сақтайды.",
-      },
-      {
-        en: "Can link two or three sentences together without long pauses.",
-        ru: "Может связать два-три предложения без долгих пауз.",
-        kz: "Ұзақ кідіріссіз екі-үш сөйлемді байланыстыра алады.",
-      },
-    ],
-    vocabularyRangeNotes: [
-      {
-        en: "Vocabulary covers everyday topics well, with occasional repetition.",
-        ru: "Лексика хорошо покрывает повседневные темы, с отдельными повторами.",
-        kz: "Лексика күнделікті тақырыптарды жақсы қамтиды, кейде қайталанады.",
-      },
-    ],
-    taskCompletionNotes: [
-      {
-        en: "Answered the question fully and added relevant supporting detail.",
-        ru: "Полностью ответил(а) на вопрос и добавил(а) уместные дополнительные детали.",
-        kz: "Сұраққа толық жауап беріп, орынды қосымша детальдар қосты.",
-      },
-      {
-        en: "Addressed the main question, but the supporting detail was a little thin.",
-        ru: "Ответил(а) на основной вопрос, но дополнительные детали были довольно скудными.",
-        kz: "Негізгі сұраққа жауап берді, бірақ қосымша детальдар аздау болды.",
-      },
-    ],
-    coherenceNotes: [
-      {
-        en: "The answer moved logically from one idea to the next.",
-        ru: "Ответ логично переходил от одной мысли к другой.",
-        kz: "Жауап бір ойдан екінші ойға логикалық түрде өтті.",
-      },
-      {
-        en: "Ideas were connected with simple linking words, keeping the flow clear.",
-        ru: "Мысли были связаны простыми связующими словами, что сохраняло ясность изложения.",
-        kz: "Ойлар қарапайым жалғаулық сөздермен байланысып, түсінікті болды.",
-      },
-    ],
-    sentenceVarietyNotes: [
-      {
-        en: "Combines a few short sentences with \"parce que\" or \"et donc\", showing growing variety.",
-        ru: "Соединяет несколько коротких предложений через «parce que» или «et donc», показывая растущее разнообразие.",
-        kz: "Бірнеше қысқа сөйлемді «parce que» немесе «et donc» арқылы біріктіреді, бұл өсіп келе жатқан әртүрлілікті көрсетеді.",
-      },
-      {
-        en: "Sentence patterns are still fairly repetitive — mostly subject-verb-object.",
-        ru: "Структура предложений всё ещё довольно однообразна — в основном подлежащее-сказуемое-дополнение.",
-        kz: "Сөйлем құрылымы әлі де біршама бірыңғай — негізінен бастауыш-баяндауыш-толықтауыш.",
-      },
-    ],
-    naturalnessNotes: [
-      {
-        en: "Mostly natural phrasing, with a couple of expressions that sound slightly translated from another language.",
-        ru: "В основном естественные формулировки, с парой выражений, звучащих как перевод с другого языка.",
-        kz: "Негізінен табиғи тіркестер, бірақ екі-үш өрнек басқа тілден аударылғандай естіледі.",
-      },
-      {
-        en: "Sounds like genuine spoken French for this level, with only minor awkward phrasing.",
-        ru: "Звучит как настоящая устная французская речь для этого уровня, с лишь небольшими неловкими формулировками.",
-        kz: "Бұл деңгейге сай нағыз ауызша француз тілі сияқты естіледі, тек аздаған ыңғайсыз тіркестер бар.",
-      },
-    ],
-    strengths: [
-      {
-        en: "Narrates a past event with a mostly clear timeline",
-        ru: "Описывает прошедшее событие с достаточно чёткой хронологией",
-        kz: "Өткен оқиғаны негізінен анық хронологиямен баяндайды",
-      },
-      {
-        en: "Sustains a short monologue without examiner prompting",
-        ru: "Поддерживает короткий монолог без подсказок экзаменатора",
-        kz: "Емтихан алушының көмегінсіз қысқа монологты жалғастырады",
-      },
-      {
-        en: "Negotiates simple plans reasonably well in the role-play",
-        ru: "Достаточно хорошо согласовывает простые планы в ролевой игре",
-        kz: "Рөлдік ойында қарапайым жоспарларды жеткілікті жақсы келіседі",
-      },
-      {
-        en: "Friendly, appropriate tone throughout",
-        ru: "Дружелюбный, уместный тон на протяжении всего ответа",
-        kz: "Жауап бойы достық, орынды стиль сақталады",
-      },
-    ],
-    weaknesses: [
-      {
-        en: "Auxiliary verb choice (avoir vs être) is inconsistent in the passé composé",
-        ru: "Выбор вспомогательного глагола (avoir или être) непоследователен в passé composé",
-        kz: "Passé composé-де көмекші етістікті (avoir немесе être) таңдау тұрақты емес",
-      },
-      {
-        en: "Occasional past-participle agreement errors",
-        ru: "Иногда встречаются ошибки согласования причастия прошедшего времени",
-        kz: "Кейде өткен шақ есімшесінің келісімінде қателер кездеседі",
-      },
-      {
-        en: "Some hesitation when the topic shifts unexpectedly",
-        ru: "Некоторая неуверенность при неожиданной смене темы",
-        kz: "Тақырып күтпеген жерден өзгергенде біраз екіұдайлық байқалады",
-      },
-    ],
-    improvementTips: [
-      {
-        en: "Review which common verbs take \"être\" in the passé composé",
-        ru: "Повторите, какие распространённые глаголы спрягаются с «être» в passé composé",
-        kz: "Passé composé-де қандай жиі етістіктер «être»-мен тіркесетінін қайталаңыз",
-      },
-      {
-        en: "Practice past-participle agreement with être-verbs",
-        ru: "Потренируйте согласование причастия с глаголами, спрягаемыми с être",
-        kz: "Être-етістіктерімен есімшенің келісуін жаттығыңыз",
-      },
-      {
-        en: "Record yourself narrating your weekend to build fluency",
-        ru: "Запишите себя, рассказывая о своих выходных, чтобы развить беглость речи",
-        kz: "Демалыс күндеріңіз туралы айтып, өзіңізді жазып алыңыз — бұл сөйлеу еркіндігін дамытады",
-      },
-      {
-        en: "Practice quick transitions when the examiner changes topic",
-        ru: "Потренируйте быстрый переход при смене темы экзаменатором",
-        kz: "Емтихан алушы тақырыпты өзгерткенде жылдам ауысуды жаттығыңыз",
-      },
-    ],
-    baseScore: 16,
-  },
-  B1: {
-    pronunciationNotes: [
-      {
-        en: "Pronunciation is clear and generally accurate, supporting easy comprehension.",
-        ru: "Произношение чёткое и в целом точное, что облегчает понимание.",
-        kz: "Айтылым анық және негізінен дұрыс, түсінуді жеңілдетеді.",
-      },
-    ],
-    fluencyNotes: [
-      {
-        en: "Speaks at a natural pace with only occasional self-correction.",
-        ru: "Говорит в естественном темпе с лишь редкими самоисправлениями.",
-        kz: "Тек сирек өзін-өзі түзетумен табиғи қарқында сөйлейді.",
-      },
-      {
-        en: "Handles follow-up questions without losing the thread of the argument.",
-        ru: "Отвечает на уточняющие вопросы, не теряя нить рассуждения.",
-        kz: "Қосымша сұрақтарға дәлелдеу желісін жоғалтпай жауап береді.",
-      },
-    ],
-    vocabularyRangeNotes: [
-      {
-        en: "Good range of connectors and opinion vocabulary, appropriate for B1.",
-        ru: "Хороший диапазон союзов и лексики для выражения мнения, соответствующий уровню B1.",
-        kz: "B1 деңгейіне сай жалғаулықтар мен пікір білдіру лексикасының жақсы ауқымы.",
-      },
-    ],
-    taskCompletionNotes: [
-      {
-        en: "Fully addressed the task, including the negotiation/opinion component expected at this level.",
-        ru: "Полностью выполнил(а) задание, включая ожидаемый на этом уровне элемент переговоров/мнения.",
-        kz: "Тапсырманы толық орындады, осы деңгейде күтілетін келіссөз/пікір элементін қоса алғанда.",
-      },
-      {
-        en: "Addressed the task overall, though it could have engaged more directly with the specific scenario.",
-        ru: "В целом выполнил(а) задание, хотя мог(ла) бы более конкретно отреагировать на данную ситуацию.",
-        kz: "Тапсырманы жалпы орындады, бірақ нақты жағдайға тікелей көбірек назар аударса болар еді.",
-      },
-    ],
-    coherenceNotes: [
-      {
-        en: "Arguments were organized in a clear, logical sequence.",
-        ru: "Аргументы были выстроены в чёткой, логичной последовательности.",
-        kz: "Дәлелдер анық әрі логикалық ретпен құрылды.",
-      },
-      {
-        en: "The response held together well, though a couple of transitions felt abrupt.",
-        ru: "Ответ был в целом связным, хотя пара переходов ощущались резкими.",
-        kz: "Жауап тұтастай жақсы құрылды, бірақ бірнеше өтулер кенеттен болды.",
-      },
-    ],
-    sentenceVarietyNotes: [
-      {
-        en: "Uses a good mix of sentence lengths and some subordinate clauses (parce que, bien que).",
-        ru: "Использует хорошее сочетание предложений разной длины и несколько придаточных предложений (parce que, bien que).",
-        kz: "Әртүрлі ұзындықтағы сөйлемдер мен бірнеше бағыныңқы сөйлемдерді (parce que, bien que) жақсы үйлестіреді.",
-      },
-      {
-        en: "Relies heavily on one or two sentence patterns — try varying structure more.",
-        ru: "Сильно опирается на один-два типа предложений — стоит больше разнообразить структуру.",
-        kz: "Бір-екі сөйлем үлгісіне тым көп сүйенеді — құрылымды көбірек әртараптандыруға тырысыңыз.",
-      },
-    ],
-    naturalnessNotes: [
-      {
-        en: "Expression feels fairly natural, with occasional phrasing that sounds translated rather than spoken.",
-        ru: "Выражение мыслей звучит довольно естественно, но иногда формулировки напоминают перевод, а не живую речь.",
-        kz: "Ойды жеткізу біршама табиғи, бірақ кейде тіркестер ауызша сөйлеуден гөрі аудармаға ұқсайды.",
-      },
-      {
-        en: "Sounds like genuine conversational French, with good use of natural connectors.",
-        ru: "Звучит как настоящая разговорная французская речь, с удачным использованием естественных связок.",
-        kz: "Нағыз сөйлесу тіліндегі француз тілі сияқты естіледі, табиғи жалғаулықтарды жақсы қолданады.",
-      },
-    ],
-    strengths: [
-      {
-        en: "States a clear personal opinion and defends it",
-        ru: "Формулирует чёткое личное мнение и отстаивает его",
-        kz: "Жеке пікірін анық білдіріп, оны қорғайды",
-      },
-      {
-        en: "Proposes and negotiates a compromise in the interactive exercise",
-        ru: "Предлагает и согласовывает компромисс в интерактивном задании",
-        kz: "Интерактивті тапсырмада ымыраны ұсынып, келіседі",
-      },
-      {
-        en: "Uses a good range of tenses accurately",
-        ru: "Точно использует широкий диапазон времён",
-        kz: "Әртүрлі шақтарды дәл қолданады",
-      },
-      {
-        en: "Supports arguments with relevant examples",
-        ru: "Подкрепляет аргументы уместными примерами",
-        kz: "Дәлелдерін орынды мысалдармен қуаттайды",
-      },
-    ],
-    weaknesses: [
-      {
-        en: "Subjunctive mood is avoided or used incorrectly after \"il faut que\"",
-        ru: "Сослагательное наклонение избегается или используется неверно после «il faut que»",
-        kz: "«Il faut que»-ден кейін бағыныңқы рай қолданылмайды немесе қате қолданылады",
-      },
-      {
-        en: "Occasional inconsistency in conditional tense sequences",
-        ru: "Иногда встречается непоследовательность в условных временных конструкциях",
-        kz: "Кейде шартты шақ тізбегінде тұрақсыздық байқалады",
-      },
-      {
-        en: "A few anglicisms appear under time pressure",
-        ru: "Под давлением времени встречаются отдельные англицизмы",
-        kz: "Уақыт қысымында кейбір ағылшыншылдықтар кездеседі",
-      },
-    ],
-    improvementTips: [
-      {
-        en: "Practice the subjunctive after common triggers: il faut que, bien que, pour que",
-        ru: "Потренируйте сослагательное наклонение после распространённых триггеров: il faut que, bien que, pour que",
-        kz: "Жиі кездесетін тіркестерден кейін бағыныңқы райды жаттығыңыз: il faut que, bien que, pour que",
-      },
-      {
-        en: "Drill si-clause tense pairs until they feel automatic",
-        ru: "Отработайте пары времён в предложениях с si до автоматизма",
-        kz: "Si-сөйлемдердегі шақ жұптарын автоматты дәрежеге жеткенше жаттығыңыз",
-      },
-      {
-        en: "Build a list of natural French equivalents for common anglicisms",
-        ru: "Составьте список естественных французских эквивалентов распространённых англицизмов",
-        kz: "Жиі кездесетін ағылшыншылдықтардың табиғи француз баламаларының тізімін жасаңыз",
-      },
-      {
-        en: "Practice defending an opinion against a counter-argument out loud",
-        ru: "Потренируйтесь вслух отстаивать мнение против контраргумента",
-        kz: "Қарсы дәлелге қарсы пікіріңізді дауыстап қорғауды жаттығыңыз",
-      },
-    ],
-    baseScore: 15,
-  },
-  B2: {
-    pronunciationNotes: [
-      {
-        en: "Pronunciation is fluent and natural, with intonation supporting the argument's structure.",
-        ru: "Произношение беглое и естественное, интонация поддерживает структуру аргументации.",
-        kz: "Айтылым еркін әрі табиғи, интонация дәлелдеу құрылымын қолдайды.",
-      },
-    ],
-    fluencyNotes: [
-      {
-        en: "Speaks fluidly at length, recovering smoothly from rare hesitations.",
-        ru: "Говорит бегло и продолжительно, плавно справляясь с редкими заминками.",
-        kz: "Ұзақ әрі еркін сөйлейді, сирек кідірістерден тегіс шығады.",
-      },
-      {
-        en: "Handles challenging counter-questions without losing composure.",
-        ru: "Справляется со сложными встречными вопросами, не теряя самообладания.",
-        kz: "Қиын қарсы сұрақтарды сабырын жоғалтпай шешеді.",
-      },
-    ],
-    vocabularyRangeNotes: [
-      {
-        en: "Wide-ranging, precise vocabulary suited to formal debate, with occasional B1-level simplification.",
-        ru: "Широкий, точный словарный запас, подходящий для формальной дискуссии, с отдельными упрощениями уровня B1.",
-        kz: "Формалды пікірталасқа сай кең, дәл сөздік қор, кейде B1 деңгейіндегі жеңілдетулер бар.",
-      },
-    ],
-    taskCompletionNotes: [
-      {
-        en: "Thoroughly addressed the topic with a clear thesis and supporting reasoning.",
-        ru: "Всесторонне раскрыл(а) тему с чётким тезисом и обоснованной аргументацией.",
-        kz: "Тақырыпты анық тезис пен негізделген дәлелдеумен толық ашты.",
-      },
-      {
-        en: "Addressed the topic well, though the counter-argument could have been engaged more directly.",
-        ru: "Хорошо раскрыл(а) тему, хотя мог(ла) бы более прямо ответить на контраргумент.",
-        kz: "Тақырыпты жақсы ашты, бірақ қарсы дәлелге тікелейірек жауап берсе болар еді.",
-      },
-    ],
-    coherenceNotes: [
-      {
-        en: "The argument was structured with a clear line of reasoning from start to finish.",
-        ru: "Аргументация была выстроена с чёткой логической линией от начала до конца.",
-        kz: "Дәлелдеу басынан аяғына дейін анық логикалық желімен құрылды.",
-      },
-      {
-        en: "Ideas were coherent overall, with sophisticated connectors linking each point.",
-        ru: "Мысли были в целом связными, с продуманными союзами, соединяющими каждый пункт.",
-        kz: "Ойлар жалпы тұтас болды, әр тармақты байланыстыратын күрделі жалғаулықтармен.",
-      },
-    ],
-    sentenceVarietyNotes: [
-      {
-        en: "Strong variety of complex sentence structures, including subordinate and relative clauses.",
-        ru: "Богатое разнообразие сложных синтаксических конструкций, включая придаточные и относительные предложения.",
-        kz: "Бағыныңқы және қатыстық сөйлемдерді қоса алғанда, күрделі сөйлем құрылымдарының бай әртүрлілігі.",
-      },
-      {
-        en: "Sentence structure is solid but could use more varied subordination for a B2 register.",
-        ru: "Структура предложений уверенная, но для регистра B2 стоит использовать более разнообразное подчинение.",
-        kz: "Сөйлем құрылымы сенімді, бірақ B2 регистріне сай бағыныңқылықты әртараптандыру керек.",
-      },
-    ],
-    naturalnessNotes: [
-      {
-        en: "Expression is largely natural and idiomatic, appropriate for a formal B2 discussion.",
-        ru: "Выражение мыслей в основном естественное и идиоматичное, уместное для формальной дискуссии уровня B2.",
-        kz: "Ойды жеткізу негізінен табиғи әрі идиоматикалық, формалды B2 талқылауына сай.",
-      },
-      {
-        en: "Mostly natural, though a few phrases sound more like written than spoken French.",
-        ru: "В основном естественно, хотя несколько фраз звучат больше как письменный, а не разговорный французский.",
-        kz: "Негізінен табиғи, дегенмен бірнеше тіркес ауызша емес, жазбаша француз тіліне ұқсайды.",
-      },
-    ],
-    strengths: [
-      {
-        en: "Presents a clear, well-structured argument with a defined thesis",
-        ru: "Представляет чёткую, структурированную аргументацию с ясно сформулированным тезисом",
-        kz: "Анық тезисі бар құрылымдалған дәлелдеме ұсынады",
-      },
-      {
-        en: "Defends the position convincingly under counter-questioning",
-        ru: "Убедительно отстаивает позицию при встречных вопросах",
-        kz: "Қарсы сұрақтар кезінде позициясын сенімді қорғайды",
-      },
-      {
-        en: "Uses complex sentence structures and nuanced connectors",
-        ru: "Использует сложные синтаксические конструкции и нюансированные союзы",
-        kz: "Күрделі сөйлем құрылымдарын және нәзік жалғаулықтарды қолданады",
-      },
-      {
-        en: "Register is consistently appropriate for a formal debate",
-        ru: "Стилистический регистр последовательно соответствует формальной дискуссии",
-        kz: "Стилі формалды пікірталасқа тұрақты түрде сай келеді",
-      },
-    ],
-    weaknesses: [
-      {
-        en: "Subjunctive after \"bien que\" is inconsistently applied",
-        ru: "Сослагательное наклонение после «bien que» применяется непоследовательно",
-        kz: "«Bien que»-ден кейінгі бағыныңқы рай тұрақты қолданылмаған",
-      },
-      {
-        en: "Some absolute statements would benefit from more nuanced hedging",
-        ru: "Некоторые категоричные утверждения выиграли бы от более нюансированных формулировок",
-        kz: "Кейбір категориялық тұжырымдарды нәзігірек жеткізген жөн болар еді",
-      },
-      {
-        en: "Occasional over-stacking of connectors weakens clarity",
-        ru: "Иногда чрезмерное нагромождение союзов снижает ясность",
-        kz: "Кейде жалғаулықтардың шамадан тыс қатар қолданылуы анықтықты төмендетеді",
-      },
-    ],
-    improvementTips: [
-      {
-        en: "Review subjunctive triggers systematically (bien que, quoique, à moins que)",
-        ru: "Системно повторите триггеры сослагательного наклонения (bien que, quoique, à moins que)",
-        kz: "Бағыныңқы райды талап ететін тіркестерді жүйелі қайталаңыз (bien que, quoique, à moins que)",
-      },
-      {
-        en: "Build a repertoire of hedging phrases (il me semble que, dans une certaine mesure)",
-        ru: "Составьте набор смягчающих фраз (il me semble que, dans une certaine mesure)",
-        kz: "Жұмсартатын тіркестер жинағын жасаңыз (il me semble que, dans une certaine mesure)",
-      },
-      {
-        en: "Aim for one clear connector per sentence rather than stacking several",
-        ru: "Стремитесь использовать один чёткий союз на предложение, а не нагромождать несколько",
-        kz: "Бір сөйлемде бірнешеуін емес, бір анық жалғаулықты қолдануға тырысыңыз",
-      },
-      {
-        en: "Practice timed debate simulations to sharpen argument structure under pressure",
-        ru: "Практикуйте дебаты на время, чтобы отточить структуру аргументации под давлением",
-        kz: "Қысым астында дәлелдеу құрылымын жетілдіру үшін уақыты шектелген пікірталас жаттығуларын өткізіңіз",
-      },
-    ],
-    baseScore: 14,
-  },
+/**
+ * Real, computed qualitative notes — each one built from actual numbers
+ * measured on the transcript (filler ratio, sentence count, lexical
+ * diversity, sentence-length spread, recognition confidence, mispronounced-
+ * word count), never chosen from a pool of equally-plausible canned
+ * sentences. Two turns with different real signals always produce
+ * different note text; two turns with the same real signals produce the
+ * same note text — deterministic, not random.
+ */
+function buildFluencyNote(fillerCount: number, sentenceCount: number, wordCount: number, language: FeedbackLanguage): string {
+  if (wordCount < 4) {
+    return {
+      en: "Too short to assess fluency meaningfully — try developing the answer further.",
+      ru: "Слишком коротко, чтобы оценить беглость речи — попробуйте развить ответ подробнее.",
+      kz: "Еркін сөйлеуді бағалау үшін тым қысқа — жауапты толығырақ дамытып көріңіз.",
+    }[language];
+  }
+  if (fillerCount === 0) {
+    return {
+      en: `No filler words across ${sentenceCount} sentence${sentenceCount === 1 ? "" : "s"} — fluent, steady delivery.`,
+      ru: `Ни одного слова-паразита в ${sentenceCount} предложени${sentenceCount === 1 ? "и" : "ях"} — беглая, ровная речь.`,
+      kz: `${sentenceCount} сөйлемде бірде-бір толықтырғыш сөз жоқ — еркін, тұрақты сөйлеу.`,
+    }[language];
+  }
+  if (fillerCount <= 2) {
+    return {
+      en: `Mostly steady, with ${fillerCount} filler word${fillerCount === 1 ? "" : "s"} while searching for a word.`,
+      ru: `В целом ровная речь, но ${fillerCount} слов${fillerCount === 1 ? "о-паразит" : "а-паразита"} при поиске нужного слова.`,
+      kz: `Негізінен тұрақты, бірақ сөз іздеу кезінде ${fillerCount} толықтырғыш сөз кездесті.`,
+    }[language];
+  }
+  return {
+    en: `Frequent hesitation — ${fillerCount} filler words across the answer while searching for words.`,
+    ru: `Частые заминки — ${fillerCount} слов-паразитов за весь ответ во время поиска слов.`,
+    kz: `Жиі кідірістер — жауап барысында сөз іздеу кезінде ${fillerCount} толықтырғыш сөз кездесті.`,
+  }[language];
+}
+
+function buildVocabularyNote(diversity: number, wordCount: number, language: FeedbackLanguage): string {
+  const uniqueRatioPercent = Math.round(diversity * 100);
+  if (wordCount < 6) {
+    return {
+      en: "Too short to assess vocabulary range meaningfully — a longer answer would show more.",
+      ru: "Слишком коротко, чтобы оценить словарный запас — более развёрнутый ответ покажет больше.",
+      kz: "Сөздік қорды бағалау үшін тым қысқа — толығырақ жауап көбірек көрсетер еді.",
+    }[language];
+  }
+  if (diversity >= 0.75) {
+    return {
+      en: `Wide vocabulary range for this answer — about ${uniqueRatioPercent}% of the content words are distinct, little repetition.`,
+      ru: `Широкий словарный запас в этом ответе — около ${uniqueRatioPercent}% значимых слов уникальны, повторов мало.`,
+      kz: `Бұл жауапта сөздік қор кең — мағыналы сөздердің шамамен ${uniqueRatioPercent}%-ы қайталанбайды.`,
+    }[language];
+  }
+  if (diversity >= 0.5) {
+    return {
+      en: `Reasonable vocabulary range, with some repeated words (about ${uniqueRatioPercent}% distinct).`,
+      ru: `Приемлемый словарный запас, но есть повторы слов (уникальны около ${uniqueRatioPercent}%).`,
+      kz: `Сөздік қор жеткілікті, бірақ кейбір сөздер қайталанады (шамамен ${uniqueRatioPercent}%-ы қайталанбайды).`,
+    }[language];
+  }
+  return {
+    en: `Vocabulary was repeated frequently in this answer — only about ${uniqueRatioPercent}% of the content words were distinct.`,
+    ru: `В этом ответе словарный запас часто повторялся — уникальны лишь около ${uniqueRatioPercent}% значимых слов.`,
+    kz: `Бұл жауапта сөздік қор жиі қайталанды — мағыналы сөздердің шамамен ${uniqueRatioPercent}%-ы ғана қайталанбайды.`,
+  }[language];
+}
+
+function buildPronunciationNote(
+  mispronuncedCount: number,
+  recognitionConfidence: number | null,
+  language: FeedbackLanguage
+): string {
+  const confidencePercent = recognitionConfidence !== null ? Math.round(recognitionConfidence * 100) : null;
+  if (mispronuncedCount > 0) {
+    return {
+      en: `${mispronuncedCount} word${mispronuncedCount === 1 ? "" : "s"} flagged below for tricky pronunciation — worth extra practice.`,
+      ru: `Ниже отмечено ${mispronuncedCount} слов${mispronuncedCount === 1 ? "о" : "а"} со сложным произношением — стоит потренировать отдельно.`,
+      kz: `Төменде айтылуы күрделі ${mispronuncedCount} сөз белгіленді — қосымша жаттығу қажет.`,
+    }[language];
+  }
+  if (confidencePercent !== null && confidencePercent < 65) {
+    return {
+      en: `Speech recognition confidence was low (about ${confidencePercent}%) — this can indicate unclear pronunciation or background noise.`,
+      ru: `Уверенность распознавания речи была низкой (около ${confidencePercent}%) — это может указывать на нечёткое произношение или фоновый шум.`,
+      kz: `Сөйлеуді тану сенімділігі төмен болды (шамамен ${confidencePercent}%) — бұл айтылымның бұлдыр болуын немесе фондық шуды білдіруі мүмkін.`,
+    }[language];
+  }
+  if (confidencePercent !== null) {
+    return {
+      en: `No notably tricky words detected, and recognition confidence was high (about ${confidencePercent}%).`,
+      ru: `Заметно сложных слов не обнаружено, уверенность распознавания речи высокая (около ${confidencePercent}%).`,
+      kz: `Айтылуы күрделі сөздер байқалмады, сөйлеуді тану сенімділігі жоғары (шамамен ${confidencePercent}%).`,
+    }[language];
+  }
+  return {
+    en: "No notably tricky words detected in this answer.",
+    ru: "Заметно сложных для произношения слов в этом ответе не обнаружено.",
+    kz: "Бұл жауапта айтылуы күрделі сөздер байқалмады.",
+  }[language];
+}
+
+function buildCoherenceNote(hasConnectors: boolean, sentenceCount: number, language: FeedbackLanguage): string {
+  if (sentenceCount <= 1) {
+    return {
+      en: "A single short statement — too brief to assess how ideas connect to each other.",
+      ru: "Одно короткое высказывание — слишком мало, чтобы оценить связность мыслей.",
+      kz: "Бір қысқа сөйлем — ойлардың бір-бірімен байланысын бағалау үшін тым аз.",
+    }[language];
+  }
+  if (hasConnectors) {
+    return {
+      en: `Ideas across ${sentenceCount} sentences were connected with linking words, aiding coherence.`,
+      ru: `Мысли в ${sentenceCount} предложениях были связаны союзами, что помогает связности.`,
+      kz: `${sentenceCount} сөйлемдегі ойлар жалғаулық сөздермен байланыстырылды, бұл байланыстылыққа көмектеседі.`,
+    }[language];
+  }
+  return {
+    en: `${sentenceCount} sentences given, but without clear linking words (e.g. "donc", "parce que") connecting the ideas.`,
+    ru: `Дано ${sentenceCount} предложений, но без явных связующих слов (например, «donc», «parce que»).`,
+    kz: `${sentenceCount} сөйлем берілді, бірақ ойларды байланыстыратын анық жалғаулық сөздер («donc», «parce que» сияқты) жоқ.`,
+  }[language];
+}
+
+function buildSentenceVarietyNote(lengths: number[], language: FeedbackLanguage): string {
+  if (lengths.length <= 1) {
+    return {
+      en: "Only one sentence given — no sentence-to-sentence variety to assess yet.",
+      ru: "Дано только одно предложение — пока нельзя оценить разнообразие между предложениями.",
+      kz: "Тек бір сөйлем берілді — сөйлемдер арасындағы әртүрлілікті әлі бағалау мүмкін емес.",
+    }[language];
+  }
+  const min = Math.min(...lengths);
+  const max = Math.max(...lengths);
+  const spread = max - min;
+  if (spread >= 4) {
+    return {
+      en: `Sentence length varied from ${min} to ${max} words across the answer, showing real structural variety.`,
+      ru: `Длина предложений менялась от ${min} до ${max} слов — это показывает реальное разнообразие структуры.`,
+      kz: `Сөйлем ұзындығы ${min}-ден ${max} сөзге дейін өзгерді — бұл нақты құрылымдық әртүрлілікті көрсетеді.`,
+    }[language];
+  }
+  return {
+    en: `Sentences were fairly similar in length (${min}-${max} words) — try varying sentence structure more.`,
+    ru: `Предложения были довольно похожи по длине (${min}-${max} слов) — попробуйте больше разнообразить структуру.`,
+    kz: `Сөйлемдер ұзындығы жағынан біршама ұқсас болды (${min}-${max} сөз) — құрылымды көбірек әртараптандырып көріңіз.`,
+  }[language];
+}
+
+function buildNaturalnessNote(hasNaturalnessIssue: boolean, language: FeedbackLanguage): string {
+  if (hasNaturalnessIssue) {
+    return {
+      en: "One phrasing choice below sounds translated or awkward rather than natural French — see the flagged point.",
+      ru: "Один из оборотов ниже звучит как перевод, а не естественная французская речь — см. отмеченный пункт.",
+      kz: "Төмендегі бір тіркес табиғи француз тілінен гөрі аудармаға ұқсайды — белгіленген тармақты қараңыз.",
+    }[language];
+  }
+  return {
+    en: "Phrasing sounds natural for this level, with no translated-sounding expressions detected.",
+    ru: "Формулировки звучат естественно для этого уровня, переводных по звучанию выражений не обнаружено.",
+    kz: "Тіркестер осы деңгейге табиғи естіледі, аудармаға ұқсас өрнектер байқалмады.",
+  }[language];
+}
+
+const LEVEL_SCORE_CEILING: Record<DelfLevel, number> = { A1: 20, A2: 21, B1: 22, B2: 23 };
+
+/** A transparent, point-based score — starts from a level-appropriate
+ * ceiling and subtracts real, itemized deductions for real detected
+ * issues. No random component anywhere; identical input always produces
+ * identical output. */
+function computeTurnScore(
+  level: DelfLevel,
+  relevant: boolean,
+  mistakeCount: number,
+  structureIssue: StructureIssue,
+  fillerCount: number,
+  wordCount: number
+): number {
+  let score = LEVEL_SCORE_CEILING[level];
+  score -= mistakeCount * 2;
+  if (structureIssue === "missing-support") score -= 2;
+  if (structureIssue === "missing-example" || structureIssue === "missing-conclusion") score -= 1;
+  score -= Math.min(fillerCount, 4);
+  if (wordCount < 5) score -= 3;
+  score = Math.max(5, Math.min(25, score));
+  // Task achievement is heavily weighted in real DELF grading — an answer
+  // that doesn't address the question is capped well below a passing score.
+  if (!relevant) score = Math.min(score, 10);
+  return score;
+}
+
+const STRENGTH_RELEVANT: TranslatedText = {
+  en: "Answered exactly what was asked",
+  ru: "Ответил(а) именно на то, что было спрошено",
+  kz: "Дәл сұралғанға жауап берді",
 };
+const STRENGTH_NO_MISTAKES: TranslatedText = {
+  en: "No grammar mistakes detected in this answer",
+  ru: "В этом ответе не обнаружено грамматических ошибок",
+  kz: "Бұл жауапта грамматикалық қателер табылмады",
+};
+const STRENGTH_WELL_STRUCTURED: TranslatedText = {
+  en: "Well-structured answer with supporting detail",
+  ru: "Хорошо структурированный ответ с подкрепляющими деталями",
+  kz: "Қолдаушы деталдары бар жақсы құрылымдалған жауап",
+};
+const STRENGTH_NO_FILLERS: TranslatedText = {
+  en: "Delivered without filler words",
+  ru: "Произнесено без слов-паразитов",
+  kz: "Толықтырғыш сөздерсіз айтылды",
+};
+const STRENGTH_GOOD_VOCAB: TranslatedText = {
+  en: "Used a good range of vocabulary without much repetition",
+  ru: "Использован хороший словарный запас без сильных повторов",
+  kz: "Қайталаусыз жақсы сөздік қор қолданылды",
+};
+
+const WEAKNESS_OFF_TOPIC: TranslatedText = {
+  en: "Didn't address what was actually asked",
+  ru: "Не ответил(а) на то, что реально спрашивалось",
+  kz: "Нақты сұралғанға жауап бермеді",
+};
+function buildMistakeWeakness(count: number, language: FeedbackLanguage): string {
+  return {
+    en: `${count} grammar mistake${count === 1 ? "" : "s"} found in this answer`,
+    ru: `В этом ответе найдено ${count} грамматическ${count === 1 ? "ая ошибка" : "их ошибки"}`,
+    kz: `Бұл жауаптан ${count} грамматикалық қате табылды`,
+  }[language];
+}
+const WEAKNESS_FILLER_HEAVY: TranslatedText = {
+  en: "Frequent filler words while searching for vocabulary",
+  ru: "Частые слова-паразиты во время поиска нужных слов",
+  kz: "Сөз іздеу кезінде толықтырғыш сөздер жиі кездеседі",
+};
+const WEAKNESS_LOW_VOCAB: TranslatedText = {
+  en: "Vocabulary repeated frequently instead of varying word choice",
+  ru: "Словарный запас часто повторялся вместо разнообразия выбора слов",
+  kz: "Сөз таңдауын әртараптандырудың орнына сөздік қор жиі қайталанды",
+};
+
+const SUGGESTION_RE_READ_QUESTION: TranslatedText = {
+  en: "Before answering, repeat the question in your head to make sure you address exactly what's asked",
+  ru: "Перед ответом мысленно повторите вопрос, чтобы убедиться, что вы отвечаете именно на него",
+  kz: "Жауап бермес бұрын сұрақты ойыңызда қайталап, нақты соған жауап беріп жатқаныңызға көз жеткізіңіз",
+};
+function buildFillerSuggestion(language: FeedbackLanguage): string {
+  return COACHING_TIPS["filler-heavy"][language];
+}
+function buildVocabSuggestion(language: FeedbackLanguage): string {
+  return {
+    en: "Try using a synonym instead of repeating the same word in your next answer",
+    ru: "Попробуйте использовать синоним вместо повторения одного и того же слова в следующем ответе",
+    kz: "Келесі жауапта бір сөзді қайталаудың орнына синоним қолданып көріңіз",
+  }[language];
+}
+
+function buildTurnStrengths(
+  relevant: boolean,
+  mistakeCount: number,
+  structureIssue: StructureIssue,
+  fillerCount: number,
+  diversity: number,
+  wordCount: number,
+  language: FeedbackLanguage
+): string[] {
+  const strengths: string[] = [];
+  if (relevant) strengths.push(STRENGTH_RELEVANT[language]);
+  if (relevant && mistakeCount === 0) strengths.push(STRENGTH_NO_MISTAKES[language]);
+  if (structureIssue === "none") strengths.push(STRENGTH_WELL_STRUCTURED[language]);
+  if (fillerCount === 0 && wordCount >= 5) strengths.push(STRENGTH_NO_FILLERS[language]);
+  if (diversity >= 0.75 && wordCount >= 8) strengths.push(STRENGTH_GOOD_VOCAB[language]);
+  return strengths.slice(0, 3);
+}
+
+function buildTurnWeaknesses(
+  relevant: boolean,
+  mistakeCount: number,
+  structureIssue: StructureIssue,
+  fillerCount: number,
+  diversity: number,
+  wordCount: number,
+  language: FeedbackLanguage
+): string[] {
+  const weaknesses: string[] = [];
+  if (!relevant) weaknesses.push(WEAKNESS_OFF_TOPIC[language]);
+  if (mistakeCount > 0) weaknesses.push(buildMistakeWeakness(mistakeCount, language));
+  if (relevant && structureIssue !== "none" && structureIssue !== "not-relevant") {
+    weaknesses.push(STRUCTURE_NOTES[structureIssue][language]);
+  }
+  if (fillerCount >= 3) weaknesses.push(WEAKNESS_FILLER_HEAVY[language]);
+  if (diversity < 0.5 && wordCount >= 8) weaknesses.push(WEAKNESS_LOW_VOCAB[language]);
+  return weaknesses.slice(0, 3);
+}
+
+function buildTurnSuggestions(
+  relevant: boolean,
+  matchedMistakes: { ruleId: string }[],
+  structureIssue: StructureIssue,
+  fillerCount: number,
+  diversity: number,
+  wordCount: number,
+  language: FeedbackLanguage
+): string[] {
+  const suggestions: string[] = [];
+  if (!relevant) suggestions.push(SUGGESTION_RE_READ_QUESTION[language]);
+  if (matchedMistakes.length > 0) {
+    const rule = getGrammarRule(matchedMistakes[0].ruleId);
+    if (rule) suggestions.push(HOW_TO_AVOID_BY_CATEGORY[rule.category][language]);
+  }
+  if (structureIssue === "missing-support" || structureIssue === "missing-example" || structureIssue === "missing-conclusion") {
+    suggestions.push(COACHING_TIPS[structureIssue][language]);
+  }
+  if (fillerCount >= 3) suggestions.push(buildFillerSuggestion(language));
+  if (diversity < 0.5 && wordCount >= 8) suggestions.push(buildVocabSuggestion(language));
+  return suggestions.filter(Boolean).slice(0, 3);
+}
 
 /** Language-neutral result of analyzing one spoken (typed) answer — safe
  * to accumulate in client state and send back for the session report. */
@@ -1384,24 +794,17 @@ export interface TurnSelection {
   matchedMistakes: { ruleId: string; original: string; correction: string; sentence: string }[];
   fillerCount: number;
   mispronuncedWords: string[];
-  strengthIndices: number[];
-  weaknessIndices: number[];
-  tipIndices: number[];
+  recognitionConfidence: number | null;
   turnScore: number;
-}
-
-function pickIndices(length: number, count: number): number[] {
-  const indices = Array.from({ length }, (_, i) => i);
-  const shuffled = indices.sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, Math.min(count, shuffled.length)).sort((a, b) => a - b);
-}
-
-function countFillerWords(text: string): number {
-  const lower = text.toLowerCase();
-  return FILLER_WORDS.reduce((total, word) => {
-    const matches = lower.match(new RegExp(`\\b${word.replace(/\s+/g, "\\s+")}\\b`, "g"));
-    return total + (matches?.length ?? 0);
-  }, 0);
+  /** Real signals computed from the transcript in analyzeTurn (which has
+   * the raw text) and carried language-neutral through to localizeTurnFeedback
+   * (which builds the translated notes from them) — the transcript itself
+   * isn't stored here, only what was actually measured on it. */
+  sentenceCount: number;
+  vocabularyDiversity: number;
+  hasConnectors: boolean;
+  sentenceLengthsList: number[];
+  hasNaturalnessIssue: boolean;
 }
 
 export function analyzeTurn(
@@ -1410,9 +813,9 @@ export function analyzeTurn(
   questionId: string,
   prompt: string,
   responseText: string,
-  wordCount: number
+  wordCount: number,
+  recognitionConfidence: number | null = null
 ): TurnSelection {
-  const profile = MOCK_SPEAKING_PROFILES[level];
   const relevant = computeRelevance(prompt, responseText, wordCount);
   const looksLikeSelfIntro = UNAMBIGUOUS_SELF_INTRO_PATTERN.test(responseText);
   const structureIssue = classifyStructure(responseText, relevant, wordCount);
@@ -1434,19 +837,14 @@ export function analyzeTurn(
     wordCount
   );
 
-  const jitter = Math.floor(Math.random() * 3) - 1;
-  let turnScore = Math.max(
-    5,
-    Math.min(25, profile.baseScore + jitter - Math.min(fillerCount, 3) - matchedMistakes.length)
-  );
-  // Task achievement is heavily weighted in real DELF grading — an answer
-  // that doesn't address the question is capped well below a passing score.
-  if (!relevant) turnScore = Math.min(turnScore, 10);
-
+  const turnScore = computeTurnScore(level, relevant, matchedMistakes.length, structureIssue, fillerCount, wordCount);
   const mispronuncedWords = findMispronuncedWords(responseText);
-  const strengthIndices = pickIndices(profile.strengths.length, Math.min(2, profile.strengths.length));
-  const weaknessIndices = pickIndices(profile.weaknesses.length, Math.min(2, profile.weaknesses.length));
-  const tipIndices = pickIndices(profile.improvementTips.length, Math.min(2, profile.improvementTips.length));
+
+  const sentenceCount = countSentences(responseText);
+  const vocabularyDiversity = lexicalDiversity(responseText);
+  const hasConnectors = CONNECTOR_PATTERN.test(responseText);
+  const sentenceLengthsList = sentenceLengths(responseText);
+  const hasNaturalnessIssue = matchedMistakes.some((m) => getGrammarRule(m.ruleId)?.category === "other");
 
   return {
     level,
@@ -1462,10 +860,13 @@ export function analyzeTurn(
     matchedMistakes,
     fillerCount,
     mispronuncedWords,
-    strengthIndices,
-    weaknessIndices,
-    tipIndices,
+    recognitionConfidence,
     turnScore,
+    sentenceCount,
+    vocabularyDiversity,
+    hasConnectors,
+    sentenceLengthsList,
+    hasNaturalnessIssue,
   };
 }
 
@@ -1474,9 +875,8 @@ export function localizeTurnFeedback(
   language: FeedbackLanguage,
   previousCoachingTips: string[] = []
 ): TurnFeedback {
-  const profile = MOCK_SPEAKING_PROFILES[selection.level];
   const grammarErrors: SpeakingGrammarMistake[] = selection.matchedMistakes.map((m) => {
-    const rule = GRAMMAR_RULES.find((r) => r.id === m.ruleId)!;
+    const rule = getGrammarRule(m.ruleId)!;
     return {
       original: m.original,
       correction: m.correction,
@@ -1489,33 +889,53 @@ export function localizeTurnFeedback(
     };
   });
 
-  const fluencyNote =
-    profile.fluencyNotes[Math.floor(Math.random() * profile.fluencyNotes.length)][language];
-  const vocabularyNote =
-    profile.vocabularyRangeNotes[
-      Math.floor(Math.random() * profile.vocabularyRangeNotes.length)
-    ][language];
-  const pronunciationNote =
-    profile.pronunciationNotes[
-      Math.floor(Math.random() * profile.pronunciationNotes.length)
-    ][language];
   const taskCompletionNote = selection.relevant
-    ? profile.taskCompletionNotes[
-        Math.floor(Math.random() * profile.taskCompletionNotes.length)
-      ][language]
+    ? {
+        en: "Directly addressed the question that was asked.",
+        ru: "Прямо ответил(а) на заданный вопрос.",
+        kz: "Қойылған сұраққа тікелей жауап берді.",
+      }[language]
     : buildOffTopicNote(selection.prompt, selection.looksLikeSelfIntro, language);
-  const coherenceNote =
-    profile.coherenceNotes[Math.floor(Math.random() * profile.coherenceNotes.length)][language];
-  const sentenceVarietyNote =
-    profile.sentenceVarietyNotes[
-      Math.floor(Math.random() * profile.sentenceVarietyNotes.length)
-    ][language];
-  const naturalnessNote =
-    profile.naturalnessNotes[Math.floor(Math.random() * profile.naturalnessNotes.length)][language];
+
+  const fluencyNote = buildFluencyNote(selection.fillerCount, selection.sentenceCount, selection.wordCount, language);
+  const vocabularyNote = buildVocabularyNote(selection.vocabularyDiversity, selection.wordCount, language);
+  const pronunciationNote = buildPronunciationNote(
+    selection.mispronuncedWords.length,
+    selection.recognitionConfidence,
+    language
+  );
+  const coherenceNote = buildCoherenceNote(selection.hasConnectors, selection.sentenceCount, language);
+  const sentenceVarietyNote = buildSentenceVarietyNote(selection.sentenceLengthsList, language);
+  const naturalnessNote = buildNaturalnessNote(selection.hasNaturalnessIssue, language);
+
   const mispronuncedWords = localizeMispronuncedWords(selection.mispronuncedWords, language);
-  const strengths = selection.strengthIndices.map((i) => profile.strengths[i][language]);
-  const areasForImprovement = selection.weaknessIndices.map((i) => profile.weaknesses[i][language]);
-  const suggestions = selection.tipIndices.map((i) => profile.improvementTips[i][language]);
+  const strengths = buildTurnStrengths(
+    selection.relevant,
+    selection.matchedMistakes.length,
+    selection.structureIssue,
+    selection.fillerCount,
+    selection.vocabularyDiversity,
+    selection.wordCount,
+    language
+  );
+  const areasForImprovement = buildTurnWeaknesses(
+    selection.relevant,
+    selection.matchedMistakes.length,
+    selection.structureIssue,
+    selection.fillerCount,
+    selection.vocabularyDiversity,
+    selection.wordCount,
+    language
+  );
+  const suggestions = buildTurnSuggestions(
+    selection.relevant,
+    selection.matchedMistakes,
+    selection.structureIssue,
+    selection.fillerCount,
+    selection.vocabularyDiversity,
+    selection.wordCount,
+    language
+  );
 
   const encouragement: TranslatedText = selection.relevant
     ? {
@@ -1607,9 +1027,8 @@ function buildIrrelevantWeakness(count: number, total: number): TranslatedText {
 }
 
 function buildRecurringPronunciationNote(words: string[]): TranslatedText {
-  const list = words.join("\", \"");
   return {
-    en: `Pronunciation of "${list}" came up more than once — worth extra practice.`,
+    en: `Pronunciation of "${words.join("\", \"")}" came up more than once — worth extra practice.`,
     ru: `Произношение слов «${words.join("», «")}» повторялось несколько раз — стоит потренировать отдельно.`,
     kz: `«${words.join("», «")}» сөздерінің айтылымы бірнеше рет қайталанды — қосымша жаттығу қажет.`,
   };
@@ -1633,11 +1052,7 @@ const LOW_VOCABULARY_VARIETY_SUGGESTION: TranslatedText = {
   kz: "Келесі сессияға дейін жиі қолданатын сөздерге 2-3 синоним жазып алып, оларды жауаптарыңызға қосуға тырысыңыз",
 };
 
-const RE_READ_QUESTION_SUGGESTION: TranslatedText = {
-  en: "Before answering, repeat the question in your head to make sure you address exactly what's asked",
-  ru: "Перед ответом мысленно повторите вопрос, чтобы убедиться, что вы отвечаете именно на него",
-  kz: "Жауап бермес бұрын сұрақты ойыңызда қайталап, нақты соған жауап беріп жатқаныңызға көз жеткізіңіз",
-};
+const RE_READ_QUESTION_SUGGESTION: TranslatedText = SUGGESTION_RE_READ_QUESTION;
 
 const RECURRING_STRUCTURE_WEAKNESS: Record<Exclude<StructureIssue, "not-relevant" | "none">, TranslatedText> = {
   "missing-support": {
@@ -1714,16 +1129,17 @@ const SCORE_EXPLANATION = {
   }),
 };
 
-/** Offline fallback (no ANTHROPIC_API_KEY configured) — unlike the old
- * random session synthesis, this aggregates the real accumulated per-turn
- * data (actual transcripts, actual scores, actual grammar errors already
- * produced per-turn) instead of re-rolling its own report independently. */
+/** Offline fallback (no ANTHROPIC_API_KEY configured) — aggregates the real
+ * accumulated per-turn data (actual transcripts, actual scores, actual
+ * grammar errors already produced per-turn) into a session report. Every
+ * field is computed from this specific session's real turns — vocabulary
+ * and fluency summaries included, which previously fell back to a static
+ * per-level lookup regardless of what actually happened in the session. */
 export function synthesizeReportFromTurns(
   completedTurns: CompletedTurn[],
   level: DelfLevel,
   language: FeedbackLanguage
 ): SpeakingExaminerReport {
-  const profile = MOCK_SPEAKING_PROFILES[level];
   const levelConfig = DELF_SPEAKING_LEVELS[level];
 
   const commonErrors = findRepeatedErrors(completedTurns);
@@ -1765,12 +1181,12 @@ export function synthesizeReportFromTurns(
   const hasRecurringStructureIssue = !!recurringStructureIssue && recurringStructureIssue[1] >= 2;
 
   // Vocabulary breadth: unique content words ÷ total content words across
-  // the whole session — a real, bounded signal instead of a static note.
-  // Only judged once there's enough text for the ratio to mean anything.
+  // the whole session — a real, bounded signal used both for the weakness
+  // check AND as the session's actual vocabulary summary/range note.
   const fullContentWords = extractContentWords(fullTranscript);
   const uniqueContentWordCount = new Set(fullContentWords).size;
-  const vocabularyRatio = fullContentWords.length > 0 ? uniqueContentWordCount / fullContentWords.length : 1;
-  const hasLowVocabularyVariety = fullContentWords.length >= 15 && vocabularyRatio < 0.55;
+  const sessionDiversity = fullContentWords.length > 0 ? uniqueContentWordCount / fullContentWords.length : 1;
+  const hasLowVocabularyVariety = fullContentWords.length >= 15 && sessionDiversity < 0.55;
 
   const average = (nums: number[]) => (nums.length === 0 ? 0 : nums.reduce((a, b) => a + b, 0) / nums.length);
   const half = Math.ceil(total / 2);
@@ -1787,18 +1203,15 @@ export function synthesizeReportFromTurns(
   const ratio = estimatedScore / scoreOutOf;
   const tier = ratio >= 0.75 ? "strong" : ratio >= 0.5 ? "borderline" : "weak";
 
-  // Every list below is built from real observations about this specific
-  // session first, and only padded with a static (but still accurate) pool
-  // entry when there aren't enough dynamic observations to fill it out —
-  // never a purely pre-written summary independent of what happened.
+  // Every list below is built entirely from real observations about this
+  // specific session — never a static per-level fallback.
   const dynamicStrengths: string[] = [];
   if (total > 0 && irrelevantCount === 0) dynamicStrengths.push(ALL_RELEVANT_STRENGTH[language]);
   if (improved) dynamicStrengths.push(IMPROVEMENT_STRENGTH[language]);
   if (total >= 2 && commonErrors.length === 0) dynamicStrengths.push(NO_REPEATED_ERRORS_STRENGTH[language]);
-  const strengths =
-    dynamicStrengths.length >= 2
-      ? dynamicStrengths.slice(0, 3)
-      : [...dynamicStrengths, ...profile.strengths.slice(0, 3 - dynamicStrengths.length).map((s) => s[language])];
+  if (sessionDiversity >= 0.75 && fullContentWords.length >= 10) dynamicStrengths.push(STRENGTH_GOOD_VOCAB[language]);
+  if (fillerTotal === 0 && total > 0) dynamicStrengths.push(STRENGTH_NO_FILLERS[language]);
+  const strengths = dynamicStrengths.slice(0, 3);
 
   const dynamicWeaknesses: string[] = [];
   if (irrelevantCount > 0) dynamicWeaknesses.push(buildIrrelevantWeakness(irrelevantCount, total)[language]);
@@ -1810,10 +1223,7 @@ export function synthesizeReportFromTurns(
     dynamicWeaknesses.push(RECURRING_STRUCTURE_WEAKNESS[recurringStructureIssue[0]][language]);
   }
   if (hasLowVocabularyVariety) dynamicWeaknesses.push(LOW_VOCABULARY_VARIETY_WEAKNESS[language]);
-  const weaknesses =
-    dynamicWeaknesses.length > 0
-      ? dynamicWeaknesses.slice(0, 3)
-      : profile.weaknesses.slice(0, 2).map((w) => w[language]);
+  const weaknesses = dynamicWeaknesses.slice(0, 3);
 
   const dynamicSuggestions: string[] = [];
   if (irrelevantCount > 0) dynamicSuggestions.push(RE_READ_QUESTION_SUGGESTION[language]);
@@ -1823,10 +1233,35 @@ export function synthesizeReportFromTurns(
     dynamicSuggestions.push(RECURRING_STRUCTURE_SUGGESTION[recurringStructureIssue[0]][language]);
   }
   if (hasLowVocabularyVariety) dynamicSuggestions.push(LOW_VOCABULARY_VARIETY_SUGGESTION[language]);
-  const suggestions =
-    dynamicSuggestions.length >= 2
-      ? dynamicSuggestions.slice(0, 3)
-      : [...dynamicSuggestions, ...profile.improvementTips.slice(0, 3 - dynamicSuggestions.length).map((s) => s[language])];
+  const suggestions = dynamicSuggestions.slice(0, 3);
+
+  const uniqueRatioPercent = Math.round(sessionDiversity * 100);
+  const vocabularySummary: TranslatedText =
+    fullContentWords.length >= 10
+      ? {
+          en: `Across the session, about ${uniqueRatioPercent}% of the content words used were distinct.`,
+          ru: `За сессию около ${uniqueRatioPercent}% использованных значимых слов были уникальными.`,
+          kz: `Сессия бойы қолданылған мағыналы сөздердің шамамен ${uniqueRatioPercent}%-ы қайталанбады.`,
+        }
+      : {
+          en: "Not enough spoken content this session to assess vocabulary range meaningfully.",
+          ru: "За эту сессию было сказано недостаточно, чтобы содержательно оценить словарный запас.",
+          kz: "Бұл сессияда сөздік қорды мазмұнды бағалау үшін жеткілікті сөз айтылмады.",
+        };
+
+  const avgFillerPerTurn = total > 0 ? fillerTotal / total : 0;
+  const fluencySummary: TranslatedText =
+    avgFillerPerTurn === 0
+      ? {
+          en: "No filler words across the session — consistently fluent delivery.",
+          ru: "За всю сессию не было слов-паразитов — стабильно беглая речь.",
+          kz: "Сессия бойы толықтырғыш сөздер болмады — тұрақты еркін сөйлеу.",
+        }
+      : {
+          en: `An average of ${avgFillerPerTurn.toFixed(1)} filler word(s) per answer across the session.`,
+          ru: `В среднем ${avgFillerPerTurn.toFixed(1)} слов(а)-паразита на ответ за сессию.`,
+          kz: `Сессия бойы жауап басына орта есеппен ${avgFillerPerTurn.toFixed(1)} толықтырғыш сөз келді.`,
+        };
 
   return {
     level,
@@ -1839,23 +1274,37 @@ export function synthesizeReportFromTurns(
       commonErrors,
     },
     vocabulary: {
-      summary: profile.vocabularyRangeNotes[0][language],
-      rangeNote: profile.vocabularyRangeNotes[
-        Math.min(1, profile.vocabularyRangeNotes.length - 1)
-      ][language],
+      summary: vocabularySummary[language],
+      rangeNote:
+        hasLowVocabularyVariety
+          ? LOW_VOCABULARY_VARIETY_WEAKNESS[language]
+          : {
+              en: "Vocabulary range was reasonable for this session's length.",
+              ru: "Словарный запас был приемлемым для длины этой сессии.",
+              kz: "Сөздік қор осы сессияның ұзындығына сай жеткілікті болды.",
+            }[language],
     },
     pronunciation: {
       summary:
         recurringMispronounced.length > 0
           ? buildRecurringPronunciationNote(recurringMispronounced)[language]
-          : profile.pronunciationNotes[0][language],
-      note: profile.pronunciationNotes[
-        Math.min(1, profile.pronunciationNotes.length - 1)
-      ][language],
+          : {
+              en: "No word was flagged as mispronounced more than once this session.",
+              ru: "Ни одно слово не было отмечено как неправильно произнесённое более одного раза за сессию.",
+              kz: "Бұл сессияда бірде-бір сөз бірнеше рет қате айтылды деп белгіленбеді.",
+            }[language],
+      note: fluencySummary[language],
     },
     fluency: {
-      summary: profile.fluencyNotes[0][language],
-      pace: profile.fluencyNotes[Math.min(1, profile.fluencyNotes.length - 1)][language],
+      summary: fluencySummary[language],
+      pace:
+        total > 0
+          ? {
+              en: `${total} answer${total === 1 ? "" : "s"} completed this session.`,
+              ru: `За эту сессию завершено ${total} ответ${total === 1 ? "" : "ов"}.`,
+              kz: `Бұл сессияда ${total} жауап аяқталды.`,
+            }[language]
+          : "",
     },
     taskCompletion: {
       summary:

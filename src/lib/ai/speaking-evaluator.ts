@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type Anthropic from "@anthropic-ai/sdk";
 import { DELF_SPEAKING_LEVELS } from "@/config/delf-speaking";
+import { callClaudeForJson } from "@/lib/evaluation/claude-json";
 import type {
   CompletedTurn,
   FollowUpQuestion,
@@ -114,29 +115,6 @@ const topicChoicesSchema = z.object({
   topics: z.array(z.object({ title: z.string(), translation: z.string() })).length(2),
 });
 
-function extractJson(text: string): unknown {
-  const fenced = text.trim().match(/```(?:json)?\s*([\s\S]*?)```/i);
-  return JSON.parse(fenced ? fenced[1] : text.trim());
-}
-
-async function callClaudeForJson(
-  client: Anthropic,
-  system: string,
-  userPrompt: string
-): Promise<unknown> {
-  const response = await client.messages.create({
-    model: SPEAKING_EVAL_MODEL,
-    max_tokens: 2000,
-    system,
-    messages: [{ role: "user", content: userPrompt }],
-  });
-  const block = response.content.find(
-    (b): b is Anthropic.TextBlock => b.type === "text"
-  );
-  if (!block) throw new Error("Claude response had no text content");
-  return extractJson(block.text);
-}
-
 /** True for parts where a natural reactive follow-up makes sense — A2's
  * guided interview/monologue, B1's guided interview and interactive
  * negotiation. Never B2 (formal, single extended defense) or A1 (too
@@ -206,7 +184,7 @@ Candidate's transcribed spoken answer (French): "${transcript}"
 Word count: ${wordCount}
 Speech recognition confidence: ${recognitionConfidence !== null ? recognitionConfidence.toFixed(2) : "unavailable"}`;
 
-  const parsed = await callClaudeForJson(client, system, userPrompt);
+  const parsed = await callClaudeForJson(client, SPEAKING_EVAL_MODEL, system, userPrompt, 2000);
   return evaluateTurnResponseSchema.parse(parsed);
 }
 
@@ -229,7 +207,7 @@ export async function synthesizeReportWithClaude(
     )
     .join("\n");
 
-  const parsed = await callClaudeForJson(client, system, userPrompt);
+  const parsed = await callClaudeForJson(client, SPEAKING_EVAL_MODEL, system, userPrompt, 2000);
   return reportSchema.parse(parsed);
 }
 
@@ -258,7 +236,7 @@ export async function generateSpeakingSession(
 
   const userPrompt = `Parts to generate:\n${partsSpec}`;
 
-  const parsed = await callClaudeForJson(client, system, userPrompt);
+  const parsed = await callClaudeForJson(client, SPEAKING_EVAL_MODEL, system, userPrompt, 2000);
   const result = sessionQuestionsSchema.parse(parsed);
 
   return levelConfig.parts.flatMap((part) => {
@@ -284,6 +262,6 @@ export async function generateB2Topics(
 ): Promise<GeneratedTopicChoice[]> {
   const system = `Generate exactly two original DELF B2-style discussion topics, resembling themes such as society, education, environment, technology, culture, and philosophy. Never reproduce real official DELF exam prompts — every topic must be an original creation. Respond with ONLY a single JSON object, no prose, no markdown fences, matching exactly this shape: { "topics": [{ "title": string, "translation": string }, { "title": string, "translation": string }] }. "title" is French; "translation" is the same topic in ${FEEDBACK_LANGUAGE_NAMES[language]}.`;
 
-  const parsed = await callClaudeForJson(client, system, "Generate the two topics now.");
+  const parsed = await callClaudeForJson(client, SPEAKING_EVAL_MODEL, system, "Generate the two topics now.", 2000);
   return topicChoicesSchema.parse(parsed).topics;
 }

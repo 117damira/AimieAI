@@ -2,6 +2,7 @@ import { z } from "zod";
 import type Anthropic from "@anthropic-ai/sdk";
 import type { VocabularySentenceFeedback } from "@/types/vocabulary";
 import type { DelfLevel, FeedbackLanguage } from "@/types/writing-evaluation";
+import { callClaudeForJson } from "@/lib/evaluation/claude-json";
 import { SPEAKING_EVAL_MODEL } from "./anthropic";
 
 /**
@@ -32,11 +33,6 @@ const vocabularyFeedbackSchema = z.object({
   explanation: z.string(),
   encouragement: z.string(),
 }) satisfies z.ZodType<VocabularySentenceFeedback>;
-
-function extractJson(text: string): unknown {
-  const fenced = text.trim().match(/```(?:json)?\s*([\s\S]*?)```/i);
-  return JSON.parse(fenced ? fenced[1] : text.trim());
-}
 
 export async function evaluateVocabularySentence(
   client: Anthropic,
@@ -75,14 +71,6 @@ Respond with ONLY a single JSON object, no prose, no markdown fences, matching e
 
   const userPrompt = `Target word: ${word}\nStudent's sentence: "${sentence}"`;
 
-  const response = await client.messages.create({
-    model: SPEAKING_EVAL_MODEL,
-    max_tokens: 1000,
-    system,
-    messages: [{ role: "user", content: userPrompt }],
-  });
-  const block = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");
-  if (!block) throw new Error("Claude response had no text content");
-  const parsed = extractJson(block.text);
+  const parsed = await callClaudeForJson(client, SPEAKING_EVAL_MODEL, system, userPrompt, 1000);
   return vocabularyFeedbackSchema.parse(parsed);
 }

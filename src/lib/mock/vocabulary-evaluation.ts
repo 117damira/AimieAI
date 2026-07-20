@@ -1,6 +1,8 @@
 import type { DelfLevel, FeedbackLanguage } from "@/types/writing-evaluation";
 import type { VocabularyMistake, VocabularySentenceFeedback } from "@/types/vocabulary";
 import { findWordEntry } from "./word-of-the-day";
+import { normalize } from "@/lib/evaluation/text-utils";
+import { findGrammarMistakes as findSharedGrammarMistakes, getGrammarRule } from "@/lib/evaluation/grammar-rules";
 
 /**
  * Offline fallback vocabulary-sentence evaluator, used by
@@ -22,19 +24,6 @@ import { findWordEntry } from "./word-of-the-day";
  */
 
 type TranslatedText = Record<FeedbackLanguage, string>;
-
-const ACCENT_MAP: Record<string, string> = {
-  à: "a", â: "a", ä: "a", é: "e", è: "e", ê: "e", ë: "e", î: "i", ï: "i",
-  ô: "o", ö: "o", ù: "u", û: "u", ü: "u", ç: "c", œ: "oe", æ: "ae",
-};
-
-function normalize(text: string): string {
-  return text
-    .toLowerCase()
-    .split("")
-    .map((ch) => ACCENT_MAP[ch] ?? ch)
-    .join("");
-}
 
 function extractTokens(text: string): string[] {
   return text
@@ -107,134 +96,16 @@ function findSemanticMismatch(sentence: string): { verb: string; object: string 
   return null;
 }
 
-/** Step 3 — real, transcript-grounded grammar checking. Every rule only
- * fires when its pattern genuinely appears; corrections are computed from
- * the actual matched text, never a canned phrase. */
-interface VocabGrammarRule {
-  regex: RegExp;
-  correction: (matched: string) => string;
-  explanation: TranslatedText;
-}
-
-const JE_CONJUGATION_MAP: Record<string, string> = {
-  aimer: "j'aime", vouloir: "je veux", pouvoir: "je peux", aller: "je vais",
-  faire: "je fais", habiter: "j'habite", parler: "je parle", manger: "je mange",
-  avoir: "j'ai", être: "je suis", jouer: "je joue", regarder: "je regarde",
-};
-
-const FEMININE_NOUNS = [
-  "maison", "voiture", "ville", "chose", "idée", "université", "semaine",
-  "année", "table", "chambre", "cuisine", "montagne", "porte", "fenêtre",
-];
-
-const FEMININE_ADJECTIVE_MAP: Record<string, string> = {
-  blanc: "blanche", grand: "grande", petit: "petite", beau: "belle",
-  nouveau: "nouvelle", vieux: "vieille", bon: "bonne",
-};
-
-const PLURAL_NOUNS = ["voiture", "maison", "table", "chaise", "idée", "ville", "livre", "ami", "amie"];
-
-const VOCAB_GRAMMAR_RULES: VocabGrammarRule[] = [
-  {
-    regex: new RegExp(`\\bun\\s+(${FEMININE_NOUNS.join("|")})(?![a-zà-ÿ])`, "i"),
-    correction: (m) => m.replace(/\bun\b/i, "une"),
-    explanation: {
-      en: "This noun is feminine, so it takes \"une\", not \"un\" — a gender/article agreement rule.",
-      ru: "Это существительное женского рода, поэтому употребляется с «une», а не «un» — правило согласования рода/артикля.",
-      kz: "Бұл зат есім әйел тегінде, сондықтан «une» қолданылады, «un» емес — тек/артикль келісім ережесі.",
-    },
-  },
-  {
-    regex: new RegExp(
-      `\\b(${FEMININE_NOUNS.join("|")})\\s+(blanc|grand|petit|beau|nouveau|vieux|bon)\\b`,
-      "i"
-    ),
-    correction: (m) => {
-      const match = m.match(/^(\S+)\s+(\S+)$/);
-      if (!match) return m;
-      const [, noun, adj] = match;
-      return `${noun} ${FEMININE_ADJECTIVE_MAP[adj.toLowerCase()] ?? adj}`;
-    },
-    explanation: {
-      en: "This noun is feminine, so the adjective describing it must also take its feminine form — noun/adjective agreement.",
-      ru: "Это существительное женского рода, поэтому прилагательное тоже должно быть в женском роде — согласование существительного и прилагательного.",
-      kz: "Бұл зат есім әйел тегінде, сондықтан оны сипаттайтын сын есім де әйелдік түрде болуы керек — зат есім/сын есім келісімі.",
-    },
-  },
-  {
-    regex: new RegExp(`\\b(les|des)\\s+(${PLURAL_NOUNS.join("|")})(?![a-zà-ÿs])`, "i"),
-    correction: (m) => m.replace(/(\S+)$/, "$1s"),
-    explanation: {
-      en: "After \"les\"/\"des\" the noun must be plural — add the missing \"s\".",
-      ru: "После «les»/«des» существительное должно стоять во множественном числе — добавьте пропущенное «s».",
-      kz: "«Les»/«des»-тен кейін зат есім көпше түрде болуы керек — жетіспейтін «s»-ті қосыңыз.",
-    },
-  },
-  {
-    regex: /\bje\s+suis\s+([a-zà-ÿ0-9-]+)\s+ans?\b/i,
-    correction: (m) => m.replace(/\bje\s+suis\b/i, "j'ai"),
-    explanation: {
-      en: "Age is expressed with \"avoir\" (avoir + age), not \"être\" — a fixed verb-choice rule.",
-      ru: "Возраст выражается с помощью глагола «avoir» (avoir + возраст), а не «être» — устойчивое правило выбора глагола.",
-      kz: "Жас мөлшері «avoir» етістігімен беріледі (avoir + жас), «être» емес — тұрақты етістік таңдау ережесі.",
-    },
-  },
-  {
-    regex: new RegExp(`\\bje\\s+(${Object.keys(JE_CONJUGATION_MAP).join("|")})\\b`, "i"),
-    correction: (m) => {
-      const verb = m.trim().split(/\s+/)[1]?.toLowerCase() ?? "";
-      return JE_CONJUGATION_MAP[verb] ?? m;
-    },
-    explanation: {
-      en: "The verb must be conjugated for \"je\", not left in the infinitive — verb conjugation.",
-      ru: "Глагол нужно спрягать для «je», а не оставлять в инфинитиве — спряжение глагола.",
-      kz: "Етістік «je» үшін жіктелуі керек, тұйық түрде қалмауы керек — етістік жіктелуі.",
-    },
-  },
-  {
-    regex:
-      /\bj['’]ai\s+(allée?s?|arrivée?s?|partie?s?|venue?s?|entrée?s?|sortie?s?|montée?s?|descendue?s?|restée?s?|tombée?s?|née?s?)(?![a-zà-ÿ])/i,
-    correction: (m) => m.replace(/j['’]ai/i, "je suis"),
-    explanation: {
-      en: "This verb takes \"être\" as its auxiliary in the passé composé, not \"avoir\" — tense/auxiliary rule.",
-      ru: "Этот глагол в passé composé спрягается с «être», а не с «avoir» — правило выбора вспомогательного глагола.",
-      kz: "Бұл етістік passé composé-де «être» көмекші етістігімен тіркеседі, «avoir» емес — көмекші етістік ережесі.",
-    },
-  },
-  {
-    regex: /\belle\s+est\s+(allé|arrivé|parti|venu|entré|sorti|monté|descendu|resté|tombé|né)(?![a-zà-ÿ])/i,
-    correction: (m) => `${m}e`,
-    explanation: {
-      en: "With \"être\", the past participle agrees with the subject — it needs an \"e\" for a feminine subject.",
-      ru: "С «être» причастие прошедшего времени согласуется с подлежащим — для женского рода нужна «e».",
-      kz: "«Être»-мен есімше бастауышпен келіседі — әйелдік тек үшін «e» қажет.",
-    },
-  },
-  {
-    regex: /\bje\s+pense\s+de\s+\w+/i,
-    correction: (m) => m.replace(/\spense\s+de\s+/i, " pense "),
-    explanation: {
-      en: "\"Penser\" + infinitive doesn't take \"de\" when expressing an intention — preposition rule.",
-      ru: "«Penser» + инфинитив не требует предлога «de» при выражении намерения — правило предлога.",
-      kz: "Ниетті білдіргенде «penser» + тұйық етістік «de» септеулігін қажет етпейді — септеулік ережесі.",
-    },
-  },
-];
-
+/** Step 3 — real, transcript-grounded grammar checking, using the same
+ * shared rule engine as Speaking and Writing (lib/evaluation/grammar-rules).
+ * Every rule only fires when its pattern genuinely appears; corrections are
+ * computed from the actual matched text, never a canned phrase. */
 function findGrammarMistakes(sentence: string, language: FeedbackLanguage): VocabularyMistake[] {
-  const results: VocabularyMistake[] = [];
-  for (const rule of VOCAB_GRAMMAR_RULES) {
-    const match = sentence.match(rule.regex);
-    if (match) {
-      results.push({
-        original: match[0],
-        correction: rule.correction(match[0]),
-        whyWrong: rule.explanation[language],
-      });
-      if (results.length >= 3) break;
-    }
-  }
-  return results;
+  return findSharedGrammarMistakes(sentence, 3).map((match) => ({
+    original: match.original,
+    correction: match.correction,
+    whyWrong: getGrammarRule(match.ruleId)!.explanation[language],
+  }));
 }
 
 const PUNCTUATION_EXPLANATION: TranslatedText = {
