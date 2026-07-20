@@ -6,6 +6,7 @@ import {
   PenLine,
   ListChecks,
   TrendingUp,
+  CalendarDays,
   User,
   Settings,
 } from "lucide-react";
@@ -26,6 +27,7 @@ export const SIDEBAR_NAV: NavItem[] = [
   { key: "writingPractice", href: "/writing", icon: PenLine },
   { key: "weeklyQuiz", href: "/quiz", icon: ListChecks },
   { key: "progress", href: "/progress", icon: TrendingUp },
+  { key: "studyPlan", href: "/study-plan", icon: CalendarDays },
 ];
 
 export const SIDEBAR_FOOTER_NAV: NavItem[] = [

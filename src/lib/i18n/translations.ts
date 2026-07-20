@@ -51,6 +51,7 @@ export interface Dictionary {
     writingPractice: string;
     weeklyQuiz: string;
     progress: string;
+    studyPlan: string;
     profile: string;
     settings: string;
   };
@@ -158,8 +159,16 @@ export interface Dictionary {
     aiFeedback: string;
     aiFeedbackDescription: string;
     aiFeedbackEmptyState: string;
+    aiFeedbackErrorGeneric: string;
+    usedCorrectlyBadge: string;
+    notUsedBadge: string;
+    correctedSentenceLabel: string;
+    whyWrongLabel: string;
+    naturalSuggestionLabel: string;
+    explanationLabel: string;
     yourVocabulary: string;
     yourVocabularyDescription: string;
+    yourVocabularyEmptyState: string;
     masteryLabels: { new: string; learning: string; mastered: string };
   };
 
@@ -383,9 +392,6 @@ export interface Dictionary {
     comingSoon: string;
     notifications: string;
     notificationsDescription: string;
-    dangerZone: string;
-    dangerZoneDescription: string;
-    deleteAccount: string;
   };
 
   auth: {
@@ -404,6 +410,20 @@ export interface Dictionary {
     register: {
       title: string;
       description: string;
+      // Step 1 — email
+      emailStepDescription: string;
+      continueButton: string;
+      // Step 2 — verify
+      verifyStepTitle: string;
+      verifyStepDescription: (email: string) => string;
+      codeLabel: string;
+      codePlaceholder: string;
+      verifyButton: string;
+      resendCode: string;
+      codeResent: string;
+      devModeCodeNotice: (code: string) => string;
+      invalidCodeError: string;
+      // Step 3 — details
       firstName: string;
       firstNamePlaceholder: string;
       lastName: string;
@@ -412,8 +432,14 @@ export interface Dictionary {
       emailPlaceholder: string;
       password: string;
       passwordPlaceholder: string;
+      passwordRequirement: string;
       confirmPassword: string;
       confirmPasswordPlaceholder: string;
+      termsPrefix: string;
+      termsAndConditions: string;
+      termsMiddle: string;
+      privacyPolicy: string;
+      termsRequiredError: string;
       submit: string;
       haveAccount: string;
       logIn: string;
@@ -426,10 +452,25 @@ export interface Dictionary {
       submit: string;
       backToLogin: string;
       notFoundError: string;
-      simulatedNoticeTitle: string;
-      simulatedNoticeDescription: string;
-      resetLinkLabel: string;
-      continueButton: string;
+      verifyStepTitle: string;
+      verifyStepDescription: (email: string) => string;
+      codeLabel: string;
+      codePlaceholder: string;
+      verifyButton: string;
+      resendCode: string;
+      codeResent: string;
+      devModeCodeNotice: (code: string) => string;
+      invalidCodeError: string;
+      newPasswordStepTitle: string;
+      newPasswordStepDescription: string;
+      newPassword: string;
+      newPasswordPlaceholder: string;
+      confirmPassword: string;
+      confirmPasswordPlaceholder: string;
+      passwordRequirement: string;
+      saveButton: string;
+      successMessage: string;
+      goToLogin: string;
     };
     resetPassword: {
       title: string;
@@ -464,6 +505,17 @@ export interface Dictionary {
     reviewDailyGoalLabel: string;
     reviewDailyGoal: (n: number) => string;
     notSetYet: string;
+  };
+
+  studyPlan: {
+    pageTitle: string;
+    pageDescription: string;
+    testDay: string;
+    noExamDateTitle: string;
+    noExamDateDescription: string;
+    setExamDateLink: string;
+    dailyPlanTitle: string;
+    dailyPlanDescription: string;
   };
 }
 
@@ -523,6 +575,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       writingPractice: "Writing Practice",
       weeklyQuiz: "Weekly Quiz",
       progress: "Progress",
+      studyPlan: "Study Plan",
       profile: "Profile",
       settings: "Settings",
     },
@@ -642,11 +695,19 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       getAiFeedback: "Get AI Feedback",
       aiFeedback: "AI Feedback",
       aiFeedbackDescription: "Examiner-style feedback on your sentence will appear here.",
-      aiFeedbackEmptyState:
-        "This is where personalized AI feedback will be shown once the feedback engine is connected.",
+      aiFeedbackEmptyState: "Write a sentence and click \"Get AI Feedback\" to see how you did.",
+      aiFeedbackErrorGeneric: "Couldn't evaluate your sentence right now — please try again.",
+      usedCorrectlyBadge: "Used correctly",
+      notUsedBadge: "Word not used",
+      correctedSentenceLabel: "Corrected sentence",
+      whyWrongLabel: "Why",
+      naturalSuggestionLabel: "More natural",
+      explanationLabel: "Explanation",
       yourVocabulary: "Your vocabulary",
       yourVocabularyDescription:
-        "Words you've learned recently. Review them all in the Weekly Quiz.",
+        "Words become Learning and Mastered as you actually practice them.",
+      yourVocabularyEmptyState:
+        "No words practiced yet — write a sentence above and get feedback to start tracking your progress.",
       masteryLabels: { new: "New", learning: "Learning", mastered: "Mastered" },
     },
 
@@ -878,9 +939,6 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       comingSoon: "Coming soon",
       notifications: "Notifications",
       notificationsDescription: "Choose what you want to be notified about.",
-      dangerZone: "Danger zone",
-      dangerZoneDescription: "Permanently delete your account and all data.",
-      deleteAccount: "Delete account",
     },
 
     auth: {
@@ -899,33 +957,66 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       register: {
         title: "Create your account",
         description: "Start your personalized DELF preparation in a minute.",
+        emailStepDescription: "Enter your email to get started — we'll send a verification code.",
+        continueButton: "Continue",
+        verifyStepTitle: "Verify your email",
+        verifyStepDescription: (email) => `Enter the 4-digit code we sent to ${email}.`,
+        codeLabel: "Verification code",
+        codePlaceholder: "0000",
+        verifyButton: "Verify",
+        resendCode: "Resend code",
+        codeResent: "A new code was sent.",
+        devModeCodeNotice: (code) =>
+          `No email service is configured in this environment — here's your code for testing: ${code}`,
+        invalidCodeError: "That code is incorrect or has expired.",
         firstName: "First name",
-        firstNamePlaceholder: "Amina",
+        firstNamePlaceholder: "",
         lastName: "Last name",
-        lastNamePlaceholder: "Haddad",
+        lastNamePlaceholder: "",
         email: "Email",
         emailPlaceholder: "you@example.com",
         password: "Password",
         passwordPlaceholder: "••••••••",
+        passwordRequirement: "Passwords must be 6–16 characters, containing at least 1 letter and 1 number.",
         confirmPassword: "Confirm password",
         confirmPasswordPlaceholder: "••••••••",
+        termsPrefix: "I agree to the",
+        termsAndConditions: "Terms and Conditions",
+        termsMiddle: "and",
+        privacyPolicy: "Privacy Policy",
+        termsRequiredError: "Please accept the Terms.",
         submit: "Create account",
         haveAccount: "Already have an account?",
         logIn: "Log in",
       },
       forgotPassword: {
         title: "Reset your password",
-        description: "Enter your account email and we'll help you set a new password.",
+        description: "Enter your account email and we'll send you a verification code.",
         email: "Email",
         emailPlaceholder: "you@example.com",
-        submit: "Send reset instructions",
+        submit: "Send code",
         backToLogin: "Back to log in",
         notFoundError: "No account found with that email.",
-        simulatedNoticeTitle: "Demo mode — no email service connected",
-        simulatedNoticeDescription:
-          "This app has no email service configured, so instead of emailing you a reset link, it's shown right here.",
-        resetLinkLabel: "Your reset link",
-        continueButton: "Continue to reset password",
+        verifyStepTitle: "Verify your email",
+        verifyStepDescription: (email) => `Enter the 4-digit code we sent to ${email}.`,
+        codeLabel: "Verification code",
+        codePlaceholder: "0000",
+        verifyButton: "Verify",
+        resendCode: "Resend code",
+        codeResent: "A new code was sent.",
+        devModeCodeNotice: (code) =>
+          `No email service is configured in this environment — here's your code for testing: ${code}`,
+        invalidCodeError: "That code is incorrect or has expired.",
+        newPasswordStepTitle: "Create a new password",
+        newPasswordStepDescription: "Choose a new password for your account.",
+        newPassword: "New password",
+        newPasswordPlaceholder: "••••••••",
+        confirmPassword: "Confirm new password",
+        confirmPasswordPlaceholder: "••••••••",
+        passwordRequirement: "Passwords must be 6–16 characters, containing at least 1 letter and 1 number.",
+        saveButton: "Save new password",
+        successMessage: "Password updated. You can now log in.",
+        goToLogin: "Go to log in",
       },
       resetPassword: {
         title: "Set a new password",
@@ -981,6 +1072,16 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       reviewDailyGoalLabel: "Daily goal",
       reviewDailyGoal: (n) => `${n} min / day`,
       notSetYet: "Not set yet",
+    },
+    studyPlan: {
+      pageTitle: "Study Plan",
+      pageDescription: "Your exam countdown and a personalized day-by-day practice schedule.",
+      testDay: "Test day",
+      noExamDateTitle: "No exam date set yet",
+      noExamDateDescription: "Set your exam date in your profile to see it highlighted on the calendar.",
+      setExamDateLink: "Set exam date",
+      dailyPlanTitle: "Your daily plan",
+      dailyPlanDescription: "Adapts to your remaining days, level, and real practice history.",
     },
   },
 
@@ -1039,6 +1140,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       writingPractice: "Практика письма",
       weeklyQuiz: "Еженедельный тест",
       progress: "Прогресс",
+      studyPlan: "План учёбы",
       profile: "Профиль",
       settings: "Настройки",
     },
@@ -1158,11 +1260,19 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       getAiFeedback: "Получить отзыв ИИ",
       aiFeedback: "Отзыв ИИ",
       aiFeedbackDescription: "Здесь появится отзыв на ваше предложение в стиле экзаменатора.",
-      aiFeedbackEmptyState:
-        "Здесь будет отображаться персонализированный отзыв ИИ, когда движок обратной связи будет подключён.",
+      aiFeedbackEmptyState: "Напишите предложение и нажмите «Получить отзыв ИИ», чтобы узнать результат.",
+      aiFeedbackErrorGeneric: "Не удалось оценить предложение — попробуйте ещё раз.",
+      usedCorrectlyBadge: "Использовано правильно",
+      notUsedBadge: "Слово не использовано",
+      correctedSentenceLabel: "Исправленное предложение",
+      whyWrongLabel: "Почему",
+      naturalSuggestionLabel: "Более естественно",
+      explanationLabel: "Объяснение",
       yourVocabulary: "Ваш словарь",
       yourVocabularyDescription:
-        "Слова, которые вы недавно изучили. Повторите их все в еженедельном тесте.",
+        "Слова становятся «Изучается» и «Освоено» по мере реальной практики.",
+      yourVocabularyEmptyState:
+        "Пока нет практики — напишите предложение выше и получите отзыв, чтобы начать отслеживать прогресс.",
       masteryLabels: { new: "Новое", learning: "Изучается", mastered: "Освоено" },
     },
 
@@ -1400,9 +1510,6 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       comingSoon: "Скоро",
       notifications: "Уведомления",
       notificationsDescription: "Выберите, о чём вы хотите получать уведомления.",
-      dangerZone: "Опасная зона",
-      dangerZoneDescription: "Навсегда удалить ваш аккаунт и все данные.",
-      deleteAccount: "Удалить аккаунт",
     },
 
     auth: {
@@ -1421,33 +1528,66 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       register: {
         title: "Создайте аккаунт",
         description: "Начните персонализированную подготовку к DELF за минуту.",
+        emailStepDescription: "Введите email, чтобы начать — мы отправим код подтверждения.",
+        continueButton: "Продолжить",
+        verifyStepTitle: "Подтвердите email",
+        verifyStepDescription: (email) => `Введите 4-значный код, отправленный на ${email}.`,
+        codeLabel: "Код подтверждения",
+        codePlaceholder: "0000",
+        verifyButton: "Подтвердить",
+        resendCode: "Отправить код повторно",
+        codeResent: "Новый код отправлен.",
+        devModeCodeNotice: (code) =>
+          `В этом окружении почтовый сервис не настроен — вот код для теста: ${code}`,
+        invalidCodeError: "Код неверен или истёк.",
         firstName: "Имя",
-        firstNamePlaceholder: "Амина",
+        firstNamePlaceholder: "",
         lastName: "Фамилия",
-        lastNamePlaceholder: "Хаддад",
+        lastNamePlaceholder: "",
         email: "Email",
         emailPlaceholder: "you@example.com",
         password: "Пароль",
         passwordPlaceholder: "••••••••",
+        passwordRequirement: "Пароль должен содержать 6–16 символов, включая минимум 1 букву и 1 цифру.",
         confirmPassword: "Подтвердите пароль",
         confirmPasswordPlaceholder: "••••••••",
+        termsPrefix: "Я согласен(на) с",
+        termsAndConditions: "Условиями использования",
+        termsMiddle: "и",
+        privacyPolicy: "Политикой конфиденциальности",
+        termsRequiredError: "Пожалуйста, примите условия.",
         submit: "Создать аккаунт",
         haveAccount: "Уже есть аккаунт?",
         logIn: "Войти",
       },
       forgotPassword: {
         title: "Восстановление пароля",
-        description: "Введите email вашего аккаунта, и мы поможем задать новый пароль.",
+        description: "Введите email вашего аккаунта, и мы отправим код подтверждения.",
         email: "Email",
         emailPlaceholder: "you@example.com",
-        submit: "Отправить инструкции",
+        submit: "Отправить код",
         backToLogin: "Назад ко входу",
         notFoundError: "Аккаунт с таким email не найден.",
-        simulatedNoticeTitle: "Демо-режим — почтовый сервис не подключён",
-        simulatedNoticeDescription:
-          "В этом приложении не настроен почтовый сервис, поэтому вместо письма со ссылкой она показана прямо здесь.",
-        resetLinkLabel: "Ваша ссылка для сброса пароля",
-        continueButton: "Перейти к смене пароля",
+        verifyStepTitle: "Подтвердите email",
+        verifyStepDescription: (email) => `Введите 4-значный код, отправленный на ${email}.`,
+        codeLabel: "Код подтверждения",
+        codePlaceholder: "0000",
+        verifyButton: "Подтвердить",
+        resendCode: "Отправить код повторно",
+        codeResent: "Новый код отправлен.",
+        devModeCodeNotice: (code) =>
+          `В этом окружении почтовый сервис не настроен — вот код для теста: ${code}`,
+        invalidCodeError: "Код неверен или истёк.",
+        newPasswordStepTitle: "Создайте новый пароль",
+        newPasswordStepDescription: "Задайте новый пароль для вашего аккаунта.",
+        newPassword: "Новый пароль",
+        newPasswordPlaceholder: "••••••••",
+        confirmPassword: "Подтвердите новый пароль",
+        confirmPasswordPlaceholder: "••••••••",
+        passwordRequirement: "Пароль должен содержать 6–16 символов, включая минимум 1 букву и 1 цифру.",
+        saveButton: "Сохранить новый пароль",
+        successMessage: "Пароль обновлён. Теперь вы можете войти.",
+        goToLogin: "Перейти ко входу",
       },
       resetPassword: {
         title: "Новый пароль",
@@ -1503,6 +1643,16 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       reviewDailyGoalLabel: "Дневная цель",
       reviewDailyGoal: (n) => `${n} мин / день`,
       notSetYet: "Пока не задано",
+    },
+    studyPlan: {
+      pageTitle: "План учёбы",
+      pageDescription: "Обратный отсчёт до экзамена и персональный план занятий по дням.",
+      testDay: "День экзамена",
+      noExamDateTitle: "Дата экзамена не задана",
+      noExamDateDescription: "Укажите дату экзамена в профиле, чтобы увидеть её на календаре.",
+      setExamDateLink: "Указать дату экзамена",
+      dailyPlanTitle: "Ваш план на день",
+      dailyPlanDescription: "Подстраивается под оставшиеся дни, ваш уровень и реальную историю практики.",
     },
   },
 
@@ -1561,6 +1711,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       writingPractice: "Жазу жаттығуы",
       weeklyQuiz: "Апталық тест",
       progress: "Прогресс",
+      studyPlan: "Оқу жоспары",
       profile: "Профиль",
       settings: "Баптаулар",
     },
@@ -1679,11 +1830,19 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       getAiFeedback: "ЖИ пікірін алу",
       aiFeedback: "ЖИ пікірі",
       aiFeedbackDescription: "Сіздің сөйлеміңізге емтихан алушы стиліндегі пікір осында пайда болады.",
-      aiFeedbackEmptyState:
-        "Кері байланыс жүйесі қосылғаннан кейін осында жеке ЖИ пікірі көрсетіледі.",
+      aiFeedbackEmptyState: "Сөйлем жазып, нәтижені көру үшін «ЖИ пікірін алу» түймесін басыңыз.",
+      aiFeedbackErrorGeneric: "Сөйлемді бағалау мүмкін болмады — қайталап көріңіз.",
+      usedCorrectlyBadge: "Дұрыс қолданылды",
+      notUsedBadge: "Сөз қолданылмады",
+      correctedSentenceLabel: "Түзетілген сөйлем",
+      whyWrongLabel: "Неге",
+      naturalSuggestionLabel: "Табиғырақ нұсқа",
+      explanationLabel: "Түсіндірме",
       yourVocabulary: "Сіздің сөздігіңіз",
       yourVocabularyDescription:
-        "Жақында үйренген сөздеріңіз. Барлығын апталық тестте қайталаңыз.",
+        "Сөздер нақты жаттығу арқылы «Үйренуде» және «Меңгерілді» күйіне өтеді.",
+      yourVocabularyEmptyState:
+        "Әзірге жаттығу жоқ — жоғарыда сөйлем жазып, пікір алып, прогресіңізді бақылай бастаңыз.",
       masteryLabels: { new: "Жаңа", learning: "Үйренуде", mastered: "Меңгерілді" },
     },
 
@@ -1915,9 +2074,6 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       comingSoon: "Жақында",
       notifications: "Хабарландырулар",
       notificationsDescription: "Не туралы хабарландыру алғыңыз келетінін таңдаңыз.",
-      dangerZone: "Қауіпті аймақ",
-      dangerZoneDescription: "Аккаунтыңыз бен барлық деректерді біржола жою.",
-      deleteAccount: "Аккаунтты жою",
     },
 
     auth: {
@@ -1936,33 +2092,66 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       register: {
         title: "Аккаунт жасаңыз",
         description: "Жеке DELF дайындығыңызды бір минутта бастаңыз.",
+        emailStepDescription: "Бастау үшін email енгізіңіз — біз растау кодын жібереміз.",
+        continueButton: "Жалғастыру",
+        verifyStepTitle: "Email-ді растаңыз",
+        verifyStepDescription: (email) => `${email} мекенжайына жіберілген 4 таңбалы кодты енгізіңіз.`,
+        codeLabel: "Растау коды",
+        codePlaceholder: "0000",
+        verifyButton: "Растау",
+        resendCode: "Кодты қайта жіберу",
+        codeResent: "Жаңа код жіберілді.",
+        devModeCodeNotice: (code) =>
+          `Бұл ортада пошта қызметі бапталмаған — сынау үшін кодыңыз: ${code}`,
+        invalidCodeError: "Код қате немесе мерзімі өтіп кеткен.",
         firstName: "Аты",
-        firstNamePlaceholder: "Амина",
+        firstNamePlaceholder: "",
         lastName: "Тегі",
-        lastNamePlaceholder: "Хаддад",
+        lastNamePlaceholder: "",
         email: "Email",
         emailPlaceholder: "you@example.com",
         password: "Құпия сөз",
         passwordPlaceholder: "••••••••",
+        passwordRequirement: "Құпия сөз 6–16 таңбадан тұруы керек, кемінде 1 әріп және 1 сан қамтылуы керек.",
         confirmPassword: "Құпия сөзді растаңыз",
         confirmPasswordPlaceholder: "••••••••",
+        termsPrefix: "Мен келісемін",
+        termsAndConditions: "Пайдалану шарттарымен",
+        termsMiddle: "және",
+        privacyPolicy: "Құпиялылық саясатымен",
+        termsRequiredError: "Шарттарды қабылдаңыз.",
         submit: "Аккаунт жасау",
         haveAccount: "Аккаунтыңыз бар ма?",
         logIn: "Кіру",
       },
       forgotPassword: {
         title: "Құпия сөзді қалпына келтіру",
-        description: "Аккаунтыңыздың email мекенжайын енгізіңіз, біз жаңа құпия сөз орнатуға көмектесеміз.",
+        description: "Аккаунтыңыздың email мекенжайын енгізіңіз, біз растау коды жібереміз.",
         email: "Email",
         emailPlaceholder: "you@example.com",
-        submit: "Нұсқауларды жіберу",
+        submit: "Кодты жіберу",
         backToLogin: "Кіруге оралу",
         notFoundError: "Бұл email-мен аккаунт табылмады.",
-        simulatedNoticeTitle: "Демо режимі — пошта қызметі қосылмаған",
-        simulatedNoticeDescription:
-          "Бұл қосымшада пошта қызметі бапталмаған, сондықтан сілтемесі бар хат жіберудің орнына ол осында көрсетілген.",
-        resetLinkLabel: "Құпия сөзді қалпына келтіру сілтемесі",
-        continueButton: "Құпия сөзді өзгертуге өту",
+        verifyStepTitle: "Email-ді растаңыз",
+        verifyStepDescription: (email) => `${email} мекенжайына жіберілген 4 таңбалы кодты енгізіңіз.`,
+        codeLabel: "Растау коды",
+        codePlaceholder: "0000",
+        verifyButton: "Растау",
+        resendCode: "Кодты қайта жіберу",
+        codeResent: "Жаңа код жіберілді.",
+        devModeCodeNotice: (code) =>
+          `Бұл ортада пошта қызметі бапталмаған — сынау үшін кодыңыз: ${code}`,
+        invalidCodeError: "Код қате немесе мерзімі өтіп кеткен.",
+        newPasswordStepTitle: "Жаңа құпия сөз жасаңыз",
+        newPasswordStepDescription: "Аккаунтыңыз үшін жаңа құпия сөз таңдаңыз.",
+        newPassword: "Жаңа құпия сөз",
+        newPasswordPlaceholder: "••••••••",
+        confirmPassword: "Жаңа құпия сөзді растаңыз",
+        confirmPasswordPlaceholder: "••••••••",
+        passwordRequirement: "Құпия сөз 6–16 таңбадан тұруы керек, кемінде 1 әріп және 1 сан қамтылуы керек.",
+        saveButton: "Жаңа құпия сөзді сақтау",
+        successMessage: "Құпия сөз жаңартылды. Енді кіре аласыз.",
+        goToLogin: "Кіруге өту",
       },
       resetPassword: {
         title: "Жаңа құпия сөз орнату",
@@ -2018,6 +2207,16 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       reviewDailyGoalLabel: "Күндізгі мақсат",
       reviewDailyGoal: (n) => `${n} мин / күн`,
       notSetYet: "Әлі белгіленбеген",
+    },
+    studyPlan: {
+      pageTitle: "Оқу жоспары",
+      pageDescription: "Емтиханға дейінгі кері санақ және күн сайынғы жеке жаттығу жоспары.",
+      testDay: "Емтихан күні",
+      noExamDateTitle: "Емтихан күні әлі белгіленбеген",
+      noExamDateDescription: "Оны күнтізбеде көру үшін профиліңізде емтихан күнін көрсетіңіз.",
+      setExamDateLink: "Емтихан күнін көрсету",
+      dailyPlanTitle: "Күндізгі жоспарыңыз",
+      dailyPlanDescription: "Қалған күндерге, деңгейіңізге және нақты жаттығу тарихыңызға бейімделеді.",
     },
   },
 };

@@ -10,6 +10,8 @@ import {
 } from "react";
 import type { ExamId } from "@/types/exam";
 import type { OnboardingLevel, User, UserStats } from "@/types/user";
+import type { VocabularyEntry } from "@/types/vocabulary";
+import type { FeedbackLanguage } from "@/types/writing-evaluation";
 import * as accountStore from "@/lib/auth/accountStore";
 
 const STORAGE_KEY = "aimieai.user.v2";
@@ -43,6 +45,15 @@ interface UserProfileContextValue {
   updateProfile: (partial: Partial<User>) => void;
   /** score is the session's exam-readiness estimate normalized to 0-100. */
   recordActivity: (activity: PracticeActivity, score: number) => void;
+  /** Records one real AI-graded sentence attempt for a vocabulary word,
+   * advancing its mastery: 1st correct practice -> "learning", 3rd
+   * cumulative correct practice -> "mastered". Never called for anything
+   * other than an actual submitted-and-graded sentence. */
+  recordVocabularyPractice: (
+    word: string,
+    definition: Record<FeedbackLanguage, string>,
+    wasCorrect: boolean
+  ) => void;
   clearProfile: () => void;
 }
 
@@ -134,6 +145,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
           avatarPhotoDataUrl: null,
           lastLoginAt: null,
           stats: createInitialStats(),
+          vocabularyProgress: [],
         };
         await accountStore.createAccount({ user: newUser, password });
         setProfile(newUser);
@@ -154,6 +166,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
           avatarPhotoDataUrl: prev?.avatarPhotoDataUrl ?? null,
           lastLoginAt: prev?.lastLoginAt ?? null,
           stats: prev?.stats ?? createInitialStats(),
+          vocabularyProgress: prev?.vocabularyProgress ?? [],
           ...answers,
         }));
       },
@@ -195,6 +208,42 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
               history: [...stats.history, { date: today, activity, score }],
             },
           };
+        });
+      },
+      recordVocabularyPractice: (word, definition, wasCorrect) => {
+        setProfile((prev) => {
+          if (!prev) return prev;
+          const today = todayIso();
+          const existing = prev.vocabularyProgress.find(
+            (entry) => entry.word.toLowerCase() === word.toLowerCase()
+          );
+
+          let nextEntry: VocabularyEntry;
+          if (existing) {
+            const timesPracticed = existing.timesPracticed + 1;
+            const timesCorrect = existing.timesCorrect + (wasCorrect ? 1 : 0);
+            const mastery: VocabularyEntry["mastery"] =
+              timesCorrect >= 3 ? "mastered" : timesCorrect >= 1 ? "learning" : existing.mastery;
+            nextEntry = { ...existing, timesPracticed, timesCorrect, mastery };
+          } else {
+            nextEntry = {
+              id: `vocab_${Date.now()}`,
+              word,
+              definition,
+              learnedOn: today,
+              mastery: wasCorrect ? "learning" : "new",
+              timesPracticed: 1,
+              timesCorrect: wasCorrect ? 1 : 0,
+            };
+          }
+
+          const vocabularyProgress = existing
+            ? prev.vocabularyProgress.map((entry) => (entry.id === nextEntry.id ? nextEntry : entry))
+            : [nextEntry, ...prev.vocabularyProgress];
+
+          const wordsLearned = vocabularyProgress.filter((entry) => entry.mastery === "mastered").length;
+
+          return { ...prev, vocabularyProgress, stats: { ...prev.stats, wordsLearned } };
         });
       },
       clearProfile: () => setProfile(null),

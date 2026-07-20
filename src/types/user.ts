@@ -1,4 +1,5 @@
 import type { ExamId } from "./exam";
+import type { VocabularyEntry } from "./vocabulary";
 
 /** Self-reported proficiency level collected during onboarding. Only
  * "A1"-"B2" have real DELF content — see resolvePracticeLevel() in
@@ -50,4 +51,8 @@ export interface User {
    * "Welcome back" (every time after). Set once by the dashboard itself. */
   lastLoginAt: string | null;
   stats: UserStats;
+  /** Real, per-word practice progress — starts empty for every new account.
+   * A word only appears here once the student has actually practiced it
+   * (see UserProfileContext.recordVocabularyPractice); never preloaded. */
+  vocabularyProgress: VocabularyEntry[];
 }

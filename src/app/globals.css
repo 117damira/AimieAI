@@ -33,6 +33,14 @@
   --danger-50: #fef2f2;
   --danger-500: #fb7185;
   --danger-600: #e11d48;
+
+  --purple-50: #f5f3ff;
+  --purple-500: #a78bfa;
+  --purple-600: #7c3aed;
+
+  --orange-50: #fff7ed;
+  --orange-500: #fb923c;
+  --orange-600: #ea580c;
 }
 
 @theme inline {
@@ -68,6 +76,14 @@
   --color-danger-50: var(--danger-50);
   --color-danger-500: var(--danger-500);
   --color-danger-600: var(--danger-600);
+
+  --color-purple-50: var(--purple-50);
+  --color-purple-500: var(--purple-500);
+  --color-purple-600: var(--purple-600);
+
+  --color-orange-50: var(--orange-50);
+  --color-orange-500: var(--orange-500);
+  --color-orange-600: var(--orange-600);
 
   --font-sans: var(--font-inter);
   --font-display: var(--font-jakarta);

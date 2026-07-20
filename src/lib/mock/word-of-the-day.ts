@@ -1,4 +1,4 @@
-import type { WordOfTheDay, VocabularyEntry } from "@/types";
+import type { WordOfTheDay } from "@/types";
 import type { OnboardingLevel } from "@/types/user";
 import type { DelfLevel } from "@/types/writing-evaluation";
 import { resolvePracticeLevel } from "@/lib/utils/level";
@@ -512,47 +512,3 @@ export function getWordOfTheDay(
   return bank[index];
 }
 
-export const VOCABULARY_HISTORY: VocabularyEntry[] = [
-  {
-    id: "v1",
-    word: "néanmoins",
-    definition: { en: "Nevertheless, however", ru: "Тем не менее, однако", kz: "Соған қарамастан, дегенмен" },
-    learnedOn: "2026-07-18",
-    mastery: "new",
-  },
-  {
-    id: "v2",
-    word: "davantage",
-    definition: { en: "More, further", ru: "Больше, более", kz: "Көбірек, одан әрі" },
-    learnedOn: "2026-07-17",
-    mastery: "learning",
-  },
-  {
-    id: "v3",
-    word: "malgré",
-    definition: { en: "Despite, in spite of", ru: "Несмотря на", kz: "Қарамастан" },
-    learnedOn: "2026-07-16",
-    mastery: "learning",
-  },
-  {
-    id: "v4",
-    word: "parvenir",
-    definition: { en: "To manage to, to reach", ru: "Суметь, достичь", kz: "Қол жеткізу, жету" },
-    learnedOn: "2026-07-15",
-    mastery: "mastered",
-  },
-  {
-    id: "v5",
-    word: "quotidien",
-    definition: { en: "Daily, everyday", ru: "Ежедневный, повседневный", kz: "Күнделікті" },
-    learnedOn: "2026-07-14",
-    mastery: "mastered",
-  },
-  {
-    id: "v6",
-    word: "souligner",
-    definition: { en: "To underline, to emphasize", ru: "Подчеркнуть, выделить", kz: "Асты сызу, атап көрсету" },
-    learnedOn: "2026-07-13",
-    mastery: "mastered",
-  },
-];

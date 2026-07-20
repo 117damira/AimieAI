@@ -15,14 +15,15 @@ import {
 } from "@/components/ui";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { resetPasswordWithToken } from "@/lib/auth/accountStore";
-
-const MIN_PASSWORD_LENGTH = 8;
+import { isValidPassword } from "@/lib/utils/password";
+import { cn } from "@/lib/utils/cn";
 
 function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
   const { t } = useLanguage();
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -34,8 +35,8 @@ function ResetPasswordForm() {
     const newPassword = String(formData.get("newPassword") ?? "");
     const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
-    if (newPassword.length < MIN_PASSWORD_LENGTH) {
-      setError(t.common.passwordTooShortError);
+    if (!isValidPassword(newPassword)) {
+      setError(t.auth.forgotPassword.passwordRequirement);
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -76,22 +77,34 @@ function ResetPasswordForm() {
 
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-      <Input
-        label={t.auth.resetPassword.newPassword}
-        type="password"
-        name="newPassword"
-        placeholder={t.auth.resetPassword.newPasswordPlaceholder}
-        autoComplete="new-password"
-        minLength={MIN_PASSWORD_LENGTH}
-        required
-      />
+      <div className="flex flex-col gap-1.5">
+        <Input
+          label={t.auth.resetPassword.newPassword}
+          type="password"
+          name="newPassword"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder={t.auth.resetPassword.newPasswordPlaceholder}
+          autoComplete="new-password"
+          required
+        />
+        {password.length > 0 && (
+          <p
+            className={cn(
+              "text-xs",
+              isValidPassword(password) ? "text-success-600" : "text-danger-600"
+            )}
+          >
+            {t.auth.forgotPassword.passwordRequirement}
+          </p>
+        )}
+      </div>
       <Input
         label={t.auth.resetPassword.confirmPassword}
         type="password"
         name="confirmPassword"
         placeholder={t.auth.resetPassword.confirmPasswordPlaceholder}
         autoComplete="new-password"
-        minLength={MIN_PASSWORD_LENGTH}
         required
       />
       {error && (

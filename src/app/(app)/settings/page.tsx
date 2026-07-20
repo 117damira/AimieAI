@@ -104,17 +104,6 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-danger-100">
-        <CardHeader>
-          <CardTitle className="text-danger-600">{t.settings.dangerZone}</CardTitle>
-          <CardDescription>{t.settings.dangerZoneDescription}</CardDescription>
-        </CardHeader>
-        <CardFooter className="justify-end">
-          <Button variant="danger" disabled>
-            {t.settings.deleteAccount}
-          </Button>
-        </CardFooter>
-      </Card>
     </div>
   );
 }
