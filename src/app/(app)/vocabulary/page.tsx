@@ -33,6 +33,10 @@ export default function VocabularyPage() {
 
   if (!profile) return null;
   const wordOfTheDay = getWordOfTheDay(profile.targetLevel);
+  // Defensive fallback: an account created before vocabularyProgress
+  // existed is migrated to `[]` on load (see UserProfileContext), but this
+  // page never assumes the field is present regardless.
+  const vocabularyProgress = profile.vocabularyProgress ?? [];
 
   async function handleGetFeedback() {
     if (!sentence.trim() || isSubmitting || !profile) return;
@@ -246,12 +250,12 @@ export default function VocabularyPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col divide-y divide-border">
-          {profile.vocabularyProgress.length === 0 ? (
+          {vocabularyProgress.length === 0 ? (
             <div className="flex h-24 items-center justify-center text-center text-sm text-muted">
               {t.vocabulary.yourVocabularyEmptyState}
             </div>
           ) : (
-            profile.vocabularyProgress.map((entry) => (
+            vocabularyProgress.map((entry) => (
             <div
               key={entry.id}
               className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"

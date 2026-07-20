@@ -74,6 +74,19 @@ function createInitialStats(): UserStats {
   };
 }
 
+/** Backfills fields that didn't exist when an account/profile was first
+ * created (e.g. `vocabularyProgress`, added after this app already had
+ * real users/local accounts) — called every time a `User` is loaded from
+ * storage, so an old profile is migrated in place instead of crashing
+ * downstream code that assumes the field exists. Never invents progress:
+ * a missing field always defaults to empty, never preloaded data. */
+function migrateUser(user: User): User {
+  return {
+    ...user,
+    vocabularyProgress: user.vocabularyProgress ?? [],
+  };
+}
+
 /** yyyy-mm-dd in the user's local timezone (not UTC), so "today" matches
  * what the user sees on their own calendar. */
 function todayIso(): string {
@@ -105,7 +118,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
     if (raw) {
       try {
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        setProfile(JSON.parse(raw) as User);
+        setProfile(migrateUser(JSON.parse(raw) as User));
       } catch {
         localStorage.removeItem(STORAGE_KEY);
       }
@@ -154,7 +167,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
       login: async (email, password) => {
         const result = await accountStore.verifyLogin(email, password);
         if (!result.ok) return result;
-        setProfile(result.user);
+        setProfile(migrateUser(result.user));
         return { ok: true };
       },
       completeOnboarding: (answers) => {
@@ -214,7 +227,10 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
         setProfile((prev) => {
           if (!prev) return prev;
           const today = todayIso();
-          const existing = prev.vocabularyProgress.find(
+          // Defensive fallback even though load-time migration should
+          // already guarantee this — never assume the field exists.
+          const currentProgress = prev.vocabularyProgress ?? [];
+          const existing = currentProgress.find(
             (entry) => entry.word.toLowerCase() === word.toLowerCase()
           );
 
@@ -238,8 +254,8 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
           }
 
           const vocabularyProgress = existing
-            ? prev.vocabularyProgress.map((entry) => (entry.id === nextEntry.id ? nextEntry : entry))
-            : [nextEntry, ...prev.vocabularyProgress];
+            ? currentProgress.map((entry) => (entry.id === nextEntry.id ? nextEntry : entry))
+            : [nextEntry, ...currentProgress];
 
           const wordsLearned = vocabularyProgress.filter((entry) => entry.mastery === "mastered").length;
 
