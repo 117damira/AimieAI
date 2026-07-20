@@ -20,6 +20,7 @@ import { Modal, Avatar, Input, Button, ToggleRow } from "@/components/ui";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { EXAMS } from "@/config/exams";
+import { updateAccountPassword } from "@/lib/auth/accountStore";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { LogoutConfirmDialog } from "./LogoutConfirmDialog";
 import { DeleteAccountConfirmDialog } from "./DeleteAccountConfirmDialog";
@@ -122,12 +123,48 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
   const [expanded, setExpanded] = useState<"password" | "notifications" | null>(null);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSaved, setPasswordSaved] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
 
   if (!profile) return null;
   const exam = EXAMS[profile.examId];
 
   function toggleExpanded(section: "password" | "notifications") {
     setExpanded((prev) => (prev === section ? null : section));
+    setPasswordError(null);
+    setPasswordSaved(false);
+  }
+
+  async function handleSavePassword() {
+    if (!profile) return;
+    setPasswordError(null);
+    setPasswordSaved(false);
+    if (newPassword.length < 8) {
+      setPasswordError(t.common.passwordTooShortError);
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError(t.common.passwordsDoNotMatchError);
+      return;
+    }
+    setIsSavingPassword(true);
+    try {
+      const result = await updateAccountPassword(profile.id, currentPassword, newPassword);
+      if (!result.ok) {
+        setPasswordError(t.profileModal.wrongCurrentPasswordError);
+        return;
+      }
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      setPasswordSaved(true);
+    } finally {
+      setIsSavingPassword(false);
+    }
   }
 
   return (
@@ -136,7 +173,12 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
         <div className="flex flex-col gap-6">
           {/* Identity header */}
           <div className="flex items-center gap-4">
-            <Avatar initials={profile.avatarInitials} size="lg" />
+            <Avatar
+              firstName={profile.firstName}
+              lastName={profile.lastName}
+              photoUrl={profile.avatarPhotoDataUrl}
+              size="lg"
+            />
             <div className="flex flex-col gap-1">
               <span className="font-display text-lg font-semibold text-foreground">
                 {profile.firstName} {profile.lastName}
@@ -183,10 +225,41 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
             />
             {expanded === "password" && (
               <div className="flex flex-col gap-3 rounded-xl bg-background p-4">
-                <Input label={t.profileModal.currentPassword} type="password" placeholder="••••••••" />
-                <Input label={t.profileModal.newPassword} type="password" placeholder="••••••••" />
-                <Input label={t.profileModal.confirmNewPassword} type="password" placeholder="••••••••" />
-                <Button disabled size="sm" className="self-end">
+                <Input
+                  label={t.profileModal.currentPassword}
+                  type="password"
+                  placeholder="••••••••"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                />
+                <Input
+                  label={t.profileModal.newPassword}
+                  type="password"
+                  placeholder="••••••••"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+                <Input
+                  label={t.profileModal.confirmNewPassword}
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                />
+                {passwordError && (
+                  <p className="text-sm text-danger-600" role="alert">
+                    {passwordError}
+                  </p>
+                )}
+                {passwordSaved && (
+                  <p className="text-sm text-success-600">{t.profileModal.passwordUpdated}</p>
+                )}
+                <Button
+                  size="sm"
+                  className="self-end"
+                  onClick={handleSavePassword}
+                  disabled={isSavingPassword || !currentPassword || !newPassword || !confirmNewPassword}
+                >
                   {t.profileModal.savePassword}
                 </Button>
               </div>

@@ -52,7 +52,12 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
           aria-label={t.topbar.ariaOpenProfile}
           className="cursor-pointer rounded-full transition-transform hover:scale-105"
         >
-          <Avatar initials={profile.avatarInitials} size="sm" />
+          <Avatar
+            firstName={profile.firstName}
+            lastName={profile.lastName}
+            photoUrl={profile.avatarPhotoDataUrl}
+            size="sm"
+          />
         </button>
       </div>
 

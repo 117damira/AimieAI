@@ -1,8 +1,9 @@
 "use client";
 
-import { type FormEvent } from "react";
+import { type FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -15,22 +16,46 @@ import {
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 
+const MIN_PASSWORD_LENGTH = 8;
+
 export default function RegisterPage() {
   const router = useRouter();
-  const { seedIdentity } = useUserProfile();
+  const { register } = useUserProfile();
   const { t } = useLanguage();
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // Real registration is not implemented yet — seed the profile locally
-    // and send the user through onboarding to pick exam/level/goal.
+    setError(null);
+
     const formData = new FormData(event.currentTarget);
-    seedIdentity({
-      firstName: String(formData.get("firstName") ?? ""),
-      lastName: String(formData.get("lastName") ?? ""),
-      email: String(formData.get("email") ?? ""),
-    });
-    router.push("/onboarding");
+    const firstName = String(formData.get("firstName") ?? "");
+    const lastName = String(formData.get("lastName") ?? "");
+    const email = String(formData.get("email") ?? "");
+    const password = String(formData.get("password") ?? "");
+    const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(t.common.passwordTooShortError);
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError(t.common.passwordsDoNotMatchError);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = await register({ firstName, lastName, email }, password);
+      if (!result.ok) {
+        setError(t.common.duplicateEmailError);
+        return;
+      }
+      router.push("/onboarding");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -67,8 +92,35 @@ export default function RegisterPage() {
             autoComplete="email"
             required
           />
-          <Button type="submit" className="mt-2 w-full">
-            {t.auth.register.submit}
+          <Input
+            label={t.auth.register.password}
+            type="password"
+            name="password"
+            placeholder={t.auth.register.passwordPlaceholder}
+            autoComplete="new-password"
+            minLength={MIN_PASSWORD_LENGTH}
+            required
+          />
+          <Input
+            label={t.auth.register.confirmPassword}
+            type="password"
+            name="confirmPassword"
+            placeholder={t.auth.register.confirmPasswordPlaceholder}
+            autoComplete="new-password"
+            minLength={MIN_PASSWORD_LENGTH}
+            required
+          />
+          {error && (
+            <p className="text-sm text-danger-600" role="alert">
+              {error}
+            </p>
+          )}
+          <Button type="submit" className="mt-2 w-full" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              t.auth.register.submit
+            )}
           </Button>
         </form>
 

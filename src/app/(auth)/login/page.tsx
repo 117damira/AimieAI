@@ -1,8 +1,9 @@
 "use client";
 
-import { type FormEvent } from "react";
+import { type FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -12,16 +13,34 @@ import {
   Input,
   Button,
 } from "@/components/ui";
+import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useUserProfile();
   const { t } = useLanguage();
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // Placeholder only — real authentication is not implemented yet.
-    router.push("/dashboard");
+    setError(null);
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "");
+    const password = String(formData.get("password") ?? "");
+
+    setIsSubmitting(true);
+    try {
+      const result = await login(email, password);
+      if (!result.ok) {
+        setError(t.common.invalidCredentials);
+        return;
+      }
+      router.push("/dashboard");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -42,16 +61,29 @@ export default function LoginPage() {
             autoComplete="email"
             required
           />
-          <Input
-            label={t.auth.login.password}
-            type="password"
-            name="password"
-            placeholder={t.auth.login.passwordPlaceholder}
-            autoComplete="current-password"
-            required
-          />
-          <Button type="submit" className="mt-2 w-full">
-            {t.auth.login.submit}
+          <div className="flex flex-col gap-1.5">
+            <Input
+              label={t.auth.login.password}
+              type="password"
+              name="password"
+              placeholder={t.auth.login.passwordPlaceholder}
+              autoComplete="current-password"
+              required
+            />
+            <Link
+              href="/forgot-password"
+              className="self-end text-sm font-medium text-primary-600 hover:underline"
+            >
+              {t.auth.login.forgotPasswordLink}
+            </Link>
+          </div>
+          {error && (
+            <p className="text-sm text-danger-600" role="alert">
+              {error}
+            </p>
+          )}
+          <Button type="submit" className="mt-2 w-full" disabled={isSubmitting}>
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t.auth.login.submit}
           </Button>
         </form>
 

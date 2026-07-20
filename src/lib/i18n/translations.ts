@@ -14,6 +14,12 @@ export interface Dictionary {
     selectLanguage: string;
     close: string;
     closeMenu: string;
+    showPassword: string;
+    hidePassword: string;
+    duplicateEmailError: string;
+    passwordTooShortError: string;
+    passwordsDoNotMatchError: string;
+    invalidCredentials: string;
   };
 
   topbar: {
@@ -75,6 +81,8 @@ export interface Dictionary {
     newPassword: string;
     confirmNewPassword: string;
     savePassword: string;
+    wrongCurrentPasswordError: string;
+    passwordUpdated: string;
     notificationsLink: string;
     dangerZone: string;
     logOut: string;
@@ -100,6 +108,7 @@ export interface Dictionary {
 
   dashboard: {
     greeting: (firstName: string) => string;
+    greetingFirstTime: (firstName: string) => string;
     subtitle: (examName: string) => string;
     wordOfDay: {
       title: string;
@@ -295,6 +304,9 @@ export interface Dictionary {
     lastName: string;
     email: string;
     saveChanges: string;
+    changesSaved: string;
+    takePhoto: string;
+    chooseFromLibrary: string;
   };
 
   settings: {
@@ -330,6 +342,7 @@ export interface Dictionary {
       submit: string;
       noAccount: string;
       createOne: string;
+      forgotPasswordLink: string;
     };
     register: {
       title: string;
@@ -340,9 +353,39 @@ export interface Dictionary {
       lastNamePlaceholder: string;
       email: string;
       emailPlaceholder: string;
+      password: string;
+      passwordPlaceholder: string;
+      confirmPassword: string;
+      confirmPasswordPlaceholder: string;
       submit: string;
       haveAccount: string;
       logIn: string;
+    };
+    forgotPassword: {
+      title: string;
+      description: string;
+      email: string;
+      emailPlaceholder: string;
+      submit: string;
+      backToLogin: string;
+      notFoundError: string;
+      simulatedNoticeTitle: string;
+      simulatedNoticeDescription: string;
+      resetLinkLabel: string;
+      continueButton: string;
+    };
+    resetPassword: {
+      title: string;
+      description: string;
+      newPassword: string;
+      newPasswordPlaceholder: string;
+      confirmPassword: string;
+      confirmPasswordPlaceholder: string;
+      submit: string;
+      invalidTokenError: string;
+      expiredTokenError: string;
+      success: string;
+      goToLogin: string;
     };
   };
 
@@ -382,6 +425,12 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       selectLanguage: "Select language",
       close: "Close",
       closeMenu: "Close menu",
+      showPassword: "Show password",
+      hidePassword: "Hide password",
+      duplicateEmailError: "This email is already registered.",
+      passwordTooShortError: "Password must be at least 8 characters.",
+      passwordsDoNotMatchError: "Passwords do not match.",
+      invalidCredentials: "Incorrect email or password.",
     },
 
     topbar: {
@@ -456,6 +505,8 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       newPassword: "New password",
       confirmNewPassword: "Confirm new password",
       savePassword: "Save password",
+      wrongCurrentPasswordError: "Current password is incorrect.",
+      passwordUpdated: "Password updated.",
       notificationsLink: "Notifications",
       dangerZone: "Danger zone",
       logOut: "Log out",
@@ -482,6 +533,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
 
     dashboard: {
       greeting: (firstName) => `Welcome back, ${firstName}`,
+      greetingFirstTime: (firstName) => `Welcome, ${firstName}`,
       subtitle: (examName) => `Here's your ${examName} preparation for today.`,
       wordOfDay: {
         title: "Today's Word",
@@ -688,6 +740,9 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       lastName: "Last name",
       email: "Email",
       saveChanges: "Save changes",
+      changesSaved: "Changes saved.",
+      takePhoto: "Take Photo",
+      chooseFromLibrary: "Choose from Library",
     },
 
     settings: {
@@ -723,6 +778,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         submit: "Log in",
         noAccount: "Don't have an account?",
         createOne: "Create one",
+        forgotPasswordLink: "Forgot password?",
       },
       register: {
         title: "Create your account",
@@ -733,9 +789,40 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         lastNamePlaceholder: "Haddad",
         email: "Email",
         emailPlaceholder: "you@example.com",
+        password: "Password",
+        passwordPlaceholder: "••••••••",
+        confirmPassword: "Confirm password",
+        confirmPasswordPlaceholder: "••••••••",
         submit: "Create account",
         haveAccount: "Already have an account?",
         logIn: "Log in",
+      },
+      forgotPassword: {
+        title: "Reset your password",
+        description: "Enter your account email and we'll help you set a new password.",
+        email: "Email",
+        emailPlaceholder: "you@example.com",
+        submit: "Send reset instructions",
+        backToLogin: "Back to log in",
+        notFoundError: "No account found with that email.",
+        simulatedNoticeTitle: "Demo mode — no email service connected",
+        simulatedNoticeDescription:
+          "This app has no email service configured, so instead of emailing you a reset link, it's shown right here.",
+        resetLinkLabel: "Your reset link",
+        continueButton: "Continue to reset password",
+      },
+      resetPassword: {
+        title: "Set a new password",
+        description: "Choose a new password for your account.",
+        newPassword: "New password",
+        newPasswordPlaceholder: "••••••••",
+        confirmPassword: "Confirm new password",
+        confirmPasswordPlaceholder: "••••••••",
+        submit: "Save new password",
+        invalidTokenError: "This reset link is invalid.",
+        expiredTokenError: "This reset link has expired. Request a new one.",
+        success: "Password updated. You can now log in.",
+        goToLogin: "Go to log in",
       },
     },
 
@@ -767,7 +854,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       continueButton: "Continue",
       getStarted: "Get started",
       comingSoon: "Coming soon",
-      examLanguageNames: { French: "French", English: "English" },
+      examLanguageNames: { French: "French", English: "English", Korean: "Korean", Chinese: "Chinese" },
       examDateLabel: "Exam date",
       notSureYet: "Not sure yet",
       minPerDayUnit: "min/day",
@@ -795,6 +882,12 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       selectLanguage: "Выбрать язык",
       close: "Закрыть",
       closeMenu: "Закрыть меню",
+      showPassword: "Показать пароль",
+      hidePassword: "Скрыть пароль",
+      duplicateEmailError: "Этот email уже зарегистрирован.",
+      passwordTooShortError: "Пароль должен содержать не менее 8 символов.",
+      passwordsDoNotMatchError: "Пароли не совпадают.",
+      invalidCredentials: "Неверный email или пароль.",
     },
 
     topbar: {
@@ -869,6 +962,8 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       newPassword: "Новый пароль",
       confirmNewPassword: "Подтвердите новый пароль",
       savePassword: "Сохранить пароль",
+      wrongCurrentPasswordError: "Текущий пароль неверен.",
+      passwordUpdated: "Пароль обновлён.",
       notificationsLink: "Уведомления",
       dangerZone: "Опасная зона",
       logOut: "Выйти",
@@ -895,6 +990,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
 
     dashboard: {
       greeting: (firstName) => `С возвращением, ${firstName}`,
+      greetingFirstTime: (firstName) => `Добро пожаловать, ${firstName}`,
       subtitle: (examName) => `Ваша подготовка к ${examName} на сегодня.`,
       wordOfDay: {
         title: "Слово дня",
@@ -1107,6 +1203,9 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       lastName: "Фамилия",
       email: "Email",
       saveChanges: "Сохранить изменения",
+      changesSaved: "Изменения сохранены.",
+      takePhoto: "Сделать фото",
+      chooseFromLibrary: "Выбрать из галереи",
     },
 
     settings: {
@@ -1142,6 +1241,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         submit: "Войти",
         noAccount: "Нет аккаунта?",
         createOne: "Создать",
+        forgotPasswordLink: "Забыли пароль?",
       },
       register: {
         title: "Создайте аккаунт",
@@ -1152,9 +1252,40 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         lastNamePlaceholder: "Хаддад",
         email: "Email",
         emailPlaceholder: "you@example.com",
+        password: "Пароль",
+        passwordPlaceholder: "••••••••",
+        confirmPassword: "Подтвердите пароль",
+        confirmPasswordPlaceholder: "••••••••",
         submit: "Создать аккаунт",
         haveAccount: "Уже есть аккаунт?",
         logIn: "Войти",
+      },
+      forgotPassword: {
+        title: "Восстановление пароля",
+        description: "Введите email вашего аккаунта, и мы поможем задать новый пароль.",
+        email: "Email",
+        emailPlaceholder: "you@example.com",
+        submit: "Отправить инструкции",
+        backToLogin: "Назад ко входу",
+        notFoundError: "Аккаунт с таким email не найден.",
+        simulatedNoticeTitle: "Демо-режим — почтовый сервис не подключён",
+        simulatedNoticeDescription:
+          "В этом приложении не настроен почтовый сервис, поэтому вместо письма со ссылкой она показана прямо здесь.",
+        resetLinkLabel: "Ваша ссылка для сброса пароля",
+        continueButton: "Перейти к смене пароля",
+      },
+      resetPassword: {
+        title: "Новый пароль",
+        description: "Задайте новый пароль для вашего аккаунта.",
+        newPassword: "Новый пароль",
+        newPasswordPlaceholder: "••••••••",
+        confirmPassword: "Подтвердите новый пароль",
+        confirmPasswordPlaceholder: "••••••••",
+        submit: "Сохранить новый пароль",
+        invalidTokenError: "Эта ссылка недействительна.",
+        expiredTokenError: "Срок действия ссылки истёк. Запросите новую.",
+        success: "Пароль обновлён. Теперь вы можете войти.",
+        goToLogin: "Перейти ко входу",
       },
     },
 
@@ -1186,7 +1317,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       continueButton: "Продолжить",
       getStarted: "Начать",
       comingSoon: "Скоро",
-      examLanguageNames: { French: "Французский", English: "Английский" },
+      examLanguageNames: { French: "Французский", English: "Английский", Korean: "Корейский", Chinese: "Китайский" },
       examDateLabel: "Дата экзамена",
       notSureYet: "Пока не знаю",
       minPerDayUnit: "мин/день",
@@ -1214,6 +1345,12 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       selectLanguage: "Тілді таңдау",
       close: "Жабу",
       closeMenu: "Мәзірді жабу",
+      showPassword: "Құпия сөзді көрсету",
+      hidePassword: "Құпия сөзді жасыру",
+      duplicateEmailError: "Бұл email бұрын тіркелген.",
+      passwordTooShortError: "Құпия сөз кемінде 8 таңбадан тұруы керек.",
+      passwordsDoNotMatchError: "Құпия сөздер сәйкес келмейді.",
+      invalidCredentials: "Email немесе құпия сөз қате.",
     },
 
     topbar: {
@@ -1288,6 +1425,8 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       newPassword: "Жаңа құпия сөз",
       confirmNewPassword: "Жаңа құпия сөзді растаңыз",
       savePassword: "Құпия сөзді сақтау",
+      wrongCurrentPasswordError: "Ағымдағы құпия сөз қате.",
+      passwordUpdated: "Құпия сөз жаңартылды.",
       notificationsLink: "Хабарландырулар",
       dangerZone: "Қауіпті аймақ",
       logOut: "Шығу",
@@ -1314,6 +1453,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
 
     dashboard: {
       greeting: (firstName) => `Қайта қош келдіңіз, ${firstName}`,
+      greetingFirstTime: (firstName) => `Қош келдіңіз, ${firstName}`,
       subtitle: (examName) => `Бүгінге арналған ${examName} дайындығыңыз.`,
       wordOfDay: {
         title: "Күн сөзі",
@@ -1519,6 +1659,9 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       lastName: "Тегі",
       email: "Email",
       saveChanges: "Өзгерістерді сақтау",
+      changesSaved: "Өзгерістер сақталды.",
+      takePhoto: "Фотоға түсіру",
+      chooseFromLibrary: "Кітапханадан таңдау",
     },
 
     settings: {
@@ -1554,6 +1697,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         submit: "Кіру",
         noAccount: "Аккаунтыңыз жоқ па?",
         createOne: "Жасау",
+        forgotPasswordLink: "Құпия сөзді ұмыттыңыз ба?",
       },
       register: {
         title: "Аккаунт жасаңыз",
@@ -1564,9 +1708,40 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         lastNamePlaceholder: "Хаддад",
         email: "Email",
         emailPlaceholder: "you@example.com",
+        password: "Құпия сөз",
+        passwordPlaceholder: "••••••••",
+        confirmPassword: "Құпия сөзді растаңыз",
+        confirmPasswordPlaceholder: "••••••••",
         submit: "Аккаунт жасау",
         haveAccount: "Аккаунтыңыз бар ма?",
         logIn: "Кіру",
+      },
+      forgotPassword: {
+        title: "Құпия сөзді қалпына келтіру",
+        description: "Аккаунтыңыздың email мекенжайын енгізіңіз, біз жаңа құпия сөз орнатуға көмектесеміз.",
+        email: "Email",
+        emailPlaceholder: "you@example.com",
+        submit: "Нұсқауларды жіберу",
+        backToLogin: "Кіруге оралу",
+        notFoundError: "Бұл email-мен аккаунт табылмады.",
+        simulatedNoticeTitle: "Демо режимі — пошта қызметі қосылмаған",
+        simulatedNoticeDescription:
+          "Бұл қосымшада пошта қызметі бапталмаған, сондықтан сілтемесі бар хат жіберудің орнына ол осында көрсетілген.",
+        resetLinkLabel: "Құпия сөзді қалпына келтіру сілтемесі",
+        continueButton: "Құпия сөзді өзгертуге өту",
+      },
+      resetPassword: {
+        title: "Жаңа құпия сөз орнату",
+        description: "Аккаунтыңыз үшін жаңа құпия сөз таңдаңыз.",
+        newPassword: "Жаңа құпия сөз",
+        newPasswordPlaceholder: "••••••••",
+        confirmPassword: "Жаңа құпия сөзді растаңыз",
+        confirmPasswordPlaceholder: "••••••••",
+        submit: "Жаңа құпия сөзді сақтау",
+        invalidTokenError: "Бұл сілтеме жарамсыз.",
+        expiredTokenError: "Бұл сілтеменің мерзімі өтті. Жаңасын сұраңыз.",
+        success: "Құпия сөз жаңартылды. Енді кіре аласыз.",
+        goToLogin: "Кіруге өту",
       },
     },
 
@@ -1598,7 +1773,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       continueButton: "Жалғастыру",
       getStarted: "Бастау",
       comingSoon: "Жақында",
-      examLanguageNames: { French: "Французша", English: "Ағылшынша" },
+      examLanguageNames: { French: "Французша", English: "Ағылшынша", Korean: "Корейше", Chinese: "Қытайша" },
       examDateLabel: "Емтихан күні",
       notSureYet: "Әлі білмеймін",
       minPerDayUnit: "мин/күн",

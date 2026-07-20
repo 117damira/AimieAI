@@ -42,6 +42,12 @@ export interface User {
   /** ISO yyyy-mm-dd, or null if the user hasn't set an exam date yet. */
   examDate: string | null;
   dailyGoalMinutes: number;
-  avatarInitials: string;
+  /** Uploaded avatar photo as a data URL, or null to fall back to computed
+   * initials — see getInitials() in lib/utils/initials.ts. */
+  avatarPhotoDataUrl: string | null;
+  /** ISO timestamp of the last time this account reached the dashboard, or
+   * null if it never has yet — used to show "Welcome" (first time) vs
+   * "Welcome back" (every time after). Set once by the dashboard itself. */
+  lastLoginAt: string | null;
   stats: UserStats;
 }

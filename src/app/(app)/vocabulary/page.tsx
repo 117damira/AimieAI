@@ -11,8 +11,9 @@ import {
   Button,
 } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { WORD_OF_THE_DAY, VOCABULARY_HISTORY } from "@/lib/mock/word-of-the-day";
+import { getWordOfTheDay, VOCABULARY_HISTORY } from "@/lib/mock/word-of-the-day";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useUserProfile } from "@/lib/profile/UserProfileContext";
 
 const MASTERY_VARIANT = {
   new: "primary",
@@ -22,6 +23,10 @@ const MASTERY_VARIANT = {
 
 export default function VocabularyPage() {
   const { t, language } = useLanguage();
+  const { profile } = useUserProfile();
+
+  if (!profile) return null;
+  const wordOfTheDay = getWordOfTheDay(profile.targetLevel);
 
   return (
     <div className="flex flex-col gap-6">
@@ -34,20 +39,20 @@ export default function VocabularyPage() {
       <Card>
         <CardContent className="flex flex-col gap-6 sm:flex-row sm:items-start">
           <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-3xl bg-primary-50 text-4xl">
-            {WORD_OF_THE_DAY.icon}
+            {wordOfTheDay.icon}
           </span>
           <div className="flex flex-1 flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="font-display text-2xl font-semibold text-foreground">
-                {WORD_OF_THE_DAY.word}
+                {wordOfTheDay.word}
               </h2>
-              <Badge variant="neutral">{WORD_OF_THE_DAY.partOfSpeech}</Badge>
+              <Badge variant="neutral">{wordOfTheDay.partOfSpeech}</Badge>
               <span className="text-sm text-muted">
-                {WORD_OF_THE_DAY.pronunciation}
+                {wordOfTheDay.pronunciation}
               </span>
             </div>
             <p className="text-sm leading-6 text-muted">
-              {WORD_OF_THE_DAY.definition[language]}
+              {wordOfTheDay.definition[language]}
             </p>
           </div>
         </CardContent>
@@ -64,7 +69,7 @@ export default function VocabularyPage() {
           </CardHeader>
           <CardContent>
             <ul className="flex flex-col gap-3">
-              {WORD_OF_THE_DAY.goodContexts[language].map((context) => (
+              {wordOfTheDay.goodContexts[language].map((context) => (
                 <li key={context} className="flex items-start gap-2 text-sm text-foreground">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success-600" />
                   {context}
@@ -83,7 +88,7 @@ export default function VocabularyPage() {
           </CardHeader>
           <CardContent>
             <ul className="flex flex-col gap-3">
-              {WORD_OF_THE_DAY.badContexts[language].map((context) => (
+              {wordOfTheDay.badContexts[language].map((context) => (
                 <li key={context} className="flex items-start gap-2 text-sm text-foreground">
                   <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-danger-600" />
                   {context}
@@ -100,7 +105,7 @@ export default function VocabularyPage() {
           <CardTitle>{t.vocabulary.exampleSentences}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {WORD_OF_THE_DAY.exampleSentences.map((sentence) => (
+          {wordOfTheDay.exampleSentences.map((sentence) => (
             <div
               key={sentence}
               className="flex items-start gap-3 rounded-2xl bg-background p-4"
@@ -118,13 +123,13 @@ export default function VocabularyPage() {
           <CardHeader>
             <CardTitle>{t.vocabulary.yourTurn}</CardTitle>
             <CardDescription>
-              {t.vocabulary.yourTurnDescription(WORD_OF_THE_DAY.word)}
+              {t.vocabulary.yourTurnDescription(wordOfTheDay.word)}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <textarea
               rows={4}
-              placeholder={t.vocabulary.sentencePlaceholder(WORD_OF_THE_DAY.word)}
+              placeholder={t.vocabulary.sentencePlaceholder(wordOfTheDay.word)}
               className="w-full resize-none rounded-xl border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400"
             />
             <Button className="self-start" disabled>

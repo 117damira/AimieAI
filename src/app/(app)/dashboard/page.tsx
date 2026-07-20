@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   Mic,
   PenLine,
@@ -21,19 +22,31 @@ import {
   ProgressBar,
   buttonVariants,
 } from "@/components/ui";
-import { WORD_OF_THE_DAY } from "@/lib/mock/word-of-the-day";
+import { getWordOfTheDay } from "@/lib/mock/word-of-the-day";
 import { EXAMS } from "@/config/exams";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
 
 export default function DashboardPage() {
   const { t, language } = useLanguage();
-  const { profile } = useUserProfile();
+  const { profile, updateProfile } = useUserProfile();
   const d = t.dashboard;
+
+  // Captured once on mount, before the effect below stamps lastLoginAt — so
+  // this render (and only this one, ever) shows the first-time greeting.
+  const [isFirstDashboardView] = useState(() => profile?.lastLoginAt === null);
+
+  useEffect(() => {
+    if (profile && profile.lastLoginAt === null) {
+      updateProfile({ lastLoginAt: new Date().toISOString() });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!profile) return null;
   const exam = EXAMS[profile.examId];
   const { stats } = profile;
+  const wordOfTheDay = getWordOfTheDay(profile.targetLevel);
   // Minutes studied today isn't tracked by any real activity flow yet — a
   // brand-new (or any) account has no per-day timer, so this stays 0 rather
   // than showing a fabricated number.
@@ -43,7 +56,9 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1.5">
         <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
-          {d.greeting(profile.firstName)}
+          {isFirstDashboardView
+            ? d.greetingFirstTime(profile.firstName)
+            : d.greeting(profile.firstName)}
         </h1>
         <p className="text-sm text-muted">{d.subtitle(exam.name)}</p>
       </div>
@@ -60,14 +75,14 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="flex items-center gap-4">
             <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-2xl">
-              {WORD_OF_THE_DAY.icon}
+              {wordOfTheDay.icon}
             </span>
             <div className="flex flex-col gap-1">
               <span className="font-display text-xl font-semibold text-foreground">
-                {WORD_OF_THE_DAY.word}
+                {wordOfTheDay.word}
               </span>
               <span className="text-sm text-muted">
-                {WORD_OF_THE_DAY.definition[language]}
+                {wordOfTheDay.definition[language]}
               </span>
             </div>
           </CardContent>

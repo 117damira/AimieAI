@@ -3,8 +3,8 @@ import type { ExamConfig, ExamId } from "@/types";
 /**
  * Central exam registry. Every exam the platform supports (or will support)
  * is declared here. Pages and components should read exam metadata from
- * this registry rather than hardcoding "DELF" strings, so adding IELTS or
- * SAT later means adding an entry here, not rewriting pages.
+ * this registry rather than hardcoding "DELF" strings, so adding TOPIK or
+ * HSK later means adding an entry here, not rewriting pages.
  */
 export const EXAMS: Record<ExamId, ExamConfig> = {
   delf: {
@@ -18,22 +18,22 @@ export const EXAMS: Record<ExamId, ExamConfig> = {
     isActive: true,
     supportedSkills: ["vocabulary", "speaking", "writing", "quiz"],
   },
-  ielts: {
-    id: "ielts",
-    name: "IELTS",
-    fullName: "International English Language Testing System",
-    language: "English",
-    level: "Band 1 – 9",
+  topik: {
+    id: "topik",
+    name: "TOPIK",
+    fullName: "Test of Proficiency in Korean",
+    language: "Korean",
+    level: "Level 1 – 6",
     description: "Planned for a future release.",
     isActive: false,
     supportedSkills: [],
   },
-  sat: {
-    id: "sat",
-    name: "SAT",
-    fullName: "Scholastic Assessment Test",
-    language: "English",
-    level: "US College Admissions",
+  hsk: {
+    id: "hsk",
+    name: "HSK",
+    fullName: "Hanyu Shuiping Kaoshi (Chinese Proficiency Test)",
+    language: "Chinese",
+    level: "HSK 1 – 6",
     description: "Planned for a future release.",
     isActive: false,
     supportedSkills: [],

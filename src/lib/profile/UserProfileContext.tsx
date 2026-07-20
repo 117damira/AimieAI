@@ -10,6 +10,7 @@ import {
 } from "react";
 import type { ExamId } from "@/types/exam";
 import type { OnboardingLevel, User, UserStats } from "@/types/user";
+import * as accountStore from "@/lib/auth/accountStore";
 
 const STORAGE_KEY = "aimieai.user.v2";
 
@@ -28,10 +29,16 @@ interface OnboardingAnswers {
 
 export type PracticeActivity = "writing" | "speaking";
 
+export type RegisterResult = { ok: true } | { ok: false; reason: "duplicate-email" };
+export type LoginResult =
+  | { ok: true }
+  | { ok: false; reason: "not-found" | "wrong-password" };
+
 interface UserProfileContextValue {
   profile: User | null;
   isHydrated: boolean;
-  seedIdentity: (identity: IdentitySeed) => void;
+  register: (identity: IdentitySeed, password: string) => Promise<RegisterResult>;
+  login: (email: string, password: string) => Promise<LoginResult>;
   completeOnboarding: (answers: OnboardingAnswers) => void;
   updateProfile: (partial: Partial<User>) => void;
   /** score is the session's exam-readiness estimate normalized to 0-100. */
@@ -40,10 +47,6 @@ interface UserProfileContextValue {
 }
 
 const UserProfileContext = createContext<UserProfileContextValue | null>(null);
-
-function initialsFrom(firstName: string, lastName: string): string {
-  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-}
 
 /** A brand-new account must never show fake progress — every counter starts
  * at zero and the streak only begins once a session is actually completed. */
@@ -103,6 +106,9 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
     if (!isHydrated) return;
     if (profile) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+      // Write-through: keeps the durable account directory (used by
+      // login/logout-and-back-in) in sync with every profile change.
+      accountStore.updateAccountUser(profile);
     } else {
       localStorage.removeItem(STORAGE_KEY);
     }
@@ -112,19 +118,32 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
     () => ({
       profile,
       isHydrated,
-      seedIdentity: (identity) => {
-        setProfile((prev) => ({
-          id: prev?.id ?? `user_${Date.now()}`,
+      register: async (identity, password) => {
+        if (accountStore.emailExists(identity.email)) {
+          return { ok: false, reason: "duplicate-email" };
+        }
+        const newUser: User = {
+          id: `user_${Date.now()}`,
           firstName: identity.firstName,
           lastName: identity.lastName,
           email: identity.email,
-          examId: prev?.examId ?? "delf",
-          targetLevel: prev?.targetLevel ?? "A1",
-          examDate: prev?.examDate ?? null,
-          dailyGoalMinutes: prev?.dailyGoalMinutes ?? 20,
-          avatarInitials: initialsFrom(identity.firstName, identity.lastName),
-          stats: prev?.stats ?? createInitialStats(),
-        }));
+          examId: "delf",
+          targetLevel: "A1",
+          examDate: null,
+          dailyGoalMinutes: 20,
+          avatarPhotoDataUrl: null,
+          lastLoginAt: null,
+          stats: createInitialStats(),
+        };
+        await accountStore.createAccount({ user: newUser, password });
+        setProfile(newUser);
+        return { ok: true };
+      },
+      login: async (email, password) => {
+        const result = await accountStore.verifyLogin(email, password);
+        if (!result.ok) return result;
+        setProfile(result.user);
+        return { ok: true };
       },
       completeOnboarding: (answers) => {
         setProfile((prev) => ({
@@ -132,7 +151,8 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
           firstName: prev?.firstName ?? "",
           lastName: prev?.lastName ?? "",
           email: prev?.email ?? "",
-          avatarInitials: prev?.avatarInitials ?? "?",
+          avatarPhotoDataUrl: prev?.avatarPhotoDataUrl ?? null,
+          lastLoginAt: prev?.lastLoginAt ?? null,
           stats: prev?.stats ?? createInitialStats(),
           ...answers,
         }));
