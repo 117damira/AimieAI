@@ -18,6 +18,7 @@ export function SpeakingTurnFeedback({
   autoAdvancing: boolean;
 }) {
   const { t } = useLanguage();
+  const f = t.speaking.feedback;
   return (
     <Card className="border-dashed">
       <CardHeader>
@@ -38,12 +39,15 @@ export function SpeakingTurnFeedback({
           </span>
         </div>
 
+        <FeedbackRow label={f.taskCompletionLabel} value={feedback.taskCompletionNote} />
+        <FeedbackRow label={f.coherenceLabel} value={feedback.coherenceNote} />
+
         {feedback.grammarErrors.length > 0 && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {feedback.grammarErrors.map((err, i) => (
               <div
                 key={i}
-                className="flex flex-col gap-1 rounded-xl border border-border bg-background p-3"
+                className="flex flex-col gap-2 rounded-xl border border-border bg-background p-3"
               >
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span className="text-foreground line-through decoration-danger-500">
@@ -51,14 +55,19 @@ export function SpeakingTurnFeedback({
                   </span>
                   <span className="font-medium text-success-600">{err.correction}</span>
                 </div>
-                <p className="text-xs text-muted">{err.explanation}</p>
+                <MistakeDetail label={f.whyWrong} value={err.whyWrong} />
+                <MistakeDetail label={f.howToFix} value={err.howToFix} />
+                <MistakeDetail label={f.betterExample} value={err.betterExample} emphasize />
+                <MistakeDetail label={f.howToAvoid} value={err.howToAvoid} />
               </div>
             ))}
           </div>
         )}
 
-        <p className="text-sm text-muted">{feedback.fluencyNote}</p>
-        <p className="text-sm text-muted">{feedback.vocabularyNote}</p>
+        <FeedbackRow label={f.pronunciationLabel} value={feedback.pronunciationNote} />
+        <FeedbackRow label={f.fluencyLabel} value={feedback.fluencyNote} />
+        <FeedbackRow label={f.vocabularyLabel} value={feedback.vocabularyNote} />
+
         <p className="text-sm font-medium text-foreground">{feedback.encouragement}</p>
 
         {!autoAdvancing && (
@@ -68,5 +77,31 @@ export function SpeakingTurnFeedback({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function FeedbackRow({ label, value }: { label: string; value: string }) {
+  return (
+    <p className="text-sm text-muted">
+      <span className="font-medium text-foreground">{label}: </span>
+      {value}
+    </p>
+  );
+}
+
+function MistakeDetail({
+  label,
+  value,
+  emphasize,
+}: {
+  label: string;
+  value: string;
+  emphasize?: boolean;
+}) {
+  return (
+    <p className="text-xs text-muted">
+      <span className="font-medium text-foreground">{label}: </span>
+      <span className={cn(emphasize && "text-success-600")}>{value}</span>
+    </p>
   );
 }

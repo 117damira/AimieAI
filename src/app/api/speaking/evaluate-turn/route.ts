@@ -52,8 +52,9 @@ export async function POST(req: NextRequest) {
   const client = getAnthropicClient();
   if (client) {
     try {
-      const feedback = await evaluateTurnWithClaude(client, {
+      const { feedback, followUpQuestion } = await evaluateTurnWithClaude(client, {
         level,
+        partId,
         partLabel: partLabel ?? partId,
         prompt: prompt ?? "",
         transcript,
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
         recognitionConfidence: recognitionConfidence ?? null,
         language,
       });
-      return NextResponse.json({ feedback });
+      return NextResponse.json({ feedback, followUpQuestion });
     } catch (err) {
       console.error("Claude speaking turn evaluation failed, falling back to mock", err);
     }
@@ -72,7 +73,9 @@ export async function POST(req: NextRequest) {
   try {
     const selection = analyzeTurn(level, partId, questionId, transcript, wordCount);
     const feedback = localizeTurnFeedback(selection, language);
-    return NextResponse.json({ feedback });
+    // The offline mock never generates reactive follow-ups — that's a
+    // bounded, Claude-only enhancement.
+    return NextResponse.json({ feedback, followUpQuestion: null });
   } catch (err) {
     console.error("Mock speaking turn evaluation failed", err);
     return NextResponse.json({ error: "Evaluation request failed" }, { status: 500 });

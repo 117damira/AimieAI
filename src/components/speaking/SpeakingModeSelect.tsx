@@ -13,6 +13,7 @@ import {
 } from "@/components/ui";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { DelfSpeakingLevelConfig } from "@/config/delf-speaking";
+import { SpeakingTipsCard } from "./SpeakingTipsCard";
 
 export function SpeakingModeSelect({
   levelConfig,
@@ -84,6 +85,8 @@ export function SpeakingModeSelect({
           </CardFooter>
         </Card>
       </div>
+
+      <SpeakingTipsCard />
     </div>
   );
 }

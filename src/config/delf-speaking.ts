@@ -16,6 +16,9 @@ import type { DelfLevel, FeedbackLanguage } from "@/types/writing-evaluation";
 export interface SpeakingQuestionSpec {
   id: string;
   prompt: string; // French — the actual exam prompt, never translated
+  /** Shown only when the learner taps "Show translation" — the French
+   * prompt itself is never auto-translated. */
+  translation: Record<FeedbackLanguage, string>;
   suggestedDurationSeconds: number;
 }
 
@@ -26,12 +29,24 @@ export interface SpeakingExercisePart {
   questions: SpeakingQuestionSpec[];
 }
 
+export interface SpeakingTopicChoice {
+  title: string; // French
+  translation: Record<FeedbackLanguage, string>;
+}
+
 export interface DelfSpeakingLevelConfig {
   level: DelfLevel;
   label: string;
   structureDescription: Record<FeedbackLanguage, string>;
   parts: SpeakingExercisePart[];
   evaluationCriteria: string[];
+  /** Official DELF preparation time before speaking begins. */
+  prepTimeMinutes: number;
+  /** Official estimated total speaking-time range. */
+  estimatedSpeakingMinutes: { min: number; max: number };
+  /** B2 only — the two static fallback topics offered when no
+   * ANTHROPIC_API_KEY is configured to generate fresh ones. */
+  topicChoices?: SpeakingTopicChoice[];
 }
 
 export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = {
@@ -57,17 +72,32 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
             id: "a1-ed-1",
             prompt:
               "Bonjour ! Pouvez-vous vous présenter : comment vous vous appelez, quel âge vous avez et où vous habitez ?",
+            translation: {
+              en: "Hello! Can you introduce yourself: what's your name, how old are you, and where do you live?",
+              ru: "Здравствуйте! Не могли бы вы представиться: как вас зовут, сколько вам лет и где вы живёте?",
+              kz: "Сәлеметсіз бе! Өзіңізді таныстыра аласыз ба: атыңыз кім, жасыңыз нешеде және қай жерде тұрасыз?",
+            },
             suggestedDurationSeconds: 45,
           },
           {
             id: "a1-ed-2",
             prompt: "Qu'est-ce que vous aimez faire pendant votre temps libre ?",
+            translation: {
+              en: "What do you like to do in your free time?",
+              ru: "Что вы любите делать в свободное время?",
+              kz: "Бос уақытыңызда не істегенді ұнатасыз?",
+            },
             suggestedDurationSeconds: 30,
           },
           {
             id: "a1-ed-3",
             prompt:
               "Est-ce que vous avez des frères et sœurs ? Parlez-moi un peu de votre famille.",
+            translation: {
+              en: "Do you have any brothers or sisters? Tell me a little about your family.",
+              ru: "У вас есть братья или сёстры? Расскажите немного о своей семье.",
+              kz: "Сізде аға-іні, апа-қарындас бар ма? Отбасыңыз туралы азырақ айтып беріңізші.",
+            },
             suggestedDurationSeconds: 30,
           },
         ],
@@ -85,6 +115,11 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
             id: "a1-ei-1",
             prompt:
               "Voici un mot clé : LES VACANCES. Posez-moi trois questions sur ce sujet (par exemple : où, quand, avec qui).",
+            translation: {
+              en: "Here is a keyword: HOLIDAYS. Ask me three questions on this topic (for example: where, when, with whom).",
+              ru: "Вот ключевое слово: КАНИКУЛЫ. Задайте мне три вопроса по этой теме (например: где, когда, с кем).",
+              kz: "Міне, түйінді сөз: ДЕМАЛЫС. Осы тақырып бойынша маған үш сұрақ қойыңыз (мысалы: қайда, қашан, кіммен).",
+            },
             suggestedDurationSeconds: 60,
           },
         ],
@@ -102,11 +137,21 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
             id: "a1-ds-1",
             prompt:
               "Vous êtes dans un magasin et vous voulez acheter un cadeau pour un ami. Demandez de l'aide au vendeur.",
+            translation: {
+              en: "You are in a shop and want to buy a gift for a friend. Ask the shop assistant for help.",
+              ru: "Вы находитесь в магазине и хотите купить подарок другу. Попросите продавца о помощи.",
+              kz: "Сіз дүкенде тұрсыз және досыңызға сыйлық сатып алғыңыз келеді. Сатушыдан көмек сұраңыз.",
+            },
             suggestedDurationSeconds: 45,
           },
           {
             id: "a1-ds-2",
             prompt: "Le vendeur vous propose deux objets : lequel choisissez-vous, et pourquoi ?",
+            translation: {
+              en: "The shop assistant offers you two items: which one do you choose, and why?",
+              ru: "Продавец предлагает вам два товара: какой вы выберете и почему?",
+              kz: "Сатушы сізге екі зат ұсынады: қайсысын таңдайсыз және неге?",
+            },
             suggestedDurationSeconds: 30,
           },
         ],
@@ -118,6 +163,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
       "Handles a short everyday transaction",
       "Uses simple present-tense sentences with basic vocabulary",
     ],
+    prepTimeMinutes: 10,
+    estimatedSpeakingMinutes: { min: 5, max: 7 },
   },
   A2: {
     level: "A2",
@@ -141,11 +188,21 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
             id: "a2-ed-1",
             prompt:
               "Présentez-vous : votre nom, votre travail ou vos études, et votre ville.",
+            translation: {
+              en: "Introduce yourself: your name, your job or studies, and your city.",
+              ru: "Представьтесь: ваше имя, работа или учёба и город.",
+              kz: "Өзіңізді таныстырыңыз: атыңыз, жұмысыңыз немесе оқуыңыз және қалаңыз.",
+            },
             suggestedDurationSeconds: 45,
           },
           {
             id: "a2-ed-2",
             prompt: "Qu'est-ce que vous avez fait le week-end dernier ?",
+            translation: {
+              en: "What did you do last weekend?",
+              ru: "Что вы делали в прошлые выходные?",
+              kz: "Өткен демалыс күндері не істедіңіз?",
+            },
             suggestedDurationSeconds: 30,
           },
         ],
@@ -162,6 +219,11 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
           {
             id: "a2-ms-1",
             prompt: "Parlez-moi de votre ville ou de votre village natal.",
+            translation: {
+              en: "Tell me about your hometown or native village.",
+              ru: "Расскажите мне о своём родном городе или селе.",
+              kz: "Маған туған қалаңыз немесе ауылыңыз туралы айтып беріңіз.",
+            },
             suggestedDurationSeconds: 60,
           },
         ],
@@ -179,11 +241,21 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
             id: "a2-ds-1",
             prompt:
               "Vous appelez un ami pour organiser une sortie ce week-end. Proposez une activité et un horaire.",
+            translation: {
+              en: "You call a friend to plan an outing this weekend. Suggest an activity and a time.",
+              ru: "Вы звоните другу, чтобы организовать прогулку в эти выходные. Предложите занятие и время.",
+              kz: "Сіз досыңызға қоңырау шалып, осы демалыс күндері серуенге шығуды ұсынасыз. Іс-шара мен уақытты ұсыныңыз.",
+            },
             suggestedDurationSeconds: 45,
           },
           {
             id: "a2-ds-2",
             prompt: "Votre ami ne peut pas ce jour-là : proposez une autre solution.",
+            translation: {
+              en: "Your friend can't make it that day: suggest another solution.",
+              ru: "Ваш друг не может в этот день: предложите другое решение.",
+              kz: "Досыңыз сол күні бос емес: басқа шешім ұсыныңыз.",
+            },
             suggestedDurationSeconds: 30,
           },
         ],
@@ -195,6 +267,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
       "Negotiates simple plans in a role-play",
       "Vocabulary covers everyday topics (family, daily life, leisure)",
     ],
+    prepTimeMinutes: 10,
+    estimatedSpeakingMinutes: { min: 6, max: 8 },
   },
   B1: {
     level: "B1",
@@ -218,6 +292,11 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
             id: "b1-ed-1",
             prompt:
               "Présentez-vous brièvement : qui êtes-vous, et pourquoi apprenez-vous le français ?",
+            translation: {
+              en: "Briefly introduce yourself: who are you, and why are you learning French?",
+              ru: "Кратко представьтесь: кто вы и почему вы изучаете французский язык?",
+              kz: "Өзіңізді қысқаша таныстырыңыз: сіз кімсіз және неге француз тілін үйреніп жатырсыз?",
+            },
             suggestedDurationSeconds: 45,
           },
         ],
@@ -235,11 +314,21 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
             id: "b1-ei-1",
             prompt:
               "Vous partez en voyage avec des amis, mais vous n'êtes pas d'accord sur le budget. Expliquez votre point de vue et proposez un compromis.",
+            translation: {
+              en: "You're going on a trip with friends, but you disagree about the budget. Explain your point of view and propose a compromise.",
+              ru: "Вы отправляетесь в путешествие с друзьями, но не согласны насчёт бюджета. Объясните свою точку зрения и предложите компромисс.",
+              kz: "Сіз достарыңызбен саяхатқа шығасыз, бірақ бюджет туралы келісе алмай жатырсыздар. Көзқарасыңызды түсіндіріп, ымыраға келу жолын ұсыныңыз.",
+            },
             suggestedDurationSeconds: 60,
           },
           {
             id: "b1-ei-2",
             prompt: "Votre ami propose de réduire le nombre de nuits d'hôtel : qu'en pensez-vous ?",
+            translation: {
+              en: "Your friend suggests reducing the number of hotel nights: what do you think about that?",
+              ru: "Ваш друг предлагает сократить количество ночей в отеле: что вы об этом думаете?",
+              kz: "Досыңыз қонақүйде түнейтін түндер санын азайтуды ұсынады: сіз бұл туралы не ойлайсыз?",
+            },
             suggestedDurationSeconds: 45,
           },
         ],
@@ -257,11 +346,21 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
             id: "b1-pv-1",
             prompt:
               "Document : « De plus en plus de salariés travaillent depuis chez eux. » Qu'en pensez-vous ? Est-ce une bonne chose ?",
+            translation: {
+              en: "Document: \"More and more employees are working from home.\" What do you think? Is this a good thing?",
+              ru: "Документ: «Всё больше сотрудников работают из дома». Что вы об этом думаете? Это хорошо?",
+              kz: "Құжат: «Көбірек қызметкерлер үйден жұмыс істейді». Сіз бұл туралы не ойлайсыз? Бұл жақсы нәрсе ме?",
+            },
             suggestedDurationSeconds: 75,
           },
           {
             id: "b1-pv-2",
             prompt: "Quels sont les inconvénients du télétravail selon vous ?",
+            translation: {
+              en: "What are the disadvantages of remote work, in your opinion?",
+              ru: "Какие, по вашему мнению, недостатки удалённой работы?",
+              kz: "Сіздің ойыңызша, қашықтан жұмыс істеудің кемшіліктері қандай?",
+            },
             suggestedDurationSeconds: 45,
           },
         ],
@@ -273,6 +372,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
       "Supports a viewpoint with examples and reasons",
       "Uses a range of tenses and connectors accurately",
     ],
+    prepTimeMinutes: 10,
+    estimatedSpeakingMinutes: { min: 15, max: 15 },
   },
   B2: {
     level: "B2",
@@ -296,17 +397,32 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
             id: "b2-pv-1",
             prompt:
               "Document : « Les réseaux sociaux ont-ils un effet positif ou négatif sur les jeunes ? » Présentez votre point de vue de façon structurée.",
+            translation: {
+              en: "Document: \"Do social media have a positive or negative effect on young people?\" Present your point of view in a structured way.",
+              ru: "Документ: «Оказывают ли социальные сети положительное или отрицательное влияние на молодёжь?» Изложите свою точку зрения структурированно.",
+              kz: "Құжат: «Әлеуметтік желілер жастарға оң немесе теріс әсер ете ме?» Көзқарасыңызды құрылымды түрде ұсыныңыз.",
+            },
             suggestedDurationSeconds: 120,
           },
           {
             id: "b2-pv-2",
             prompt:
               "Certains disent que les réseaux sociaux favorisent l'isolement plutôt que le lien social. Que répondez-vous à cet argument ?",
+            translation: {
+              en: "Some say social media promotes isolation rather than social connection. How do you respond to this argument?",
+              ru: "Некоторые говорят, что социальные сети способствуют изоляции, а не социальным связям. Что вы ответите на этот аргумент?",
+              kz: "Кейбіреулер әлеуметтік желілер әлеуметтік байланыстан гөрі оқшаулануға ықпал етеді дейді. Бұл дәлелге қалай жауап бересіз?",
+            },
             suggestedDurationSeconds: 60,
           },
           {
             id: "b2-pv-3",
             prompt: "Quelles solutions proposeriez-vous pour limiter les effets négatifs ?",
+            translation: {
+              en: "What solutions would you propose to limit the negative effects?",
+              ru: "Какие решения вы предложили бы, чтобы ограничить негативные последствия?",
+              kz: "Теріс әсерлерді шектеу үшін қандай шешімдер ұсынар едіңіз?",
+            },
             suggestedDurationSeconds: 60,
           },
         ],
@@ -318,6 +434,26 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
       "Uses complex sentence structures and nuanced connectors",
       "Register is consistently appropriate for a formal debate",
     ],
+    prepTimeMinutes: 30,
+    estimatedSpeakingMinutes: { min: 20, max: 20 },
+    topicChoices: [
+      {
+        title: "Les réseaux sociaux ont-ils un effet positif ou négatif sur les jeunes ?",
+        translation: {
+          en: "Do social media have a positive or negative effect on young people?",
+          ru: "Оказывают ли социальные сети положительное или отрицательное влияние на молодёжь?",
+          kz: "Әлеуметтік желілер жастарға оң немесе теріс әсер ете ме?",
+        },
+      },
+      {
+        title: "L'intelligence artificielle à l'école : une bonne idée ?",
+        translation: {
+          en: "Artificial intelligence in schools: a good idea?",
+          ru: "Искусственный интеллект в школе: хорошая идея?",
+          kz: "Мектептегі жасанды интеллект: жақсы идея ма?",
+        },
+      },
+    ],
   },
 };
 
@@ -326,6 +462,7 @@ export interface FlatSpeakingQuestion {
   partLabel: string;
   questionId: string;
   prompt: string;
+  translation: Record<FeedbackLanguage, string>;
   suggestedDurationSeconds: number;
 }
 
@@ -340,6 +477,7 @@ export function flattenSpeakingParts(
       partLabel: part.partLabel,
       questionId: question.id,
       prompt: question.prompt,
+      translation: question.translation,
       suggestedDurationSeconds: question.suggestedDurationSeconds,
     }))
   );

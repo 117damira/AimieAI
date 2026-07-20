@@ -38,13 +38,6 @@ import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { resolvePracticeLevel } from "@/lib/utils/level";
 
-const FEEDBACK_LANGUAGES: FeedbackLanguage[] = ["en", "ru", "kz"];
-const LANGUAGE_LABELS: Record<FeedbackLanguage, string> = {
-  en: "EN",
-  ru: "RU",
-  kz: "KZ",
-};
-
 const GRAMMAR_CATEGORY_LABELS: Record<GrammarError["category"], Record<FeedbackLanguage, string>> = {
   verb: { en: "verb", ru: "глагол", kz: "етістік" },
   agreement: { en: "agreement", ru: "согласование", kz: "келісім" },
@@ -59,9 +52,7 @@ const GRAMMAR_CATEGORY_LABELS: Record<GrammarError["category"], Record<FeedbackL
 export default function WritingPracticePage() {
   const { profile, recordActivity } = useUserProfile();
   const { t, language: uiLanguage } = useLanguage();
-  const [language, setLanguage] = useState<FeedbackLanguage>("en");
   const [text, setText] = useState("");
-  const [evaluation, setEvaluation] = useState<WritingEvaluation | null>(null);
   const [selection, setSelection] = useState<EvaluationSelection | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,28 +62,23 @@ export default function WritingPracticePage() {
     [text]
   );
 
+  // Derived directly from `selection` + the current global UI language — no
+  // request, no extra state. The underlying analysis (errors picked, score,
+  // structure flags) stays the same; only the feedback text re-localizes
+  // instantly whenever the learner switches languages via Topbar.
+  const evaluation: WritingEvaluation | null = selection
+    ? { level: selection.level, wordCount: selection.wordCount, ...localizeEvaluation(selection, uiLanguage) }
+    : null;
+
   if (!profile) return null;
   const level = resolvePracticeLevel(profile.targetLevel);
   const levelConfig = DELF_WRITING_LEVELS[level];
   const wordCountInRange =
     wordCount >= levelConfig.minWords && wordCount <= levelConfig.maxWords;
 
-  function handleLanguageChange(next: FeedbackLanguage) {
-    if (next === language) return;
-    setLanguage(next);
-    // Re-localize instantly on the client — no request, no loading state.
-    // The underlying analysis (errors picked, score, structure flags)
-    // stays exactly the same; only the feedback text changes language.
-    if (selection) {
-      const localized = localizeEvaluation(selection, next);
-      setEvaluation({ level: selection.level, wordCount: selection.wordCount, ...localized });
-    }
-  }
-
   async function handleSubmit() {
     setIsSubmitting(true);
     setError(null);
-    setEvaluation(null);
     setSelection(null);
     try {
       const res = await fetch("/api/writing/evaluate", {
@@ -102,7 +88,7 @@ export default function WritingPracticePage() {
           level,
           prompt: levelConfig.samplePrompt.instructions,
           response: text,
-          language,
+          language: uiLanguage,
         }),
       });
       const data = await res.json();
@@ -110,7 +96,6 @@ export default function WritingPracticePage() {
         throw new Error(data.error || t.writing.evaluationFailed);
       }
       const nextEvaluation = data.evaluation as WritingEvaluation;
-      setEvaluation(nextEvaluation);
       setSelection(data.selection as EvaluationSelection);
       const { estimatedScore, scoreOutOf } = nextEvaluation.examReadiness;
       recordActivity("writing", Math.round((estimatedScore / scoreOutOf) * 100));
@@ -163,27 +148,7 @@ export default function WritingPracticePage() {
       <Card>
         <CardHeader className="flex-row items-center justify-between gap-4">
           <CardTitle>{t.writing.yourResponse}</CardTitle>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted">{t.writing.aiFeedbackLabel}</span>
-            <div className="flex items-center gap-1 rounded-full border border-border bg-background p-1">
-              {FEEDBACK_LANGUAGES.map((lang) => (
-                <button
-                  key={lang}
-                  type="button"
-                  onClick={() => handleLanguageChange(lang)}
-                  aria-pressed={language === lang}
-                  className={cn(
-                    "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                    language === lang
-                      ? "bg-primary-600 text-white"
-                      : "text-muted hover:text-foreground"
-                  )}
-                >
-                  {LANGUAGE_LABELS[lang]}
-                </button>
-              ))}
-            </div>
-          </div>
+          <span className="text-xs text-muted">{t.writing.aiFeedbackLabel}</span>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <textarea
@@ -292,7 +257,7 @@ export default function WritingPracticePage() {
                   >
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="danger">
-                        {GRAMMAR_CATEGORY_LABELS[err.category][language]}
+                        {GRAMMAR_CATEGORY_LABELS[err.category][uiLanguage]}
                       </Badge>
                       <span className="text-sm text-foreground line-through decoration-danger-500">
                         {err.original}

@@ -1,6 +1,11 @@
 import { DELF_SPEAKING_LEVELS } from "@/config/delf-speaking";
-import type { DelfLevel, FeedbackLanguage, GrammarError } from "@/types/writing-evaluation";
-import type { CompletedTurn, SpeakingExaminerReport, TurnFeedback } from "@/types/speaking-evaluation";
+import type { DelfLevel, FeedbackLanguage } from "@/types/writing-evaluation";
+import type {
+  CompletedTurn,
+  SpeakingExaminerReport,
+  SpeakingGrammarMistake,
+  TurnFeedback,
+} from "@/types/speaking-evaluation";
 
 /**
  * Offline fallback DELF speaking evaluator, used by the API routes when no
@@ -20,8 +25,10 @@ interface GrammarErrorTemplate {
   id: string;
   original: string;
   correction: string;
-  category: GrammarError["category"];
+  category: SpeakingGrammarMistake["category"];
   explanation: TranslatedText;
+  /** A fresh, correct French example demonstrating the rule. */
+  betterExample: string;
 }
 
 interface MockSpeakingLevelProfile {
@@ -29,10 +36,46 @@ interface MockSpeakingLevelProfile {
   pronunciationNotes: TranslatedText[];
   fluencyNotes: TranslatedText[];
   vocabularyRangeNotes: TranslatedText[];
+  taskCompletionNotes: TranslatedText[];
+  coherenceNotes: TranslatedText[];
   strengths: TranslatedText[];
   weaknesses: TranslatedText[];
   improvementTips: TranslatedText[];
   baseScore: number;
+}
+
+/** Generic, category-keyed "how to avoid this again" tips, reused across
+ * every matching mistake rather than hand-authored per template. */
+const HOW_TO_AVOID_BY_CATEGORY: Record<SpeakingGrammarMistake["category"], TranslatedText> = {
+  verb: {
+    en: "Drill this verb's conjugation pattern out loud a few times before your next practice session.",
+    ru: "Перед следующей тренировкой несколько раз проговорите вслух спряжение этого глагола.",
+    kz: "Келесі жаттығуға дейін осы етістіктің жіктелу үлгісін бірнеше рет дауыстап қайталаңыз.",
+  },
+  agreement: {
+    en: "Pause briefly before nouns to check gender/number agreement — it becomes automatic with practice.",
+    ru: "Делайте небольшую паузу перед существительными, чтобы проверить согласование по роду/числу — с практикой это станет автоматическим.",
+    kz: "Зат есімнің алдында аздап кідіріп, тек/сан келісімін тексеріңіз — жаттығу арқылы бұл автоматты болады.",
+  },
+  "sentence-structure": {
+    en: "Mentally say the full sentence slowly before speaking it aloud, checking the word order.",
+    ru: "Перед тем как сказать вслух, медленно проговорите предложение целиком про себя, проверяя порядок слов.",
+    kz: "Дауыстап айтпас бұрын, сөз тәртібін тексеріп, сөйлемді ішіңізден баяу қайталаңыз.",
+  },
+  other: {
+    en: "Note this pattern down and review it before your next speaking practice.",
+    ru: "Запишите эту особенность и повторите её перед следующей устной практикой.",
+    kz: "Осы үлгіні жазып алып, келесі ауызша жаттығу алдында қайталаңыз.",
+  },
+};
+
+function buildHowToFix(correction: string, language: FeedbackLanguage): string {
+  const templates: TranslatedText = {
+    en: `Use "${correction}" instead.`,
+    ru: `Используйте «${correction}» вместо этого.`,
+    kz: `Оның орнына «${correction}» қолданыңыз.`,
+  };
+  return templates[language];
 }
 
 const FILLER_WORDS = ["euh", "du coup", "genre", "en fait", "quoi", "voilà", "bah"];
@@ -50,6 +93,7 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
           ru: "Возраст выражается с помощью глагола «avoir» (avoir + возраст), а не «être».",
           kz: "Жас мөлшері «avoir» етістігімен беріледі (avoir + жас), «être» емес.",
         },
+        betterExample: "J'ai vingt ans et mon frère a dix-huit ans.",
       },
       {
         id: "a1s-gender-article",
@@ -61,6 +105,7 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
           ru: "«Maison» — слово женского рода, поэтому употребляется с «une», а не «un».",
           kz: "«Maison» — әйел тегіндегі сөз, сондықтан «une» қолданылады, «un» емес.",
         },
+        betterExample: "J'habite dans une maison avec un grand jardin.",
       },
       {
         id: "a1s-infinitive",
@@ -72,6 +117,7 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
           ru: "Глагол нужно спрягать («j'aime»), а не оставлять в инфинитиве.",
           kz: "Етістік тұйық түрде қалмай, жіктелуі керек («j'aime»).",
         },
+        betterExample: "J'aime le sport et je joue au football le week-end.",
       },
     ],
     pronunciationNotes: [
@@ -103,6 +149,30 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
         en: "Vocabulary is limited to common, high-frequency words — appropriate for A1.",
         ru: "Словарный запас ограничен распространёнными словами — уместно для уровня A1.",
         kz: "Сөздік қор жиі қолданылатын сөздермен шектелген — A1 деңгейіне сай.",
+      },
+    ],
+    taskCompletionNotes: [
+      {
+        en: "Addressed the question directly with the basic information requested.",
+        ru: "Прямо ответил(а) на вопрос, дав запрошенную базовую информацию.",
+        kz: "Сұралған негізгі ақпаратты беріп, сұраққа тікелей жауап берді.",
+      },
+      {
+        en: "Covered the main point of the question, though a couple of details were missing.",
+        ru: "Раскрыл(а) основную суть вопроса, хотя некоторые детали отсутствовали.",
+        kz: "Сұрақтың негізгі мәнін ашты, бірақ кейбір детальдар жетіспеді.",
+      },
+    ],
+    coherenceNotes: [
+      {
+        en: "Ideas were presented in a simple, easy-to-follow order.",
+        ru: "Мысли были изложены в простом, легко воспринимаемом порядке.",
+        kz: "Ойлар қарапайым, оңай түсінілетін ретпен айтылды.",
+      },
+      {
+        en: "The answer stayed on one clear idea without wandering off topic.",
+        ru: "Ответ оставался в рамках одной чёткой мысли, не отклоняясь от темы.",
+        kz: "Жауап тақырыптан ауытқымай, бір анық ойға негізделді.",
       },
     ],
     strengths: [
@@ -180,6 +250,7 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
           ru: "Глагол «aller» в passé composé спрягается с «être», а не с «avoir».",
           kz: "«Aller» етістігі passé composé-де «être» көмекші етістігімен тіркеседі, «avoir» емес.",
         },
+        betterExample: "Hier, je suis allé(e) au cinéma avec des amis.",
       },
       {
         id: "a2s-preposition",
@@ -191,6 +262,7 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
           ru: "«Penser» + инфинитив не требует предлога «de» при выражении намерения.",
           kz: "Ниетті білдіргенде «penser» + тұйық етістік «de» септеулігін қажет етпейді.",
         },
+        betterExample: "Je pense sortir ce soir avec ma sœur.",
       },
       {
         id: "a2s-agreement-participle",
@@ -202,6 +274,7 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
           ru: "С «être» причастие прошедшего времени согласуется с подлежащим: «allée» для женского рода.",
           kz: "«Être»-мен есімше бастауышпен келіседі: әйелдік тегі үшін «allée».",
         },
+        betterExample: "Elle est allée au marché ce matin.",
       },
     ],
     pronunciationNotes: [
@@ -233,6 +306,30 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
         en: "Vocabulary covers everyday topics well, with occasional repetition.",
         ru: "Лексика хорошо покрывает повседневные темы, с отдельными повторами.",
         kz: "Лексика күнделікті тақырыптарды жақсы қамтиды, кейде қайталанады.",
+      },
+    ],
+    taskCompletionNotes: [
+      {
+        en: "Answered the question fully and added relevant supporting detail.",
+        ru: "Полностью ответил(а) на вопрос и добавил(а) уместные дополнительные детали.",
+        kz: "Сұраққа толық жауап беріп, орынды қосымша детальдар қосты.",
+      },
+      {
+        en: "Addressed the main question, but the supporting detail was a little thin.",
+        ru: "Ответил(а) на основной вопрос, но дополнительные детали были довольно скудными.",
+        kz: "Негізгі сұраққа жауап берді, бірақ қосымша детальдар аздау болды.",
+      },
+    ],
+    coherenceNotes: [
+      {
+        en: "The answer moved logically from one idea to the next.",
+        ru: "Ответ логично переходил от одной мысли к другой.",
+        kz: "Жауап бір ойдан екінші ойға логикалық түрде өтті.",
+      },
+      {
+        en: "Ideas were connected with simple linking words, keeping the flow clear.",
+        ru: "Мысли были связаны простыми связующими словами, что сохраняло ясность изложения.",
+        kz: "Ойлар қарапайым жалғаулық сөздермен байланысып, түсінікті болды.",
       },
     ],
     strengths: [
@@ -310,6 +407,7 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
           ru: "«Il faut que» требует сослагательного наклонения: «que j'aille», а не изъявительного «je vais».",
           kz: "«Il faut que» бағыныңқы райды талап етеді: «que j'aille», ашық рай «je vais» емес.",
         },
+        betterExample: "Il faut que j'aille au rendez-vous avant midi.",
       },
       {
         id: "b1s-conditionnel",
@@ -321,6 +419,7 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
           ru: "Соблюдайте последовательность времён: «si» + présent сочетается с futur; «si» + imparfait — с conditionnel.",
           kz: "Шақ тізбегін сақтаңыз: «si» + présent — futur-мен, «si» + imparfait — conditionnel-мен қолданылады.",
         },
+        betterExample: "Si j'avais le temps, je viendrais avec plaisir.",
       },
       {
         id: "b1s-anglicism",
@@ -332,6 +431,7 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
           ru: "«Définitivement» здесь — англицизм; естественный французский эквивалент — «tout à fait».",
           kz: "Бұл жерде «définitivement» — ағылшыншылдық; табиғи француз баламасы — «tout à fait».",
         },
+        betterExample: "Je suis tout à fait d'accord avec cette proposition.",
       },
     ],
     pronunciationNotes: [
@@ -358,6 +458,30 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
         en: "Good range of connectors and opinion vocabulary, appropriate for B1.",
         ru: "Хороший диапазон союзов и лексики для выражения мнения, соответствующий уровню B1.",
         kz: "B1 деңгейіне сай жалғаулықтар мен пікір білдіру лексикасының жақсы ауқымы.",
+      },
+    ],
+    taskCompletionNotes: [
+      {
+        en: "Fully addressed the task, including the negotiation/opinion component expected at this level.",
+        ru: "Полностью выполнил(а) задание, включая ожидаемый на этом уровне элемент переговоров/мнения.",
+        kz: "Тапсырманы толық орындады, осы деңгейде күтілетін келіссөз/пікір элементін қоса алғанда.",
+      },
+      {
+        en: "Addressed the task overall, though it could have engaged more directly with the specific scenario.",
+        ru: "В целом выполнил(а) задание, хотя мог(ла) бы более конкретно отреагировать на данную ситуацию.",
+        kz: "Тапсырманы жалпы орындады, бірақ нақты жағдайға тікелей көбірек назар аударса болар еді.",
+      },
+    ],
+    coherenceNotes: [
+      {
+        en: "Arguments were organized in a clear, logical sequence.",
+        ru: "Аргументы были выстроены в чёткой, логичной последовательности.",
+        kz: "Дәлелдер анық әрі логикалық ретпен құрылды.",
+      },
+      {
+        en: "The response held together well, though a couple of transitions felt abrupt.",
+        ru: "Ответ был в целом связным, хотя пара переходов ощущались резкими.",
+        kz: "Жауап тұтастай жақсы құрылды, бірақ бірнеше өтулер кенеттен болды.",
       },
     ],
     strengths: [
@@ -435,6 +559,7 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
           ru: "«Bien que» всегда требует сослагательного наклонения: «soit», а не изъявительного «est».",
           kz: "«Bien que» әрқашан бағыныңқы райды талап етеді: «soit», ашық рай «est» емес.",
         },
+        betterExample: "Bien qu'il soit difficile de changer ses habitudes, il faut essayer.",
       },
       {
         id: "b2s-nuance",
@@ -446,6 +571,7 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
           ru: "На уровне B2 категоричные утверждения («totalement faux») лучше смягчать более нюансированными формулировками.",
           kz: "B2 деңгейінде категориялық тұжырымдарды («totalement faux») нәзігірек тілмен жеткізген жөн.",
         },
+        betterExample: "Cela me semble en grande partie inexact, à mon avis.",
       },
       {
         id: "b2s-stacked-connectors",
@@ -457,6 +583,7 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
           ru: "Избегайте нагромождения двух противительных союзов подряд — выберите один для ясности аргумента.",
           kz: "Екі қарсы мәнді жалғаулықты қатар қоймаңыз — дәлелдің анықтығы үшін біреуін таңдаңыз.",
         },
+        betterExample: "Cependant, il faut reconnaître que la situation est complexe.",
       },
     ],
     pronunciationNotes: [
@@ -483,6 +610,30 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
         en: "Wide-ranging, precise vocabulary suited to formal debate, with occasional B1-level simplification.",
         ru: "Широкий, точный словарный запас, подходящий для формальной дискуссии, с отдельными упрощениями уровня B1.",
         kz: "Формалды пікірталасқа сай кең, дәл сөздік қор, кейде B1 деңгейіндегі жеңілдетулер бар.",
+      },
+    ],
+    taskCompletionNotes: [
+      {
+        en: "Thoroughly addressed the topic with a clear thesis and supporting reasoning.",
+        ru: "Всесторонне раскрыл(а) тему с чётким тезисом и обоснованной аргументацией.",
+        kz: "Тақырыпты анық тезис пен негізделген дәлелдеумен толық ашты.",
+      },
+      {
+        en: "Addressed the topic well, though the counter-argument could have been engaged more directly.",
+        ru: "Хорошо раскрыл(а) тему, хотя мог(ла) бы более прямо ответить на контраргумент.",
+        kz: "Тақырыпты жақсы ашты, бірақ қарсы дәлелге тікелейірек жауап берсе болар еді.",
+      },
+    ],
+    coherenceNotes: [
+      {
+        en: "The argument was structured with a clear line of reasoning from start to finish.",
+        ru: "Аргументация была выстроена с чёткой логической линией от начала до конца.",
+        kz: "Дәлелдеу басынан аяғына дейін анық логикалық желімен құрылды.",
+      },
+      {
+        en: "Ideas were coherent overall, with sophisticated connectors linking each point.",
+        ru: "Мысли были в целом связными, с продуманными союзами, соединяющими каждый пункт.",
+        kz: "Ойлар жалпы тұтас болды, әр тармақты байланыстыратын күрделі жалғаулықтармен.",
       },
     ],
     strengths: [
@@ -613,13 +764,16 @@ export function localizeTurnFeedback(
   language: FeedbackLanguage
 ): TurnFeedback {
   const profile = MOCK_SPEAKING_PROFILES[selection.level];
-  const grammarErrors: GrammarError[] = selection.selectedErrorIds.map((id) => {
+  const grammarErrors: SpeakingGrammarMistake[] = selection.selectedErrorIds.map((id) => {
     const template = profile.grammarPool.find((e) => e.id === id)!;
     return {
       original: template.original,
       correction: template.correction,
       category: template.category,
-      explanation: template.explanation[language],
+      whyWrong: template.explanation[language],
+      howToFix: buildHowToFix(template.correction, language),
+      betterExample: template.betterExample,
+      howToAvoid: HOW_TO_AVOID_BY_CATEGORY[template.category][language],
     };
   });
 
@@ -633,6 +787,12 @@ export function localizeTurnFeedback(
     profile.pronunciationNotes[
       Math.floor(Math.random() * profile.pronunciationNotes.length)
     ][language];
+  const taskCompletionNote =
+    profile.taskCompletionNotes[
+      Math.floor(Math.random() * profile.taskCompletionNotes.length)
+    ][language];
+  const coherenceNote =
+    profile.coherenceNotes[Math.floor(Math.random() * profile.coherenceNotes.length)][language];
 
   const encouragement: TranslatedText = selection.relevant
     ? {
@@ -648,6 +808,8 @@ export function localizeTurnFeedback(
 
   return {
     relevance: selection.relevant,
+    taskCompletionNote,
+    coherenceNote,
     grammarErrors,
     vocabularyNote,
     fluencyNote,
@@ -659,9 +821,9 @@ export function localizeTurnFeedback(
 
 /** Finds grammar mistakes that recurred across at least two turns —
  * grouped by category+original text since real per-turn feedback carries
- * full GrammarError objects, not ids into a shared pool. */
-function findRepeatedErrors(completedTurns: CompletedTurn[]): GrammarError[] {
-  const counts = new Map<string, { error: GrammarError; count: number }>();
+ * full SpeakingGrammarMistake objects, not ids into a shared pool. */
+function findRepeatedErrors(completedTurns: CompletedTurn[]): SpeakingGrammarMistake[] {
+  const counts = new Map<string, { error: SpeakingGrammarMistake; count: number }>();
   for (const turn of completedTurns) {
     for (const error of turn.feedback.grammarErrors) {
       const key = `${error.category}:${error.original}`;

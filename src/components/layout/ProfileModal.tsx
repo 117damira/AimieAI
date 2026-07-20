@@ -11,7 +11,6 @@ import {
   Trash2,
   ChevronDown,
   ChevronRight,
-  Globe,
   GraduationCap,
   BarChart3,
   Target,
@@ -21,7 +20,6 @@ import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { EXAMS } from "@/config/exams";
 import { updateAccountPassword } from "@/lib/auth/accountStore";
-import { LanguageSwitcher } from "./LanguageSwitcher";
 import { LogoutConfirmDialog } from "./LogoutConfirmDialog";
 import { DeleteAccountConfirmDialog } from "./DeleteAccountConfirmDialog";
 
@@ -192,15 +190,6 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
             <span className="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-muted">
               {t.profileModal.preferences}
             </span>
-            <div className="flex items-center justify-between gap-4 py-2.5">
-              <div className="flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-background text-muted">
-                  <Globe className="h-4 w-4" />
-                </span>
-                <span className="text-sm font-medium text-foreground">{t.profileModal.language}</span>
-              </div>
-              <LanguageSwitcher />
-            </div>
             <InfoRow icon={GraduationCap} label={t.profileModal.exam} value={exam.name} />
             <InfoRow icon={BarChart3} label={t.profileModal.currentLevel} value={profile.targetLevel} />
             <InfoRow

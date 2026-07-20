@@ -68,7 +68,6 @@ export interface Dictionary {
 
   profileModal: {
     preferences: string;
-    language: string;
     exam: string;
     currentLevel: string;
     studyGoal: string;
@@ -199,6 +198,37 @@ export interface Dictionary {
     examinerFeedback: string;
     answeredQuestion: string;
     needsMoreDevelopment: string;
+    generatingQuestions: string;
+    startExam: string;
+    prepTimeLabel: string;
+    estimatedDurationLabel: string;
+    numberOfPartsLabel: string;
+    preparingTitle: string;
+    preparingDescription: string;
+    startSpeakingNow: string;
+    chooseTopic: string;
+    selectTopic: string;
+    showTranslation: string;
+    hideTranslation: string;
+    tips: {
+      title: string;
+      beSpontaneous: string;
+      practiceMockExams: string;
+      dontBeAfraid: string;
+      practiceWithNatives: string;
+      practiceConsistently: string;
+    };
+    feedback: {
+      taskCompletionLabel: string;
+      coherenceLabel: string;
+      pronunciationLabel: string;
+      fluencyLabel: string;
+      vocabularyLabel: string;
+      whyWrong: string;
+      howToFix: string;
+      betterExample: string;
+      howToAvoid: string;
+    };
     report: {
       taskCompletion: string;
       grammar: string;
@@ -218,6 +248,10 @@ export interface Dictionary {
       strengths: string;
       weaknesses: string;
       suggestions: string;
+      whyWrong: string;
+      howToFix: string;
+      betterExample: string;
+      howToAvoid: string;
       noneNoted: string;
     };
   };
@@ -496,7 +530,6 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
 
     profileModal: {
       preferences: "Preferences",
-      language: "Language",
       exam: "Exam",
       currentLevel: "Current level",
       studyGoal: "Study goal",
@@ -636,6 +669,37 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       examinerFeedback: "Examiner feedback",
       answeredQuestion: "Answered the question",
       needsMoreDevelopment: "Needs more development",
+      generatingQuestions: "Generating your questions...",
+      startExam: "Start Exam",
+      prepTimeLabel: "Preparation time",
+      estimatedDurationLabel: "Estimated duration",
+      numberOfPartsLabel: "Speaking parts",
+      preparingTitle: "Preparation time",
+      preparingDescription: "Use this time to think about what you'll say — the exam starts when the timer ends, or whenever you're ready.",
+      startSpeakingNow: "I'm ready — start speaking now",
+      chooseTopic: "Choose one of the two topics below to begin the discussion.",
+      selectTopic: "Select this topic",
+      showTranslation: "Show translation",
+      hideTranslation: "Hide translation",
+      tips: {
+        title: "Speaking Tips",
+        beSpontaneous: "Be spontaneous. Speak naturally.",
+        practiceMockExams: "Practice mock exams under real exam conditions.",
+        dontBeAfraid: "Don't be afraid to speak French.",
+        practiceWithNatives: "Practice with native speakers whenever possible.",
+        practiceConsistently: "Practice consistently.",
+      },
+      feedback: {
+        taskCompletionLabel: "Task completion",
+        coherenceLabel: "Coherence",
+        pronunciationLabel: "Pronunciation",
+        fluencyLabel: "Fluency",
+        vocabularyLabel: "Vocabulary",
+        whyWrong: "Why it's wrong",
+        howToFix: "How to fix it",
+        betterExample: "Better example",
+        howToAvoid: "How to avoid this next time",
+      },
       report: {
         taskCompletion: "Task Completion",
         grammar: "Grammar",
@@ -656,6 +720,10 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         weaknesses: "Weaknesses",
         suggestions: "Suggestions",
         noneNoted: "None noted.",
+        whyWrong: "Why it's wrong",
+        howToFix: "How to fix it",
+        betterExample: "Better example",
+        howToAvoid: "How to avoid this",
       },
     },
 
@@ -957,7 +1025,6 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
 
     profileModal: {
       preferences: "Настройки",
-      language: "Язык",
       exam: "Экзамен",
       currentLevel: "Текущий уровень",
       studyGoal: "Цель занятий",
@@ -1097,6 +1164,37 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       examinerFeedback: "Отзыв экзаменатора",
       answeredQuestion: "Ответ по существу",
       needsMoreDevelopment: "Нужно развить ответ",
+      generatingQuestions: "Генерируем ваши вопросы...",
+      startExam: "Начать экзамен",
+      prepTimeLabel: "Время подготовки",
+      estimatedDurationLabel: "Примерная длительность",
+      numberOfPartsLabel: "Части экзамена",
+      preparingTitle: "Время подготовки",
+      preparingDescription: "Используйте это время, чтобы обдумать ответ — экзамен начнётся по окончании таймера или когда вы будете готовы.",
+      startSpeakingNow: "Я готов(а) — начать говорить сейчас",
+      chooseTopic: "Выберите одну из двух тем ниже, чтобы начать обсуждение.",
+      selectTopic: "Выбрать эту тему",
+      showTranslation: "Показать перевод",
+      hideTranslation: "Скрыть перевод",
+      tips: {
+        title: "Советы по говорению",
+        beSpontaneous: "Будьте спонтанны. Говорите естественно.",
+        practiceMockExams: "Практикуйте пробные экзамены в условиях, приближенных к реальным.",
+        dontBeAfraid: "Не бойтесь говорить по-французски.",
+        practiceWithNatives: "Практикуйтесь с носителями языка, когда это возможно.",
+        practiceConsistently: "Занимайтесь регулярно.",
+      },
+      feedback: {
+        taskCompletionLabel: "Выполнение задания",
+        coherenceLabel: "Связность",
+        pronunciationLabel: "Произношение",
+        fluencyLabel: "Беглость речи",
+        vocabularyLabel: "Словарный запас",
+        whyWrong: "Почему это ошибка",
+        howToFix: "Как исправить",
+        betterExample: "Лучший пример",
+        howToAvoid: "Как избежать этого в следующий раз",
+      },
       report: {
         taskCompletion: "Выполнение задания",
         grammar: "Грамматика",
@@ -1117,6 +1215,10 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         weaknesses: "Слабые стороны",
         suggestions: "Рекомендации",
         noneNoted: "Не отмечено.",
+        whyWrong: "Почему это ошибка",
+        howToFix: "Как исправить",
+        betterExample: "Лучший пример",
+        howToAvoid: "Как этого избежать",
       },
     },
 
@@ -1424,7 +1526,6 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
 
     profileModal: {
       preferences: "Баптаулар",
-      language: "Тіл",
       exam: "Емтихан",
       currentLevel: "Ағымдағы деңгей",
       studyGoal: "Жаттығу мақсаты",
@@ -1563,6 +1664,37 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       examinerFeedback: "Емтихан алушының пікірі",
       answeredQuestion: "Сұраққа мазмұнды жауап берілді",
       needsMoreDevelopment: "Жауапты толықтыру керек",
+      generatingQuestions: "Сұрақтарыңыз дайындалуда...",
+      startExam: "Емтиханды бастау",
+      prepTimeLabel: "Дайындық уақыты",
+      estimatedDurationLabel: "Болжамды ұзақтығы",
+      numberOfPartsLabel: "Емтихан бөлімдері",
+      preparingTitle: "Дайындық уақыты",
+      preparingDescription: "Бұл уақытты не айтатыныңызды ойлауға пайдаланыңыз — таймер аяқталғанда немесе өзіңіз дайын болғанда емтихан басталады.",
+      startSpeakingNow: "Мен дайынмын — қазір сөйлеуді бастау",
+      chooseTopic: "Талқылауды бастау үшін төмендегі екі тақырыптың бірін таңдаңыз.",
+      selectTopic: "Осы тақырыпты таңдау",
+      showTranslation: "Аударманы көрсету",
+      hideTranslation: "Аударманы жасыру",
+      tips: {
+        title: "Сөйлеу кеңестері",
+        beSpontaneous: "Табиғи болыңыз. Еркін сөйлеңіз.",
+        practiceMockExams: "Сынақ емтихандарын нақты емтихан жағдайында өткізіңіз.",
+        dontBeAfraid: "Француз тілінде сөйлеуден қорықпаңыз.",
+        practiceWithNatives: "Мүмкіндігінше ана тілінде сөйлейтіндермен жаттығыңыз.",
+        practiceConsistently: "Тұрақты түрде жаттығыңыз.",
+      },
+      feedback: {
+        taskCompletionLabel: "Тапсырманы орындау",
+        coherenceLabel: "Байланыстылық",
+        pronunciationLabel: "Айтылым",
+        fluencyLabel: "Еркіндік",
+        vocabularyLabel: "Сөздік қоры",
+        whyWrong: "Неге бұл қате",
+        howToFix: "Қалай түзетуге болады",
+        betterExample: "Жақсырақ мысал",
+        howToAvoid: "Келесі жолы бұдан қалай аулақ болу керек",
+      },
       report: {
         taskCompletion: "Тапсырманы орындау",
         grammar: "Грамматика",
@@ -1583,6 +1715,10 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         weaknesses: "Әлсіз жақтары",
         suggestions: "Ұсыныстар",
         noneNoted: "Ештеңе белгіленбеген.",
+        whyWrong: "Неге бұл қате",
+        howToFix: "Қалай түзетуге болады",
+        betterExample: "Жақсырақ мысал",
+        howToAvoid: "Мұны қалай болдырмауға болады",
       },
     },
 

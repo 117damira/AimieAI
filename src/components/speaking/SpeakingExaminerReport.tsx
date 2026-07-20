@@ -54,7 +54,7 @@ export function SpeakingExaminerReport({ report }: { report: ReportData }) {
             report.grammar.commonErrors.map((err, i) => (
               <div
                 key={i}
-                className="flex flex-col gap-1.5 rounded-xl border border-border bg-background p-3"
+                className="flex flex-col gap-2 rounded-xl border border-border bg-background p-3"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm text-foreground line-through decoration-danger-500">
@@ -62,7 +62,22 @@ export function SpeakingExaminerReport({ report }: { report: ReportData }) {
                   </span>
                   <span className="text-sm font-medium text-success-600">{err.correction}</span>
                 </div>
-                <p className="text-xs text-muted">{err.explanation}</p>
+                <p className="text-xs text-muted">
+                  <span className="font-medium text-foreground">{r.whyWrong}: </span>
+                  {err.whyWrong}
+                </p>
+                <p className="text-xs text-muted">
+                  <span className="font-medium text-foreground">{r.howToFix}: </span>
+                  {err.howToFix}
+                </p>
+                <p className="text-xs text-muted">
+                  <span className="font-medium text-foreground">{r.betterExample}: </span>
+                  <span className="text-success-600">{err.betterExample}</span>
+                </p>
+                <p className="text-xs text-muted">
+                  <span className="font-medium text-foreground">{r.howToAvoid}: </span>
+                  {err.howToAvoid}
+                </p>
               </div>
             ))
           )}

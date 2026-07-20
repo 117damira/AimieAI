@@ -1,16 +1,25 @@
 import { z } from "zod";
 import type Anthropic from "@anthropic-ai/sdk";
-import type { CompletedTurn, SpeakingExaminerReport, TurnFeedback } from "@/types/speaking-evaluation";
+import { DELF_SPEAKING_LEVELS } from "@/config/delf-speaking";
+import type {
+  CompletedTurn,
+  FollowUpQuestion,
+  GeneratedSpeakingQuestion,
+  GeneratedTopicChoice,
+  SpeakingExaminerReport,
+  TurnFeedback,
+} from "@/types/speaking-evaluation";
 import type { DelfLevel, FeedbackLanguage } from "@/types/writing-evaluation";
 import { SPEAKING_EVAL_MODEL } from "./anthropic";
 
 /**
- * Real Claude-based DELF speaking evaluation — used when ANTHROPIC_API_KEY
- * is configured (see anthropic.ts). Every score/note comes from Claude
- * reading the candidate's actual transcript, never randomized. Responses
- * are validated against these zod schemas; a malformed response throws, and
- * the calling API route falls back to the deterministic mock rather than
- * surface broken data.
+ * Real Claude-based DELF speaking evaluation and question generation — used
+ * when ANTHROPIC_API_KEY is configured (see anthropic.ts). Every score/note
+ * comes from Claude reading the candidate's actual transcript, never
+ * randomized. Responses are validated against these zod schemas; a
+ * malformed response throws, and the calling API route falls back to the
+ * deterministic mock (or the static question bank) rather than surface
+ * broken data.
  */
 
 const FEEDBACK_LANGUAGE_NAMES: Record<FeedbackLanguage, string> = {
@@ -19,16 +28,34 @@ const FEEDBACK_LANGUAGE_NAMES: Record<FeedbackLanguage, string> = {
   kz: "Kazakh",
 };
 
-const grammarErrorSchema = z.object({
+/** Topics/scenario types the spec requires per level — fed into the
+ * question-generation prompt, never shown to the user directly. */
+const LEVEL_TOPIC_HINTS: Record<DelfLevel, string> = {
+  A1: "daily routine, family, home, hobbies, school, food",
+  A2: "personal life, hobbies, studies, work, travel, weekend activities",
+  B1: "solving a real-life situation, convincing someone, expressing an opinion, discussing a social topic",
+  B2: "a discussion built around the chosen topic, defended with structured arguments",
+};
+
+const grammarMistakeSchema = z.object({
   original: z.string(),
   correction: z.string(),
   category: z.enum(["verb", "agreement", "sentence-structure", "other"]),
-  explanation: z.string(),
+  whyWrong: z.string(),
+  howToFix: z.string(),
+  betterExample: z.string(),
+  howToAvoid: z.string(),
 });
+
+const followUpQuestionSchema = z
+  .object({ prompt: z.string(), translation: z.string() })
+  .nullable();
 
 const turnFeedbackSchema = z.object({
   relevance: z.boolean(),
-  grammarErrors: z.array(grammarErrorSchema),
+  taskCompletionNote: z.string(),
+  coherenceNote: z.string(),
+  grammarErrors: z.array(grammarMistakeSchema),
   vocabularyNote: z.string(),
   fluencyNote: z.string(),
   pronunciationNote: z.string(),
@@ -36,10 +63,15 @@ const turnFeedbackSchema = z.object({
   turnScore: z.number().min(0).max(25),
 }) satisfies z.ZodType<TurnFeedback>;
 
+const evaluateTurnResponseSchema = z.object({
+  feedback: turnFeedbackSchema,
+  followUpQuestion: followUpQuestionSchema,
+});
+
 const reportSchema = z.object({
   level: z.enum(["A1", "A2", "B1", "B2"]),
   totalQuestions: z.number(),
-  grammar: z.object({ summary: z.string(), commonErrors: z.array(grammarErrorSchema) }),
+  grammar: z.object({ summary: z.string(), commonErrors: z.array(grammarMistakeSchema) }),
   vocabulary: z.object({ summary: z.string(), rangeNote: z.string() }),
   pronunciation: z.object({ summary: z.string(), note: z.string() }),
   fluency: z.object({ summary: z.string(), pace: z.string() }),
@@ -54,6 +86,19 @@ const reportSchema = z.object({
   scoreExplanation: z.string(),
 }) satisfies z.ZodType<SpeakingExaminerReport>;
 
+const sessionQuestionsSchema = z.object({
+  parts: z.array(
+    z.object({
+      partId: z.string(),
+      questions: z.array(z.object({ prompt: z.string(), translation: z.string() })),
+    })
+  ),
+});
+
+const topicChoicesSchema = z.object({
+  topics: z.array(z.object({ title: z.string(), translation: z.string() })).length(2),
+});
+
 function extractJson(text: string): unknown {
   const fenced = text.trim().match(/```(?:json)?\s*([\s\S]*?)```/i);
   return JSON.parse(fenced ? fenced[1] : text.trim());
@@ -66,7 +111,7 @@ async function callClaudeForJson(
 ): Promise<unknown> {
   const response = await client.messages.create({
     model: SPEAKING_EVAL_MODEL,
-    max_tokens: 1500,
+    max_tokens: 2000,
     system,
     messages: [{ role: "user", content: userPrompt }],
   });
@@ -77,10 +122,21 @@ async function callClaudeForJson(
   return extractJson(block.text);
 }
 
+/** True for parts where a natural reactive follow-up makes sense — A2's
+ * guided interview/monologue, B1's guided interview and interactive
+ * negotiation. Never B2 (formal, single extended defense) or A1 (too
+ * elementary for reactive follow-ups). */
+function isConversationalPart(level: DelfLevel, partId: string): boolean {
+  if (level === "A2") return partId !== "a2-dialogue-simule";
+  if (level === "B1") return partId === "b1-entretien-dirige" || partId === "b1-exercice-interaction";
+  return false;
+}
+
 export async function evaluateTurnWithClaude(
   client: Anthropic,
   params: {
     level: DelfLevel;
+    partId: string;
     partLabel: string;
     prompt: string;
     transcript: string;
@@ -88,10 +144,28 @@ export async function evaluateTurnWithClaude(
     recognitionConfidence: number | null;
     language: FeedbackLanguage;
   }
-): Promise<TurnFeedback> {
-  const { level, partLabel, prompt, transcript, wordCount, recognitionConfidence, language } = params;
+): Promise<{ feedback: TurnFeedback; followUpQuestion: FollowUpQuestion | null }> {
+  const { level, partId, partLabel, prompt, transcript, wordCount, recognitionConfidence, language } = params;
+  const allowFollowUp = isConversationalPart(level, partId);
 
-  const system = `You are an official DELF French oral examiner evaluating a candidate's spoken answer, transcribed by speech recognition. Grade strictly against the real DELF ${level} "Production Orale" rubric for the "${partLabel}" exercise. Base every judgment ONLY on the transcript provided — never invent details the candidate didn't say, and explain WHY points were lost. Respond with ONLY a single JSON object, no prose, no markdown fences, matching exactly this shape: { "relevance": boolean, "grammarErrors": [{ "original": string, "correction": string, "category": "verb" | "agreement" | "sentence-structure" | "other", "explanation": string }], "vocabularyNote": string, "fluencyNote": string, "pronunciationNote": string, "encouragement": string, "turnScore": number (0-25) }. All string values must be written in ${FEEDBACK_LANGUAGE_NAMES[language]}, except grammarErrors[].original/correction which quote the candidate's actual French. The transcript comes from browser speech recognition, not audio, so you cannot hear pronunciation directly — base "pronunciationNote" on disfluencies, hesitations, and the provided recognition confidence score as a proxy, and say so plainly rather than claiming certainty you don't have.`;
+  const system = `You are an official DELF French oral examiner evaluating a candidate's spoken answer, transcribed by speech recognition. Grade strictly against the real DELF ${level} "Production Orale" rubric for the "${partLabel}" exercise. Base every judgment ONLY on the transcript provided — never invent details the candidate didn't say.
+
+Assess: whether the candidate actually answered the question (relevance and taskCompletionNote), how coherent the answer was (coherenceNote), grammar, vocabulary, pronunciation (proxy only — see below), and fluency.
+
+For EVERY grammar mistake, teach, don't just flag: explain what is wrong and why (whyWrong), how to correct it (howToFix), give a fresh correct French example sentence demonstrating the rule (betterExample), and how to avoid repeating this mistake (howToAvoid).
+
+The transcript comes from browser speech recognition, not audio, so you cannot hear pronunciation directly — base "pronunciationNote" on disfluencies, hesitations, and the provided recognition confidence score as a proxy, and say so plainly rather than claiming certainty you don't have.
+
+${
+  allowFollowUp
+    ? `This is a conversational exercise. If (and only if) the candidate's answer naturally invites a reactive follow-up question (the way a real examiner would react to something specific they said), include one original French follow-up question in "followUpQuestion". Otherwise set "followUpQuestion" to null. Never force one.`
+    : `This exercise does not use reactive follow-ups — always set "followUpQuestion" to null.`
+}
+
+Respond with ONLY a single JSON object, no prose, no markdown fences, matching exactly this shape:
+{ "feedback": { "relevance": boolean, "taskCompletionNote": string, "coherenceNote": string, "grammarErrors": [{ "original": string, "correction": string, "category": "verb" | "agreement" | "sentence-structure" | "other", "whyWrong": string, "howToFix": string, "betterExample": string, "howToAvoid": string }], "vocabularyNote": string, "fluencyNote": string, "pronunciationNote": string, "encouragement": string, "turnScore": number (0-25) }, "followUpQuestion": { "prompt": string, "translation": string } | null }
+
+All string values must be written in ${FEEDBACK_LANGUAGE_NAMES[language]}, except grammarErrors[].original/correction/betterExample and followUpQuestion.prompt, which are French.`;
 
   const userPrompt = `DELF level: ${level}
 Exercise part: ${partLabel}
@@ -101,7 +175,7 @@ Word count: ${wordCount}
 Speech recognition confidence: ${recognitionConfidence !== null ? recognitionConfidence.toFixed(2) : "unavailable"}`;
 
   const parsed = await callClaudeForJson(client, system, userPrompt);
-  return turnFeedbackSchema.parse(parsed);
+  return evaluateTurnResponseSchema.parse(parsed);
 }
 
 export async function synthesizeReportWithClaude(
@@ -114,15 +188,70 @@ export async function synthesizeReportWithClaude(
 ): Promise<SpeakingExaminerReport> {
   const { level, language, completedTurns } = params;
 
-  const system = `You are an official DELF French oral examiner writing a final "Production Orale" report after a full practice session at level ${level}. Base every judgment ONLY on the transcripts and per-turn feedback provided below — synthesize genuine patterns across turns (e.g. a grammar mistake that recurred more than once), never invent new ones. Respond with ONLY a single JSON object, no prose, no markdown fences, matching exactly this shape: { "level": "${level}", "totalQuestions": number, "grammar": { "summary": string, "commonErrors": [{ "original": string, "correction": string, "category": "verb" | "agreement" | "sentence-structure" | "other", "explanation": string }] }, "vocabulary": { "summary": string, "rangeNote": string }, "pronunciation": { "summary": string, "note": string }, "fluency": { "summary": string, "pace": string }, "taskCompletion": { "summary": string, "partsCompleted": string[] }, "repeatedMistakes": string[], "fillerWords": { "count": number, "examples": string[] }, "strengths": string[], "weaknesses": string[], "suggestions": string[], "estimatedScore": number, "scoreOutOf": 25, "scoreExplanation": string }. All string values must be written in ${FEEDBACK_LANGUAGE_NAMES[language]}, except quoted French inside grammar.commonErrors. Explain WHY points were lost in scoreExplanation, and make every suggestion concrete and actionable.`;
+  const system = `You are an official DELF French oral examiner writing a final "Production Orale" report after a full practice session at level ${level}. Base every judgment ONLY on the transcripts and per-turn feedback provided below — synthesize genuine patterns across turns (e.g. a grammar mistake that recurred more than once), never invent new ones. Respond with ONLY a single JSON object, no prose, no markdown fences, matching exactly this shape: { "level": "${level}", "totalQuestions": number, "grammar": { "summary": string, "commonErrors": [{ "original": string, "correction": string, "category": "verb" | "agreement" | "sentence-structure" | "other", "whyWrong": string, "howToFix": string, "betterExample": string, "howToAvoid": string }] }, "vocabulary": { "summary": string, "rangeNote": string }, "pronunciation": { "summary": string, "note": string }, "fluency": { "summary": string, "pace": string }, "taskCompletion": { "summary": string, "partsCompleted": string[] }, "repeatedMistakes": string[], "fillerWords": { "count": number, "examples": string[] }, "strengths": string[], "weaknesses": string[], "suggestions": string[], "estimatedScore": number, "scoreOutOf": 25, "scoreExplanation": string }. All string values must be written in ${FEEDBACK_LANGUAGE_NAMES[language]}, except quoted French inside grammar.commonErrors. Explain WHY points were lost in scoreExplanation, and make every suggestion concrete and actionable.`;
 
   const userPrompt = completedTurns
     .map(
       (turn, i) =>
-        `Turn ${i + 1} (part: ${turn.partId}): transcript="${turn.transcript}", turnScore=${turn.feedback.turnScore}/25, relevant=${turn.feedback.relevance}, grammarErrors=${JSON.stringify(turn.feedback.grammarErrors)}, vocabularyNote="${turn.feedback.vocabularyNote}", fluencyNote="${turn.feedback.fluencyNote}", pronunciationNote="${turn.feedback.pronunciationNote}"`
+        `Turn ${i + 1} (part: ${turn.partId}): transcript="${turn.transcript}", turnScore=${turn.feedback.turnScore}/25, relevant=${turn.feedback.relevance}, taskCompletionNote="${turn.feedback.taskCompletionNote}", coherenceNote="${turn.feedback.coherenceNote}", grammarErrors=${JSON.stringify(turn.feedback.grammarErrors)}, vocabularyNote="${turn.feedback.vocabularyNote}", fluencyNote="${turn.feedback.fluencyNote}", pronunciationNote="${turn.feedback.pronunciationNote}"`
     )
     .join("\n");
 
   const parsed = await callClaudeForJson(client, system, userPrompt);
   return reportSchema.parse(parsed);
+}
+
+/** Generates a fresh set of original DELF-style questions for the given
+ * level, mapped onto the same part structure (ids, labels, timing) as the
+ * static fallback bank in delf-speaking.ts — Claude only supplies original
+ * content, never invents new part structure or reproduces real DELF prompts. */
+export async function generateSpeakingSession(
+  client: Anthropic,
+  level: DelfLevel,
+  language: FeedbackLanguage,
+  topic?: string
+): Promise<GeneratedSpeakingQuestion[]> {
+  const levelConfig = DELF_SPEAKING_LEVELS[level];
+
+  const partsSpec = levelConfig.parts
+    .map(
+      (part) =>
+        `- partId "${part.id}" ("${part.partLabel}"): generate exactly ${part.questions.length} original question(s).`
+    )
+    .join("\n");
+
+  const system = `You are creating original DELF ${level} "Production Orale" oral exam questions, following the real exam's structure and difficulty, but you must NEVER reproduce real official DELF exam questions verbatim — every question must be an original creation in a similar style. Cover these topics/scenario types across the questions: ${LEVEL_TOPIC_HINTS[level]}.${
+    topic ? ` The discussion must be built specifically around this chosen topic: "${topic}".` : ""
+  } Respond with ONLY a single JSON object, no prose, no markdown fences, matching exactly this shape: { "parts": [{ "partId": string, "questions": [{ "prompt": string, "translation": string }] }] } — one entry per part listed below, in the same order, with exactly the requested number of questions per part. "prompt" is French; "translation" is the same question in ${FEEDBACK_LANGUAGE_NAMES[language]}.`;
+
+  const userPrompt = `Parts to generate:\n${partsSpec}`;
+
+  const parsed = await callClaudeForJson(client, system, userPrompt);
+  const result = sessionQuestionsSchema.parse(parsed);
+
+  return levelConfig.parts.flatMap((part) => {
+    const generatedPart = result.parts.find((p) => p.partId === part.id);
+    if (!generatedPart || generatedPart.questions.length !== part.questions.length) {
+      throw new Error(`Generated session is missing questions for part "${part.id}"`);
+    }
+    return part.questions.map((question, i) => ({
+      partId: part.id,
+      partLabel: part.partLabel,
+      prompt: generatedPart.questions[i].prompt,
+      translation: generatedPart.questions[i].translation,
+      suggestedDurationSeconds: question.suggestedDurationSeconds,
+    }));
+  });
+}
+
+/** B2 only — generates two original candidate discussion topics for the
+ * learner to choose between before the exam begins. */
+export async function generateB2Topics(
+  client: Anthropic,
+  language: FeedbackLanguage
+): Promise<GeneratedTopicChoice[]> {
+  const system = `Generate exactly two original DELF B2-style discussion topics, resembling themes such as society, education, environment, technology, culture, and philosophy. Never reproduce real official DELF exam prompts — every topic must be an original creation. Respond with ONLY a single JSON object, no prose, no markdown fences, matching exactly this shape: { "topics": [{ "title": string, "translation": string }, { "title": string, "translation": string }] }. "title" is French; "translation" is the same topic in ${FEEDBACK_LANGUAGE_NAMES[language]}.`;
+
+  const parsed = await callClaudeForJson(client, system, "Generate the two topics now.");
+  return topicChoicesSchema.parse(parsed).topics;
 }

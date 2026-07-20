@@ -1,32 +1,49 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, AlertCircle, Volume2 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { resolvePracticeLevel } from "@/lib/utils/level";
-import { DELF_SPEAKING_LEVELS, flattenSpeakingParts } from "@/config/delf-speaking";
+import { DELF_SPEAKING_LEVELS } from "@/config/delf-speaking";
 import { speak, EXAM_SPEECH_LOCALE, FEEDBACK_SPEECH_LOCALES } from "@/lib/utils/voice";
-import type { CompletedTurn, SpeakingExaminerReport, TurnFeedback } from "@/types/speaking-evaluation";
-import type { FeedbackLanguage } from "@/types/writing-evaluation";
+import type {
+  CompletedTurn,
+  GeneratedSpeakingQuestion,
+  GeneratedTopicChoice,
+  SpeakingExaminerReport,
+  TurnFeedback,
+} from "@/types/speaking-evaluation";
+import type { DelfLevel, FeedbackLanguage } from "@/types/writing-evaluation";
 import { SpeakingModeSelect } from "@/components/speaking/SpeakingModeSelect";
 import { SpeakingProgressStepper } from "@/components/speaking/SpeakingProgressStepper";
 import { SpeakingQuestionCard } from "@/components/speaking/SpeakingQuestionCard";
 import { SpeakingResponseInput } from "@/components/speaking/SpeakingResponseInput";
 import { SpeakingTurnFeedback } from "@/components/speaking/SpeakingTurnFeedback";
 import { SpeakingExaminerReport as SpeakingExaminerReportView } from "@/components/speaking/SpeakingExaminerReport";
-import { cn } from "@/lib/utils/cn";
-
-const FEEDBACK_LANGUAGES: FeedbackLanguage[] = ["en", "ru", "kz"];
-const LANGUAGE_LABELS: Record<FeedbackLanguage, string> = { en: "EN", ru: "RU", kz: "KZ" };
+import { SpeakingWelcomeScreen } from "@/components/speaking/SpeakingWelcomeScreen";
+import { SpeakingPreparationTimer } from "@/components/speaking/SpeakingPreparationTimer";
+import { SpeakingTopicChoice } from "@/components/speaking/SpeakingTopicChoice";
 
 type Mode = "select" | "live" | "written";
-type Phase = "asking" | "evaluating-turn" | "turn-feedback" | "compiling-report" | "report";
+type Phase =
+  | "welcome"
+  | "topic-choice"
+  | "preparing"
+  | "asking"
+  | "evaluating-turn"
+  | "turn-feedback"
+  | "compiling-report"
+  | "report";
 
 /** Short pause after the AI finishes speaking feedback, before auto-advancing. */
 const LIVE_FEEDBACK_ADVANCE_BUFFER_MS = 900;
+
+interface QueueItem extends GeneratedSpeakingQuestion {
+  questionId: string;
+}
 
 interface TurnRequestBody {
   partId: string;
@@ -37,27 +54,62 @@ interface TurnRequestBody {
   recognitionConfidence: number | null;
 }
 
+function withQuestionIds(questions: GeneratedSpeakingQuestion[]): QueueItem[] {
+  return questions.map((q, i) => ({ ...q, questionId: `${q.partId}-${i}` }));
+}
+
 export default function SpeakingPracticePage() {
   const { profile, recordActivity } = useUserProfile();
-  const { t } = useLanguage();
-  const level = profile ? resolvePracticeLevel(profile.targetLevel) : "A1";
+  const { t, language } = useLanguage();
+  const level: DelfLevel = profile ? resolvePracticeLevel(profile.targetLevel) : "A1";
   const levelConfig = DELF_SPEAKING_LEVELS[level];
-  const queue = useMemo(() => flattenSpeakingParts(levelConfig), [levelConfig]);
 
   const [mode, setMode] = useState<Mode>("select");
   const [phase, setPhase] = useState<Phase>("asking");
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [language, setLanguage] = useState<FeedbackLanguage>("en");
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
+  const [topicChoices, setTopicChoices] = useState<GeneratedTopicChoice[]>([]);
+  const [isLoadingTopics, setIsLoadingTopics] = useState(false);
   const [completedTurns, setCompletedTurns] = useState<CompletedTurn[]>([]);
   const [currentFeedback, setCurrentFeedback] = useState<TurnFeedback | null>(null);
   const [report, setReport] = useState<SpeakingExaminerReport | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isChangingLanguage, setIsChangingLanguage] = useState(false);
 
   const lastTurnRequestRef = useRef<TurnRequestBody | null>(null);
+  const prevLanguageRef = useRef(language);
   const currentItem = queue[currentIndex];
 
-  async function fetchTurnFeedback(body: TurnRequestBody, lang: FeedbackLanguage): Promise<TurnFeedback> {
+  async function fetchSessionQuestions(
+    lvl: DelfLevel,
+    lang: FeedbackLanguage,
+    topic?: string
+  ): Promise<QueueItem[]> {
+    const res = await fetch("/api/speaking/generate-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "questions", level: lvl, language: lang, topic }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t.common.somethingWentWrong);
+    return withQuestionIds(data.questions as GeneratedSpeakingQuestion[]);
+  }
+
+  async function fetchB2Topics(lang: FeedbackLanguage): Promise<GeneratedTopicChoice[]> {
+    const res = await fetch("/api/speaking/generate-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "topics", level: "B2", language: lang }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t.common.somethingWentWrong);
+    return data.topics as GeneratedTopicChoice[];
+  }
+
+  async function fetchTurnFeedback(
+    body: TurnRequestBody,
+    lang: FeedbackLanguage
+  ): Promise<{ feedback: TurnFeedback; followUpQuestion: { prompt: string; translation: string } | null }> {
     const res = await fetch("/api/speaking/evaluate-turn", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -65,7 +117,7 @@ export default function SpeakingPracticePage() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || t.speaking.evaluationFailed);
-    return data.feedback as TurnFeedback;
+    return { feedback: data.feedback as TurnFeedback, followUpQuestion: data.followUpQuestion ?? null };
   }
 
   async function fetchReport(turns: CompletedTurn[], lang: FeedbackLanguage): Promise<SpeakingExaminerReport> {
@@ -77,6 +129,18 @@ export default function SpeakingPracticePage() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || t.speaking.reportGenerationFailed);
     return data.report as SpeakingExaminerReport;
+  }
+
+  async function loadQuestions(topic?: string) {
+    setIsLoadingQuestions(true);
+    try {
+      const questions = await fetchSessionQuestions(level, language, topic);
+      setQueue(questions);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t.common.somethingWentWrong);
+    } finally {
+      setIsLoadingQuestions(false);
+    }
   }
 
   async function handleFinish(turns: CompletedTurn[]) {
@@ -108,8 +172,7 @@ export default function SpeakingPracticePage() {
     if (mode === "live" && phase === "asking" && currentItem) {
       void speak(currentItem.prompt, EXAM_SPEECH_LOCALE);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, phase, currentIndex]);
+  }, [mode, phase, currentItem]);
 
   // Live mode: speak the feedback summary, then auto-advance once it finishes.
   useEffect(() => {
@@ -131,6 +194,37 @@ export default function SpeakingPracticePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, phase, currentFeedback]);
 
+  // Re-fetch feedback/report in the newly selected global UI language if the
+  // learner switches it (via Topbar) mid-session.
+  useEffect(() => {
+    if (prevLanguageRef.current === language) return;
+    prevLanguageRef.current = language;
+    if (phase === "turn-feedback" && lastTurnRequestRef.current) {
+      const requestBody = lastTurnRequestRef.current;
+      void (async () => {
+        try {
+          const { feedback } = await fetchTurnFeedback(requestBody, language);
+          setCurrentFeedback(feedback);
+          setCompletedTurns((prev) =>
+            prev.length === 0 ? prev : [...prev.slice(0, -1), { ...prev[prev.length - 1], feedback }]
+          );
+        } catch {
+          // Keep showing the previous-language feedback rather than erroring out.
+        }
+      })();
+    } else if (phase === "report") {
+      void (async () => {
+        try {
+          const nextReport = await fetchReport(completedTurns, language);
+          setReport(nextReport);
+        } catch {
+          // Keep showing the previous-language report rather than erroring out.
+        }
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language]);
+
   async function handleSubmitTurn(transcript: string, confidence: number | null) {
     if (!currentItem) return;
     setPhase("evaluating-turn");
@@ -145,12 +239,27 @@ export default function SpeakingPracticePage() {
     };
     lastTurnRequestRef.current = requestBody;
     try {
-      const feedback = await fetchTurnFeedback(requestBody, language);
+      const { feedback, followUpQuestion } = await fetchTurnFeedback(requestBody, language);
       const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
       setCompletedTurns((prev) => [
         ...prev,
         { partId: currentItem.partId, questionId: currentItem.questionId, transcript, wordCount, feedback },
       ]);
+      if (followUpQuestion) {
+        const followUpItem: QueueItem = {
+          partId: currentItem.partId,
+          partLabel: currentItem.partLabel,
+          prompt: followUpQuestion.prompt,
+          translation: followUpQuestion.translation,
+          suggestedDurationSeconds: 30,
+          questionId: `${currentItem.questionId}-followup`,
+        };
+        setQueue((prev) => {
+          const next = [...prev];
+          next.splice(currentIndex + 1, 0, followUpItem);
+          return next;
+        });
+      }
       setCurrentFeedback(feedback);
       setPhase("turn-feedback");
     } catch (err) {
@@ -159,47 +268,55 @@ export default function SpeakingPracticePage() {
     }
   }
 
-  async function handleLanguageChange(newLang: FeedbackLanguage) {
-    setLanguage(newLang);
-    if (phase === "turn-feedback" && lastTurnRequestRef.current) {
-      setIsChangingLanguage(true);
-      try {
-        const feedback = await fetchTurnFeedback(lastTurnRequestRef.current, newLang);
-        setCurrentFeedback(feedback);
-        setCompletedTurns((prev) =>
-          prev.length === 0 ? prev : [...prev.slice(0, -1), { ...prev[prev.length - 1], feedback }]
-        );
-      } catch {
-        // Keep showing the previous-language feedback rather than erroring out.
-      } finally {
-        setIsChangingLanguage(false);
-      }
-    } else if (phase === "report") {
-      setIsChangingLanguage(true);
-      try {
-        const nextReport = await fetchReport(completedTurns, newLang);
-        setReport(nextReport);
-      } catch {
-        // Keep showing the previous-language report rather than erroring out.
-      } finally {
-        setIsChangingLanguage(false);
-      }
-    }
-  }
-
   function handleRepeatQuestion() {
     if (currentItem) void speak(currentItem.prompt, EXAM_SPEECH_LOCALE);
   }
 
-  function handleSelectMode(next: "live" | "written") {
-    setMode(next);
-    setPhase("asking");
+  function resetSession() {
     setCurrentIndex(0);
+    setQueue([]);
+    setTopicChoices([]);
     setCompletedTurns([]);
     setCurrentFeedback(null);
     setReport(null);
     setError(null);
     lastTurnRequestRef.current = null;
+  }
+
+  function handleSelectMode(next: "live" | "written") {
+    setMode(next);
+    resetSession();
+    if (next === "live") {
+      setPhase("welcome");
+      if (level !== "B2") {
+        void loadQuestions();
+      }
+    } else {
+      setPhase("asking");
+      void loadQuestions();
+    }
+  }
+
+  function handleStartExam() {
+    if (level === "B2") {
+      setPhase("topic-choice");
+      setIsLoadingTopics(true);
+      fetchB2Topics(language)
+        .then(setTopicChoices)
+        .catch((err) => setError(err instanceof Error ? err.message : t.common.somethingWentWrong))
+        .finally(() => setIsLoadingTopics(false));
+    } else {
+      setPhase("preparing");
+    }
+  }
+
+  function handleSelectTopic(topic: GeneratedTopicChoice) {
+    setPhase("preparing");
+    void loadQuestions(topic.title);
+  }
+
+  function handlePreparationDone() {
+    setPhase("asking");
   }
 
   function handleRestart() {
@@ -228,83 +345,111 @@ export default function SpeakingPracticePage() {
         <SpeakingModeSelect levelConfig={levelConfig} onSelectMode={handleSelectMode} />
       )}
 
-      {mode !== "select" && currentItem && phase !== "report" && (
-        <div className="flex flex-col gap-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex-1">
+      {mode === "live" && phase === "welcome" && (
+        <SpeakingWelcomeScreen levelConfig={levelConfig} onStart={handleStartExam} />
+      )}
+
+      {mode === "live" && phase === "topic-choice" && (
+        isLoadingTopics ? (
+          <Card className="border-dashed">
+            <CardContent className="flex items-center justify-center gap-3 py-12 text-sm text-muted">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {t.speaking.generatingQuestions}
+            </CardContent>
+          </Card>
+        ) : (
+          <SpeakingTopicChoice topics={topicChoices} onSelect={handleSelectTopic} />
+        )
+      )}
+
+      {mode === "live" && phase === "preparing" && (
+        <SpeakingPreparationTimer
+          totalMinutes={levelConfig.prepTimeMinutes}
+          onSkip={handlePreparationDone}
+          onComplete={handlePreparationDone}
+        />
+      )}
+
+      {mode !== "select" &&
+        phase !== "welcome" &&
+        phase !== "topic-choice" &&
+        phase !== "preparing" &&
+        phase !== "report" && (
+          <div className="flex flex-col gap-6">
+            {currentItem && (
               <SpeakingProgressStepper
                 currentIndex={currentIndex}
                 total={queue.length}
                 partLabel={currentItem.partLabel}
               />
-            </div>
-            <LanguagePicker
-              language={language}
-              onChange={handleLanguageChange}
-              disabled={isChangingLanguage}
-            />
+            )}
+
+            {!currentItem && (
+              <Card className="border-dashed">
+                <CardContent className="flex items-center justify-center gap-3 py-12 text-sm text-muted">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t.speaking.generatingQuestions}
+                </CardContent>
+              </Card>
+            )}
+
+            {currentItem && (phase === "asking" || phase === "evaluating-turn") && (
+              <>
+                <SpeakingQuestionCard
+                  partLabel={currentItem.partLabel}
+                  prompt={currentItem.prompt}
+                  translation={currentItem.translation}
+                  suggestedDurationSeconds={currentItem.suggestedDurationSeconds}
+                />
+                {mode === "live" && phase === "asking" && (
+                  <Button variant="secondary" size="sm" className="self-start" onClick={handleRepeatQuestion}>
+                    <Volume2 className="h-4 w-4" />
+                    {t.speaking.repeatQuestion}
+                  </Button>
+                )}
+                <SpeakingResponseInput
+                  onSubmit={handleSubmitTurn}
+                  isSubmitting={phase === "evaluating-turn"}
+                />
+              </>
+            )}
+
+            {phase === "turn-feedback" && currentFeedback && (
+              <SpeakingTurnFeedback
+                feedback={currentFeedback}
+                onContinue={handleContinue}
+                continueLabel={
+                  currentIndex + 1 < queue.length
+                    ? t.speaking.nextQuestion
+                    : t.speaking.finishSeeReport
+                }
+                autoAdvancing={mode === "live"}
+              />
+            )}
+
+            {phase === "compiling-report" && (
+              <Card className="border-dashed">
+                <CardContent className="flex items-center justify-center gap-3 py-12 text-sm text-muted">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t.speaking.compilingReport}
+                </CardContent>
+              </Card>
+            )}
           </div>
+        )}
 
-          {(phase === "asking" || phase === "evaluating-turn") && (
-            <>
-              <SpeakingQuestionCard
-                partLabel={currentItem.partLabel}
-                prompt={currentItem.prompt}
-                suggestedDurationSeconds={currentItem.suggestedDurationSeconds}
-              />
-              {mode === "live" && phase === "asking" && (
-                <Button variant="secondary" size="sm" className="self-start" onClick={handleRepeatQuestion}>
-                  <Volume2 className="h-4 w-4" />
-                  {t.speaking.repeatQuestion}
-                </Button>
-              )}
-              <SpeakingResponseInput
-                onSubmit={handleSubmitTurn}
-                isSubmitting={phase === "evaluating-turn"}
-              />
-            </>
-          )}
-
-          {phase === "turn-feedback" && currentFeedback && (
-            <SpeakingTurnFeedback
-              feedback={currentFeedback}
-              onContinue={handleContinue}
-              continueLabel={
-                currentIndex + 1 < queue.length
-                  ? t.speaking.nextQuestion
-                  : t.speaking.finishSeeReport
-              }
-              autoAdvancing={mode === "live"}
-            />
-          )}
-
-          {phase === "compiling-report" && (
-            <Card className="border-dashed">
-              <CardContent className="flex items-center justify-center gap-3 py-12 text-sm text-muted">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {t.speaking.compilingReport}
-              </CardContent>
-            </Card>
-          )}
-        </div>
+      {mode === "live" && phase === "preparing" && isLoadingQuestions && (
+        <p className="text-xs text-muted">{t.speaking.generatingQuestions}</p>
       )}
 
       {phase === "report" && report && (
         <div className="flex flex-col gap-6">
           <Card>
-            <CardHeader className="flex-row items-center justify-between gap-4">
-              <div>
-                <CardTitle>{t.speaking.examinerReport}</CardTitle>
-                <CardDescription>
-                  {mode === "live" ? t.speaking.modeLive : t.speaking.modeWritten} ·{" "}
-                  {levelConfig.label}
-                </CardDescription>
-              </div>
-              <LanguagePicker
-                language={language}
-                onChange={handleLanguageChange}
-                disabled={isChangingLanguage}
-              />
+            <CardHeader>
+              <CardTitle>{t.speaking.examinerReport}</CardTitle>
+              <CardDescription>
+                {mode === "live" ? t.speaking.modeLive : t.speaking.modeWritten} · {levelConfig.label}
+              </CardDescription>
             </CardHeader>
           </Card>
           <SpeakingExaminerReportView report={report} />
@@ -315,38 +460,6 @@ export default function SpeakingPracticePage() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function LanguagePicker({
-  language,
-  onChange,
-  disabled,
-}: {
-  language: FeedbackLanguage;
-  onChange: (lang: FeedbackLanguage) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-1 rounded-full border border-border bg-background p-1">
-      {FEEDBACK_LANGUAGES.map((lang) => (
-        <button
-          key={lang}
-          type="button"
-          onClick={() => onChange(lang)}
-          disabled={disabled}
-          aria-pressed={language === lang}
-          className={cn(
-            "rounded-full px-3 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-            language === lang
-              ? "bg-primary-600 text-white"
-              : "text-muted hover:text-foreground"
-          )}
-        >
-          {LANGUAGE_LABELS[lang]}
-        </button>
-      ))}
     </div>
   );
 }
