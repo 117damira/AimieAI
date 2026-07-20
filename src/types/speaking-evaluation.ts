@@ -9,6 +9,10 @@ export type { DelfLevel, FeedbackLanguage };
 export interface SpeakingGrammarMistake {
   original: string;
   correction: string;
+  /** The full sentence from the transcript containing the mistake, so the
+   * UI can show the mistake highlighted in context rather than as an
+   * isolated phrase. */
+  sentence: string;
   category: "verb" | "agreement" | "sentence-structure" | "other";
   /** What's wrong and why — the grammar rule that was violated. */
   whyWrong: string;
@@ -58,10 +62,17 @@ export interface TurnFeedback {
   strengths: string[];
   areasForImprovement: string[];
   suggestions: string[];
-  /** A stronger model answer at the target DELF level, in French, for the
-   * student to compare against — null when not generated (always null in
-   * the offline mock; populated when Claude is configured). */
-  betterExampleAnswer: string | null;
+  /** A rewrite of the STUDENT'S OWN answer, in French: grammar corrected,
+   * vocabulary/connectors elevated, and — only when genuinely thin — lightly
+   * extended using clearly bracketed placeholders (e.g. "[ton âge]") for any
+   * detail that can't be known from the transcript. Never a fresh, unrelated
+   * model answer, and never a concrete invented fact presented as true.
+   * Always present. */
+  improvedAnswer: string;
+  /** One personalized, actionable tip driven by this specific turn's real
+   * signals (relevance/structure/grammar/filler use) — never a generic
+   * boilerplate line, and never repeated verbatim within a session. */
+  coachingTip: string;
   encouragement: string;
   /** Raw per-turn score out of 25, carried through so the final report can
    * aggregate real per-turn results instead of re-rolling its own score. */
@@ -114,10 +125,6 @@ export interface GeneratedSpeakingQuestion {
   prompt: string; // French
   translation: string; // in the current feedback language
   suggestedDurationSeconds: number;
-  /** A genuine, curated model answer for this exact question — only present
-   * on the static fallback (see delf-speaking.ts); the Claude-generated path
-   * doesn't pre-author one, since Claude supplies its own per-turn instead. */
-  modelAnswer?: string;
 }
 
 /** A candidate B2 discussion topic offered before the exam begins. */

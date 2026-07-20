@@ -243,9 +243,10 @@ export interface Dictionary {
       strengthsTitle: string;
       areasForImprovementTitle: string;
       suggestionsTitle: string;
-      betterExampleAnswerTitle: string;
-      betterExampleAnswerUnavailableNote: string;
+      improvedAnswerTitle: string;
+      coachingTipTitle: string;
       noGrammarMistakes: string;
+      sessionCompleteEncouragement: string;
     };
     report: {
       taskCompletion: string;
@@ -733,9 +734,11 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         strengthsTitle: "Strengths",
         areasForImprovementTitle: "Areas for Improvement",
         suggestionsTitle: "Suggested Improvements",
-        betterExampleAnswerTitle: "Better Example Answer",
-        betterExampleAnswerUnavailableNote: "Keep practicing — a stronger example will appear here as you build up this response.",
+        improvedAnswerTitle: "Improved Version of Your Answer",
+        coachingTipTitle: "Coaching Tip",
         noGrammarMistakes: "No grammar mistakes detected in this answer.",
+        sessionCompleteEncouragement:
+          "Excellent. You have completed all speaking tasks. Now let's review your overall performance and generate your final DELF report.",
       },
       report: {
         taskCompletion: "Task Completion",
@@ -1247,8 +1250,10 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         strengthsTitle: "Сильные стороны",
         areasForImprovementTitle: "Что нужно улучшить",
         suggestionsTitle: "Рекомендации",
-        betterExampleAnswerTitle: "Более удачный пример ответа",
-        betterExampleAnswerUnavailableNote: "Продолжайте практиковаться — более сильный пример появится здесь по мере развития ответа.",
+        improvedAnswerTitle: "Улучшенная версия вашего ответа",
+        coachingTipTitle: "Совет тренера",
+        sessionCompleteEncouragement:
+          "Отлично. Вы выполнили все задания устной части. Теперь давайте рассмотрим ваши результаты и сформируем итоговый отчёт DELF.",
         noGrammarMistakes: "В этом ответе грамматических ошибок не обнаружено.",
       },
       report: {
@@ -1766,9 +1771,11 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         strengthsTitle: "Күшті жақтары",
         areasForImprovementTitle: "Жақсарту қажет тұстар",
         suggestionsTitle: "Ұсыныстар",
-        betterExampleAnswerTitle: "Жақсырақ жауап мысалы",
-        betterExampleAnswerUnavailableNote: "Жаттығуды жалғастырыңыз — жауабыңыз дамыған сайын мұнда күштірек мысал пайда болады.",
+        improvedAnswerTitle: "Жауабыңыздың жақсартылған нұсқасы",
+        coachingTipTitle: "Жаттықтырушы кеңесі",
         noGrammarMistakes: "Бұл жауапта грамматикалық қателер табылмады.",
+        sessionCompleteEncouragement:
+          "Керемет. Сіз барлық ауызша тапсырмаларды орындадыңыз. Енді жалпы нәтижеңізді қарап, түпкілікті DELF есебін жасайық.",
       },
       report: {
         taskCompletion: "Тапсырманы орындау",

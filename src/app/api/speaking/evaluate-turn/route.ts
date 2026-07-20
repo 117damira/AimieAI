@@ -22,6 +22,9 @@ interface EvaluateTurnRequest {
   transcript: string;
   recognitionConfidence: number | null;
   language: FeedbackLanguage;
+  /** Coaching tips already shown earlier in this session, so a new one is
+   * never a verbatim repeat — the client accumulates these across turns. */
+  previousCoachingTips?: string[];
 }
 
 export async function POST(req: NextRequest) {
@@ -32,7 +35,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { level, partId, partLabel, questionId, prompt, transcript, recognitionConfidence, language } = body;
+  const { level, partId, partLabel, questionId, prompt, transcript, recognitionConfidence, language, previousCoachingTips } =
+    body;
 
   if (!level || !(level in DELF_SPEAKING_LEVELS)) {
     return NextResponse.json({ error: "A valid DELF level (A1, A2, B1, B2) is required" }, { status: 400 });
@@ -61,6 +65,7 @@ export async function POST(req: NextRequest) {
         wordCount,
         recognitionConfidence: recognitionConfidence ?? null,
         language,
+        previousCoachingTips: previousCoachingTips ?? [],
       });
       return NextResponse.json({ feedback, followUpQuestion });
     } catch (err) {
@@ -72,7 +77,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const selection = analyzeTurn(level, partId, questionId, prompt ?? "", transcript, wordCount);
-    const feedback = localizeTurnFeedback(selection, language);
+    const feedback = localizeTurnFeedback(selection, language, previousCoachingTips ?? []);
     // The offline mock never generates reactive follow-ups — that's a
     // bounded, Claude-only enhancement.
     return NextResponse.json({ feedback, followUpQuestion: null });

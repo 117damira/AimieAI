@@ -50,6 +50,7 @@ interface TurnRequestBody {
   prompt: string;
   transcript: string;
   recognitionConfidence: number | null;
+  previousCoachingTips: string[];
 }
 
 function withQuestionIds(questions: GeneratedSpeakingQuestion[]): QueueItem[] {
@@ -195,11 +196,7 @@ export default function SpeakingPracticePage() {
       const requestBody = lastTurnRequestRef.current;
       void (async () => {
         try {
-          const { feedback: rawFeedback } = await fetchTurnFeedback(requestBody, language);
-          const feedback: TurnFeedback =
-            rawFeedback.betterExampleAnswer === null && currentItem?.modelAnswer
-              ? { ...rawFeedback, betterExampleAnswer: currentItem.modelAnswer }
-              : rawFeedback;
+          const { feedback } = await fetchTurnFeedback(requestBody, language);
           setCurrentFeedback(feedback);
           setCompletedTurns((prev) =>
             prev.length === 0 ? prev : [...prev.slice(0, -1), { ...prev[prev.length - 1], feedback }]
@@ -232,19 +229,19 @@ export default function SpeakingPracticePage() {
       prompt: currentItem.prompt,
       transcript,
       recognitionConfidence: confidence,
+      previousCoachingTips: completedTurns.map((t) => t.feedback.coachingTip),
     };
     lastTurnRequestRef.current = requestBody;
     try {
       const { feedback: rawFeedback, followUpQuestion } = await fetchTurnFeedback(requestBody, language);
-      // Offline/mock evaluation has no way to generate a model answer for an
-      // arbitrary transcript, so it always returns betterExampleAnswer: null —
-      // fill in this question's real, curated model answer here instead of
-      // ever showing a "not available" or developer-facing message.
-      const feedback: TurnFeedback =
-        rawFeedback.betterExampleAnswer === null && currentItem.modelAnswer
-          ? { ...rawFeedback, betterExampleAnswer: currentItem.modelAnswer }
-          : rawFeedback;
       const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
+      // A follow-up question means this isn't actually the last question
+      // anymore; only override the "let's move on" message when nothing
+      // else is queued up after this turn.
+      const isLastQuestion = !followUpQuestion && currentIndex + 1 >= queue.length;
+      const feedback: TurnFeedback = isLastQuestion
+        ? { ...rawFeedback, encouragement: t.speaking.feedback.sessionCompleteEncouragement }
+        : rawFeedback;
       setCompletedTurns((prev) => [
         ...prev,
         { partId: currentItem.partId, questionId: currentItem.questionId, transcript, wordCount, feedback },

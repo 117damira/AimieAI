@@ -16,12 +16,6 @@ import type { DelfLevel, FeedbackLanguage } from "@/types/writing-evaluation";
 export interface SpeakingQuestionAlternate {
   prompt: string; // French
   translation: Record<FeedbackLanguage, string>;
-  /** A genuine, hand-authored model answer in French, at this slot's DELF
-   * level, answering this exact phrasing — shown to the learner as the
-   * "Better Example Answer" in the offline (no ANTHROPIC_API_KEY) path,
-   * since the mock evaluator has no way to generate one for an arbitrary
-   * transcript. Never a placeholder — always real, useful content. */
-  modelAnswer: string;
 }
 
 export interface SpeakingQuestionSpec {
@@ -35,9 +29,6 @@ export interface SpeakingQuestionSpec {
    * fallback randomly picks among the base prompt and these each session,
    * so two consecutive no-API-key sessions aren't always identical. */
   alternates?: SpeakingQuestionAlternate[];
-  /** A genuine, hand-authored model answer in French for this exact prompt
-   * — see SpeakingQuestionAlternate.modelAnswer for why this exists. */
-  modelAnswer: string;
 }
 
 export interface SpeakingExercisePart {
@@ -104,10 +95,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Здравствуйте! Как вас зовут, сколько вам лет и в каком городе вы живёте?",
                   kz: "Сәлеметсіз бе! Атыңыз кім, жасыңыз нешеде және қай қалада тұрасыз?",
                 },
-                modelAnswer: "Bonjour ! Je m'appelle Léa. J'ai vingt-deux ans et j'habite à Lyon, en France.",
               },
             ],
-            modelAnswer: "Bonjour ! Je m'appelle Léa. J'ai vingt-deux ans et j'habite à Lyon, en France.",
           },
           {
             id: "a1-ed-2",
@@ -126,10 +115,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Что вы любите делать по выходным?",
                   kz: "Демалыс күндері не істегенді ұнатасыз?",
                 },
-                modelAnswer: "Le week-end, j'aime lire des livres et faire du sport avec mes amis.",
               },
             ],
-            modelAnswer: "Pendant mon temps libre, j'aime lire des livres et faire du sport avec mes amis.",
           },
           {
             id: "a1-ed-3",
@@ -149,12 +136,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Сколько человек в вашей семье? Расскажите о них.",
                   kz: "Отбасыңызда неше адам бар? Олар туралы айтып беріңіз.",
                 },
-                modelAnswer:
-                  "Nous sommes quatre dans ma famille : mes parents, mon frère et moi. Nous habitons ensemble dans une petite maison.",
               },
             ],
-            modelAnswer:
-              "Oui, j'ai un frère et une sœur. Nous habitons tous ensemble avec nos parents dans une petite maison.",
           },
         ],
       },
@@ -185,12 +168,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Вот ключевое слово: СПОРТ. Задайте мне три вопроса по этой теме.",
                   kz: "Міне, түйінді сөз: СПОРТ. Осы тақырып бойынша маған үш сұрақ қойыңыз.",
                 },
-                modelAnswer:
-                  "Quel sport aimez-vous pratiquer ? Depuis quand faites-vous du sport ? Avec qui faites-vous du sport ?",
               },
             ],
-            modelAnswer:
-              "Où est-ce que vous passez vos vacances ? Quand partez-vous en vacances ? Avec qui voyagez-vous pendant les vacances ?",
           },
         ],
       },
@@ -221,10 +200,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Вы в ресторане и хотите заказать еду. Попросите официанта о помощи.",
                   kz: "Сіз мейрамханадасыз және тамақ тапсырыс бергіңіз келеді. Даяршыдан көмек сұраңыз.",
                 },
-                modelAnswer: "Bonjour, je voudrais commander un repas, s'il vous plaît. Qu'est-ce que vous recommandez aujourd'hui ?",
               },
             ],
-            modelAnswer: "Bonjour, je cherche un cadeau pour un ami. Pouvez-vous m'aider, s'il vous plaît ? Qu'est-ce que vous me conseillez ?",
           },
           {
             id: "a1-ds-2",
@@ -243,10 +220,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Официант предлагает вам два блюда: какое вы выберете и почему?",
                   kz: "Даяршы сізге екі тағам ұсынады: қайсысын таңдайсыз және неге?",
                 },
-                modelAnswer: "Je choisis le premier plat parce qu'il a l'air délicieux et il n'est pas trop cher.",
               },
             ],
-            modelAnswer: "Je choisis le premier objet parce qu'il est plus joli et moins cher que l'autre.",
           },
         ],
       },
@@ -296,10 +271,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Как вас зовут, чем вы занимаетесь и где вы живёте?",
                   kz: "Атыңыз кім, немен айналысасыз және қай жерде тұрасыз?",
                 },
-                modelAnswer: "Je m'appelle Marc. Je travaille comme vendeur et j'habite à Marseille.",
               },
             ],
-            modelAnswer: "Je m'appelle Marc. Je suis étudiant et j'habite à Marseille.",
           },
           {
             id: "a2-ed-2",
@@ -318,12 +291,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Что вы делали во время последнего отпуска?",
                   kz: "Соңғы демалысыңызда не істедіңіз?",
                 },
-                modelAnswer:
-                  "Pendant mes dernières vacances, je suis allé à la mer avec ma famille. Nous avons nagé et nous avons visité plusieurs musées.",
               },
             ],
-            modelAnswer:
-              "Le week-end dernier, je suis allé au cinéma avec mes amis. Ensuite, nous avons mangé dans un restaurant italien.",
           },
         ],
       },
@@ -353,12 +322,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Опишите свой район или свой дом.",
                   kz: "Ауданыңызды немесе үйіңізді сипаттаңыз.",
                 },
-                modelAnswer:
-                  "Mon quartier est calme et agréable. Il y a un petit parc juste en face de ma maison, où les enfants jouent souvent. J'aime beaucoup vivre ici parce que les voisins sont très gentils.",
               },
             ],
-            modelAnswer:
-              "Je viens d'une petite ville tranquille dans le sud de la France. Il y a un beau marché le samedi et beaucoup de parcs. J'aime beaucoup mon quartier parce que les gens sont très sympathiques.",
           },
         ],
       },
@@ -389,10 +354,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Вы приглашаете друга на ужин к себе в эти выходные. Предложите день и время.",
                   kz: "Сіз досыңызды осы демалыс күндері үйіңізге кешкі асқа шақырасыз. Күн мен уақытты ұсыныңыз.",
                 },
-                modelAnswer: "Salut ! Je t'invite à dîner chez moi ce week-end. Tu es libre samedi soir, vers dix-neuf heures ?",
               },
             ],
-            modelAnswer: "Salut ! Ça te dit de sortir ce week-end ? On pourrait aller au cinéma samedi après-midi, vers quatorze heures.",
           },
           {
             id: "a2-ds-2",
@@ -411,12 +374,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Ваш друг предлагает изменить место ужина: что вы ответите?",
                   kz: "Досыңыз кешкі ас өтетін жерді өзгертуді ұсынады: сіз не деп жауап бересіз?",
                 },
-                modelAnswer:
-                  "Oui, bonne idée ! On pourrait dîner au restaurant près de chez toi, ce sera plus pratique pour tout le monde.",
               },
             ],
-            modelAnswer:
-              "D'accord, pas de problème. On pourrait plutôt se voir dimanche matin, si tu es disponible.",
           },
         ],
       },
@@ -466,12 +425,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Кто вы и какие у вас планы на будущее?",
                   kz: "Сіз кімсіз және болашаққа қандай жоспарларыңыз бар?",
                 },
-                modelAnswer:
-                  "Je m'appelle Antoine. Après mes études, je voudrais travailler à l'étranger, peut-être en France, dans le domaine du commerce international.",
               },
             ],
-            modelAnswer:
-              "Je m'appelle Antoine et je suis étudiant en commerce international. J'apprends le français parce que je voudrais travailler dans une entreprise francophone plus tard.",
           },
         ],
       },
@@ -502,12 +457,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Вы организуете поездку с друзьями, но не согласны насчёт жилья. Объясните свою точку зрения и предложите компромисс.",
                   kz: "Сіз достарыңызбен саяхат ұйымдастырасыз, бірақ тұрғын үй туралы келісе алмайсыздар. Көзқарасыңызды түсіндіріп, ымыраға келу жолын ұсыныңыз.",
                 },
-                modelAnswer:
-                  "Je préfère un hôtel plutôt qu'un camping, mais je comprends que ça coûte plus cher. On pourrait chercher une auberge de jeunesse : c'est confortable et moins cher qu'un hôtel.",
               },
             ],
-            modelAnswer:
-              "Je comprends que le budget est limité, mais je pense qu'on devrait quand même réserver un hôtel confortable. Peut-être qu'on pourrait réduire les dépenses pour les activités à la place, pour équilibrer le budget.",
           },
           {
             id: "b1-ei-2",
@@ -526,12 +477,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Ваш друг предлагает полностью изменить место назначения: что вы об этом думаете?",
                   kz: "Досыңыз бару жерін мүлдем өзгертуді ұсынады: сіз бұл туралы не ойлайсыз?",
                 },
-                modelAnswer:
-                  "Je ne suis pas vraiment d'accord, parce qu'on avait déjà bien préparé ce voyage. Mais si tu as une meilleure destination en tête, je suis prêt à en discuter.",
               },
             ],
-            modelAnswer:
-              "Je pense que c'est une bonne idée si ça permet de réduire le budget, mais il ne faut pas trop raccourcir le séjour non plus, sinon on n'aura pas le temps de tout visiter.",
           },
         ],
       },
@@ -562,12 +509,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Документ: «Всё больше людей делают покупки онлайн, а не в магазинах». Что вы об этом думаете? Это хорошая тенденция?",
                   kz: "Құжат: «Көбірек адамдар дүкенде емес, онлайн сатып алады». Сіз бұл туралы не ойлайсыз? Бұл жақсы үрдіс пе?",
                 },
-                modelAnswer:
-                  "Je pense que les achats en ligne sont pratiques parce qu'on peut comparer les prix facilement et gagner du temps. Par contre, cela peut nuire aux petits commerces locaux, donc il est important de garder un équilibre entre les deux.",
               },
             ],
-            modelAnswer:
-              "À mon avis, le télétravail est une bonne chose parce qu'il permet de gagner du temps de transport et d'avoir un meilleur équilibre entre la vie professionnelle et la vie privée. Cependant, il peut aussi isoler certains salariés, donc il faut trouver un bon équilibre entre le travail à la maison et au bureau.",
           },
           {
             id: "b1-pv-2",
@@ -586,12 +529,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Какие, по вашему мнению, недостатки покупок онлайн?",
                   kz: "Сіздің ойыңызша, онлайн сатып алудың кемшіліктері қандай?",
                 },
-                modelAnswer:
-                  "Le principal inconvénient des achats en ligne, selon moi, est qu'on ne peut pas essayer le produit avant de l'acheter. En plus, cela peut favoriser une consommation excessive, puisqu'il est très facile de commander en quelques clics.",
               },
             ],
-            modelAnswer:
-              "Selon moi, le principal inconvénient du télétravail est l'isolement social, car on voit moins ses collègues. De plus, il est parfois difficile de séparer la vie professionnelle et la vie personnelle quand on travaille à la maison.",
           },
         ],
       },
@@ -641,12 +580,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Документ: «Станет ли удалённая работа нормой для всех профессий?» Изложите свою точку зрения структурированно.",
                   kz: "Құжат: «Қашықтан жұмыс барлық мамандықтар үшін норма бола ма?» Көзқарасыңызды құрылымды түрде ұсыныңыз.",
                 },
-                modelAnswer:
-                  "À mon avis, le télétravail ne deviendra pas la norme pour tous les métiers, car certaines professions nécessitent une présence physique. Cependant, pour les métiers de bureau, cette tendance va probablement continuer à se développer. En conclusion, l'avenir sera sans doute un modèle hybride.",
               },
             ],
-            modelAnswer:
-              "Je pense que les réseaux sociaux ont un effet à la fois positif et négatif sur les jeunes. D'un côté, ils permettent de rester en contact avec ses amis et de s'informer rapidement. D'un autre côté, une utilisation excessive peut nuire à la concentration et à la santé mentale. En conclusion, tout dépend de la façon dont on les utilise.",
           },
           {
             id: "b2-pv-2",
@@ -666,12 +601,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Некоторые говорят, что удалённая работа снижает продуктивность, а не повышает её. Что вы ответите на этот аргумент?",
                   kz: "Кейбіреулер қашықтан жұмыс өнімділікті арттырудың орнына төмендетеді дейді. Бұл дәлелге қалай жауап бересіз?",
                 },
-                modelAnswer:
-                  "Je ne partage pas complètement ce point de vue. Des études montrent que de nombreux salariés sont en réalité plus productifs en télétravail, car ils sont moins interrompus. Cela dépend surtout de l'organisation et de la discipline personnelle de chacun.",
               },
             ],
-            modelAnswer:
-              "Je ne suis pas entièrement d'accord avec cet argument. Certes, certaines personnes s'isolent à cause des réseaux sociaux, mais pour beaucoup d'autres, ils permettent au contraire de maintenir des liens avec des amis éloignés. Tout dépend donc de l'usage qu'on en fait.",
           },
           {
             id: "b2-pv-3",
@@ -690,12 +621,8 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
                   ru: "Какие решения вы предложили бы, чтобы удалённая работа приносила пользу и сотрудникам, и компаниям?",
                   kz: "Қашықтан жұмыс қызметкерлерге де, компанияларға да пайда әкелуі үшін қандай шешімдер ұсынар едіңіз?",
                 },
-                modelAnswer:
-                  "Pour que le télétravail profite à tous, les entreprises pourraient proposer un modèle hybride avec des jours obligatoires au bureau pour maintenir le lien social, tout en offrant la flexibilité nécessaire aux employés qui en ont besoin.",
               },
             ],
-            modelAnswer:
-              "Pour limiter les effets négatifs des réseaux sociaux, on pourrait sensibiliser les jeunes dès l'école à un usage raisonné, et encourager les familles à fixer des limites de temps d'écran. Les plateformes elles-mêmes pourraient aussi mieux modérer les contenus nocifs.",
           },
         ],
       },
@@ -736,7 +663,6 @@ export interface FlatSpeakingQuestion {
   prompt: string;
   translation: Record<FeedbackLanguage, string>;
   suggestedDurationSeconds: number;
-  modelAnswer: string;
 }
 
 /** Flattens a level's parts/questions into a single ordered queue for
@@ -751,7 +677,7 @@ export function flattenSpeakingParts(
   return config.parts.flatMap((part) =>
     part.questions.map((question) => {
       const options = [
-        { prompt: question.prompt, translation: question.translation, modelAnswer: question.modelAnswer },
+        { prompt: question.prompt, translation: question.translation },
         ...(question.alternates ?? []),
       ];
       const chosen = options[Math.floor(Math.random() * options.length)];
@@ -762,7 +688,6 @@ export function flattenSpeakingParts(
         prompt: chosen.prompt,
         translation: chosen.translation,
         suggestedDurationSeconds: question.suggestedDurationSeconds,
-        modelAnswer: chosen.modelAnswer,
       };
     })
   );

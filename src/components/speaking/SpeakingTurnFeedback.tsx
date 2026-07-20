@@ -55,12 +55,7 @@ export function SpeakingTurnFeedback({
                 key={i}
                 className="flex flex-col gap-2 rounded-xl border border-border bg-background p-3"
               >
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="text-foreground line-through decoration-danger-500">
-                    {err.original}
-                  </span>
-                  <span className="font-medium text-success-600">{err.correction}</span>
-                </div>
+                <HighlightedMistakeSentence sentence={err.sentence} original={err.original} correction={err.correction} />
                 <MistakeDetail label={f.whyWrong} value={err.whyWrong} />
                 <MistakeDetail label={f.howToFix} value={err.howToFix} />
                 <MistakeDetail label={f.betterExample} value={err.betterExample} emphasize />
@@ -108,12 +103,13 @@ export function SpeakingTurnFeedback({
         </div>
 
         <div className="flex flex-col gap-1.5 rounded-xl bg-primary-50 p-4">
-          <span className="text-xs font-semibold text-primary-700">{f.betterExampleAnswerTitle}</span>
-          {feedback.betterExampleAnswer ? (
-            <p className="text-sm italic text-foreground">&ldquo;{feedback.betterExampleAnswer}&rdquo;</p>
-          ) : (
-            <p className="text-xs text-muted">{f.betterExampleAnswerUnavailableNote}</p>
-          )}
+          <span className="text-xs font-semibold text-primary-700">{f.improvedAnswerTitle}</span>
+          <p className="text-sm italic text-foreground">&ldquo;{feedback.improvedAnswer}&rdquo;</p>
+        </div>
+
+        <div className="flex flex-col gap-1.5 rounded-xl bg-warning-50 p-4">
+          <span className="text-xs font-semibold text-warning-600">{f.coachingTipTitle}</span>
+          <p className="text-sm text-foreground">{feedback.coachingTip}</p>
         </div>
 
         <p className="text-sm font-medium text-foreground">{feedback.encouragement}</p>
@@ -132,6 +128,45 @@ function FeedbackRow({ label, value }: { label: string; value: string }) {
       <span className="font-medium text-foreground">{label}: </span>
       {value}
     </p>
+  );
+}
+
+/** Shows the mistake highlighted inside its real sentence (not as an
+ * isolated phrase), followed by the corrected full sentence — falls back to
+ * the old isolated-phrase display if `original` can't be located inside
+ * `sentence` for any reason. */
+function HighlightedMistakeSentence({
+  sentence,
+  original,
+  correction,
+}: {
+  sentence: string;
+  original: string;
+  correction: string;
+}) {
+  const index = sentence.indexOf(original);
+  if (index === -1) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="text-foreground line-through decoration-danger-500">{original}</span>
+        <span className="font-medium text-success-600">{correction}</span>
+      </div>
+    );
+  }
+  const before = sentence.slice(0, index);
+  const after = sentence.slice(index + original.length);
+  const correctedSentence = `${before}${correction}${after}`;
+  return (
+    <div className="flex flex-col gap-1 text-sm">
+      <p className="text-foreground">
+        {before}
+        <span className="font-medium text-danger-600 line-through decoration-danger-500">{original}</span>
+        {after}
+      </p>
+      <p className="text-success-600">
+        <span className="font-medium">→</span> {correctedSentence}
+      </p>
+    </div>
   );
 }
 

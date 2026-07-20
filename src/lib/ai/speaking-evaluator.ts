@@ -40,6 +40,7 @@ const LEVEL_TOPIC_HINTS: Record<DelfLevel, string> = {
 const grammarMistakeSchema = z.object({
   original: z.string(),
   correction: z.string(),
+  sentence: z.string(),
   category: z.enum(["verb", "agreement", "sentence-structure", "other"]),
   whyWrong: z.string(),
   howToFix: z.string(),
@@ -71,7 +72,8 @@ const turnFeedbackSchema = z.object({
   strengths: z.array(z.string()),
   areasForImprovement: z.array(z.string()),
   suggestions: z.array(z.string()),
-  betterExampleAnswer: z.string().nullable(),
+  improvedAnswer: z.string(),
+  coachingTip: z.string(),
   encouragement: z.string(),
   turnScore: z.number().min(0).max(25),
 }) satisfies z.ZodType<TurnFeedback>;
@@ -156,9 +158,14 @@ export async function evaluateTurnWithClaude(
     wordCount: number;
     recognitionConfidence: number | null;
     language: FeedbackLanguage;
+    /** Coaching tips already given earlier in this session, so the model
+     * never repeats one verbatim — the call is stateless per turn, so the
+     * client supplies this history. */
+    previousCoachingTips: string[];
   }
 ): Promise<{ feedback: TurnFeedback; followUpQuestion: FollowUpQuestion | null }> {
-  const { level, partId, partLabel, prompt, transcript, wordCount, recognitionConfidence, language } = params;
+  const { level, partId, partLabel, prompt, transcript, wordCount, recognitionConfidence, language, previousCoachingTips } =
+    params;
   const allowFollowUp = isConversationalPart(level, partId);
 
   const system = `You are an experienced official DELF French oral examiner evaluating a candidate's spoken answer, transcribed by speech recognition. Grade strictly against the real DELF ${level} "Production Orale" rubric for the "${partLabel}" exercise. Base every judgment ONLY on the transcript provided — never invent details the candidate didn't say, and never give generic or templated feedback — everything must be specific to what this candidate actually said. Never assume an answer is correct or on-topic by default — actively compare what was asked against what was actually said before judging anything else.
@@ -167,11 +174,19 @@ First, determine "relevance": does the transcript actually address the question 
 
 Evaluate the full examiner rubric: task achievement and relevance to the prompt (relevance, taskCompletionNote), coherence and organization of ideas (coherenceNote), grammar accuracy, vocabulary range (vocabularyNote), sentence variety — does the candidate vary sentence structure or repeat the same pattern (sentenceVarietyNote), fluency (fluencyNote), pronunciation (proxy only — see below), naturalness of expression — does it sound idiomatic or stilted/translated (naturalnessNote), and answer structure (structureNote): does the response include an introduction where appropriate, a direct answer, supporting detail, an example where appropriate, and a conclusion where appropriate — name exactly what's missing and how a stronger candidate would organize the answer.
 
-For EVERY grammar mistake, teach, don't just flag: explain what is wrong and why (whyWrong), how to correct it (howToFix), give a fresh correct French example sentence demonstrating the rule (betterExample), and how to avoid repeating this mistake (howToAvoid). Only ever quote a mistake that is genuinely present in the transcript — never invent one. If the transcript is genuinely free of grammar mistakes, return an empty "grammarErrors" array rather than manufacturing one.
+Find EVERY genuine grammar mistake in the transcript — do not artificially limit yourself to one or two; if there are five real mistakes, report up to 6 of them. For EVERY grammar mistake, teach, don't just flag: quote the full original sentence it appears in (sentence) so the mistake can be shown highlighted in context — not just the isolated phrase — explain what is wrong and why (whyWrong), how to correct it (howToFix), give a fresh correct French example sentence demonstrating the rule (betterExample), and how to avoid repeating this mistake (howToAvoid). Only ever quote a mistake that is genuinely present in the transcript — never invent one, and never miss an obvious one. If the transcript is genuinely free of grammar mistakes, return an empty "grammarErrors" array rather than manufacturing one.
 
 The transcript comes from browser speech recognition, not audio, so you cannot hear pronunciation directly. For "pronunciationNote", give an overall proxy assessment based on disfluencies, hesitations, and the provided recognition confidence score, and say so plainly rather than claiming certainty you don't have. Additionally, in "mispronuncedWords", pick up to 3 real words from the transcript that are commonly mispronounced by ${level}-level French learners for a genuine phonetic reason (nasal vowels, silent endings, liaison, etc.) — each with the exact word and a brief note on the correct pronunciation. Only include words that actually appear in the transcript; return an empty array if none are notably tricky.
 
-Then provide, specific to this exact answer: 2-4 "strengths" (what the candidate did well), 2-4 "areasForImprovement" (specific weaknesses), and 2-4 "suggestions" (concrete, actionable advice). Always write "betterExampleAnswer": a model response in French at the ${level} level answering the same question, demonstrating strong DELF structure (this is shown to the learner as a study aid, so it must always be present and genuinely useful — never omit it and never mention API keys, configuration, or anything about how the answer was generated).
+Then provide, specific to this exact answer: 2-4 "strengths" (what the candidate did well), 2-4 "areasForImprovement" (specific weaknesses), and 2-4 "suggestions" (concrete, actionable advice).
+
+Always write "improvedAnswer": a REWRITE OF THE CANDIDATE'S OWN ANSWER, not a fresh unrelated model answer. Preserve everything they actually meant, correct every grammar mistake, elevate the vocabulary/connectors/fluency to a stronger ${level}+ register, and — only if the answer is genuinely thin — naturally extend it. When extending, you may add clearly bracketed placeholders for any concrete detail you cannot know from the transcript (e.g. "j'ai [ton âge] ans", "j'habite à [ta ville]") — never invent a specific fact (a city, a job, a hobby) and present it as something the candidate actually said. This must always be present and genuinely useful, and never mention API keys, configuration, or anything about how it was generated.
+
+Always write "coachingTip": ONE personalized, actionable tip driven specifically by this answer's real signals (e.g. it was correct but short, it lacked an example, it lacked a conclusion, a specific grammar category recurred, filler words were heavy). Never a generic boilerplate line. ${
+    previousCoachingTips.length > 0
+      ? `The candidate has already received these coaching tips earlier in this session — do not repeat any of them verbatim or in substance: ${previousCoachingTips.map((t) => `"${t}"`).join(", ")}.`
+      : ""
+  }
 
 ${
   allowFollowUp
@@ -180,9 +195,9 @@ ${
 }
 
 Respond with ONLY a single JSON object, no prose, no markdown fences, matching exactly this shape:
-{ "feedback": { "relevance": boolean, "taskCompletionNote": string, "coherenceNote": string, "grammarErrors": [{ "original": string, "correction": string, "category": "verb" | "agreement" | "sentence-structure" | "other", "whyWrong": string, "howToFix": string, "betterExample": string, "howToAvoid": string }], "vocabularyNote": string, "sentenceVarietyNote": string, "fluencyNote": string, "pronunciationNote": string, "mispronuncedWords": [{ "word": string, "note": string }], "naturalnessNote": string, "structureNote": string, "strengths": string[], "areasForImprovement": string[], "suggestions": string[], "betterExampleAnswer": string, "encouragement": string, "turnScore": number (0-25) }, "followUpQuestion": { "prompt": string, "translation": string } | null }
+{ "feedback": { "relevance": boolean, "taskCompletionNote": string, "coherenceNote": string, "grammarErrors": [{ "original": string, "correction": string, "sentence": string, "category": "verb" | "agreement" | "sentence-structure" | "other", "whyWrong": string, "howToFix": string, "betterExample": string, "howToAvoid": string }], "vocabularyNote": string, "sentenceVarietyNote": string, "fluencyNote": string, "pronunciationNote": string, "mispronuncedWords": [{ "word": string, "note": string }], "naturalnessNote": string, "structureNote": string, "strengths": string[], "areasForImprovement": string[], "suggestions": string[], "improvedAnswer": string, "coachingTip": string, "encouragement": string, "turnScore": number (0-25) }, "followUpQuestion": { "prompt": string, "translation": string } | null }
 
-All string values must be written in ${FEEDBACK_LANGUAGE_NAMES[language]}, except grammarErrors[].original/correction/betterExample, mispronuncedWords[].word, followUpQuestion.prompt, and betterExampleAnswer, which are French.`;
+All string values must be written in ${FEEDBACK_LANGUAGE_NAMES[language]}, except grammarErrors[].original/correction/sentence/betterExample, mispronuncedWords[].word, followUpQuestion.prompt, and improvedAnswer, which are French.`;
 
   const userPrompt = `DELF level: ${level}
 Exercise part: ${partLabel}

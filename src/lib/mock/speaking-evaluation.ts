@@ -420,15 +420,36 @@ const GRAMMAR_RULES: GrammarRule[] = [
   },
 ];
 
+/** The full sentence containing a match at `index` — split on sentence
+ * punctuation, never mid-word, so a mistake can be shown highlighted in its
+ * real context instead of as an isolated phrase. */
+function findContainingSentence(transcript: string, index: number, matchLength: number): string {
+  const before = transcript.slice(0, index);
+  const start = Math.max(before.lastIndexOf("."), before.lastIndexOf("!"), before.lastIndexOf("?")) + 1;
+  const afterStart = index + matchLength;
+  const relativeEnd = transcript.slice(afterStart).search(/[.!?]/);
+  const end = relativeEnd === -1 ? transcript.length : afterStart + relativeEnd + 1;
+  return transcript.slice(start, end).trim();
+}
+
 /** Scans the actual transcript against every rule and returns only genuine
- * matches (capped at 3) — never invents a mistake that wasn't said. */
-function findGrammarMistakes(transcript: string): { ruleId: string; original: string; correction: string }[] {
-  const results: { ruleId: string; original: string; correction: string }[] = [];
+ * matches — never invents a mistake that wasn't said. Capped at 6 (not a
+ * tighter number) so a transcript with several real mistakes doesn't have
+ * genuine ones silently dropped. */
+function findGrammarMistakes(
+  transcript: string
+): { ruleId: string; original: string; correction: string; sentence: string }[] {
+  const results: { ruleId: string; original: string; correction: string; sentence: string }[] = [];
   for (const rule of GRAMMAR_RULES) {
     const match = transcript.match(rule.regex);
-    if (match) {
-      results.push({ ruleId: rule.id, original: match[0], correction: rule.correction(match[0]) });
-      if (results.length >= 3) break;
+    if (match && match.index !== undefined) {
+      results.push({
+        ruleId: rule.id,
+        original: match[0],
+        correction: rule.correction(match[0]),
+        sentence: findContainingSentence(transcript, match.index, match[0].length),
+      });
+      if (results.length >= 6) break;
     }
   }
   return results;
@@ -574,6 +595,207 @@ const STRUCTURE_NOTES: Record<StructureIssue, TranslatedText> = {
     kz: "Жақсы құрылымдалған: тікелей жауап, деталдармен дамытылған, анық ретпен берілген.",
   },
 };
+
+/** A rewrite of the student's OWN transcript — never a fresh, unrelated
+ * model answer. Applies the real grammar corrections already found, strips
+ * filler words, nudges a couple of common basic words to a slightly higher
+ * register, and — only when the answer is genuinely thin — appends clearly
+ * bracketed placeholder detail (never a concrete invented fact presented as
+ * true) demonstrating what a fuller answer would add. */
+const VOCAB_UPGRADE_MAP: Record<string, string> = {
+  bien: "vraiment bien",
+  content: "ravi",
+  contente: "ravie",
+  bon: "excellent",
+  bonne: "excellente",
+};
+
+const SELF_INTRO_HAS_AGE = /j['’]ai\s+\d+\s+ans/i;
+const SELF_INTRO_HAS_CITY = /j['’]habite|je vis à/i;
+const SELF_INTRO_HAS_PROFESSION = /je suis\s+(étudiant|étudiante|lycéen|lycéenne|élève|professeur)|je travaille/i;
+const SELF_INTRO_HAS_HOBBY = /j['’]aime|je fais du|je fais de la|mon passe-temps/i;
+
+function buildSelfIntroExpansion(text: string): string {
+  const missing: string[] = [];
+  if (!SELF_INTRO_HAS_AGE.test(text)) missing.push("j'ai [ton âge] ans");
+  if (!SELF_INTRO_HAS_CITY.test(text)) missing.push("j'habite à [ta ville]");
+  if (!SELF_INTRO_HAS_PROFESSION.test(text)) missing.push("je suis [ta profession/ton statut]");
+  if (!SELF_INTRO_HAS_HOBBY.test(text)) missing.push("j'aime [une de tes passions]");
+  if (missing.length === 0) return "";
+  const joined =
+    missing.length === 1 ? missing[0] : `${missing.slice(0, -1).join(", ")} et ${missing[missing.length - 1]}`;
+  return ` ${joined.charAt(0).toUpperCase()}${joined.slice(1)}.`;
+}
+
+const STRUCTURE_PLACEHOLDER_NOTE: Record<"missing-support" | "missing-example" | "missing-conclusion", string> = {
+  "missing-support": " [Ajoute ici une raison ou un détail, par exemple avec « parce que ... »]",
+  "missing-example": " [Ajoute ici un exemple concret, par exemple avec « par exemple ... »]",
+  "missing-conclusion": " [Termine par une courte conclusion, par exemple « donc ... » ou « voilà »]",
+};
+
+function buildImprovedAnswer(
+  transcript: string,
+  matchedMistakes: { original: string; correction: string }[],
+  structureIssue: StructureIssue,
+  relevant: boolean,
+  looksLikeSelfIntro: boolean,
+  wordCount: number
+): string {
+  let improved = transcript.trim();
+  for (const m of matchedMistakes) {
+    improved = improved.replace(m.original, m.correction);
+  }
+  for (const filler of FILLER_WORDS) {
+    improved = improved.replace(new RegExp(`\\b${filler.replace(/\s+/g, "\\s+")}\\b,?\\s*`, "gi"), "");
+  }
+  improved = improved.replace(/\s{2,}/g, " ").trim();
+
+  let vocabUpgraded = false;
+  // Negative lookbehind avoids "vraiment vraiment bien" when the transcript
+  // already intensified the word itself.
+  improved = improved.replace(/\b(?<!vraiment\s)(?<!très\s)(bien|content|contente|bon|bonne)\b/i, (word) => {
+    if (vocabUpgraded) return word;
+    vocabUpgraded = true;
+    return VOCAB_UPGRADE_MAP[word.toLowerCase()] ?? word;
+  });
+
+  if (!relevant) return improved;
+
+  if (wordCount < 10) {
+    if (looksLikeSelfIntro) {
+      improved += buildSelfIntroExpansion(improved);
+    } else if (
+      structureIssue === "missing-support" ||
+      structureIssue === "missing-example" ||
+      structureIssue === "missing-conclusion"
+    ) {
+      improved += STRUCTURE_PLACEHOLDER_NOTE[structureIssue];
+    }
+  }
+  return improved;
+}
+
+/** One personalized, actionable coaching tip per turn, picked from a
+ * ranked pool of candidates keyed to this turn's real signals — never a
+ * generic boilerplate line, and never repeated verbatim within a session
+ * (the caller supplies previously-shown tips to exclude). */
+type CoachingTipId =
+  | "off-topic"
+  | "missing-support"
+  | "missing-example"
+  | "missing-conclusion"
+  | "grammar-verb"
+  | "grammar-agreement"
+  | "grammar-sentence-structure"
+  | "grammar-other"
+  | "filler-heavy"
+  | "thin-correct"
+  | "well-done-push-further"
+  | "keep-practicing";
+
+const COACHING_TIPS: Record<CoachingTipId, TranslatedText> = {
+  "off-topic": {
+    en: "Before you start speaking, repeat the question to yourself so your answer matches exactly what's asked.",
+    ru: "Прежде чем начать говорить, мысленно повторите вопрос, чтобы ваш ответ точно соответствовал тому, что спрашивают.",
+    kz: "Сөйлемес бұрын сұрақты өзіңізге қайталаңыз, жауабыңыз нақты сұралғанға сай болсын.",
+  },
+  "missing-support": {
+    en: "Your answer was correct but too short — add one reason or detail to develop it.",
+    ru: "Ваш ответ был правильным, но слишком коротким — добавьте одну причину или деталь, чтобы развить мысль.",
+    kz: "Жауабыңыз дұрыс болды, бірақ тым қысқа — оны дамыту үшін бір себеп немесе деталь қосыңыз.",
+  },
+  "missing-example": {
+    en: "Add one personal example next time to make your answer more convincing.",
+    ru: "В следующий раз добавьте один личный пример, чтобы сделать ответ более убедительным.",
+    kz: "Келесі жолы жауабыңызды сенімдірек ету үшін бір жеке мысал қосыңыз.",
+  },
+  "missing-conclusion": {
+    en: "Give a reason before finishing — wrap up with a short closing sentence instead of stopping abruptly.",
+    ru: "Перед завершением приведите причину — закончите короткой заключительной фразой, а не резко обрывайте ответ.",
+    kz: "Аяқтамас бұрын себеп келтіріңіз — кенеттен тоқтамай, қысқа қорытынды сөйлеммен аяқтаңыз.",
+  },
+  "grammar-verb": {
+    en: "Focus on verb conjugation — that's the type of mistake to watch for in your next answer.",
+    ru: "Сосредоточьтесь на спряжении глаголов — именно на этот тип ошибок стоит обратить внимание в следующем ответе.",
+    kz: "Етістік жіктелуіне назар аударыңыз — келесі жауапта осы қатеге мұқият болыңыз.",
+  },
+  "grammar-agreement": {
+    en: "Watch noun-adjective agreement — check gender and number before you finish a sentence.",
+    ru: "Следите за согласованием существительного и прилагательного — проверяйте род и число перед тем, как закончить предложение.",
+    kz: "Зат есім мен сын есімнің келісімін қадағалаңыз — сөйлемді аяқтамас бұрын тек пен санды тексеріңіз.",
+  },
+  "grammar-sentence-structure": {
+    en: "Slow down to organize your sentence structure before speaking — that's where this mistake came from.",
+    ru: "Не торопитесь и продумывайте структуру предложения перед тем, как говорить — именно отсюда возникла эта ошибка.",
+    kz: "Сөйлемес бұрын сөйлем құрылымын ойластыруға уақыт бөліңіз — бұл қате содан туындады.",
+  },
+  "grammar-other": {
+    en: "Review this specific rule before your next answer so you don't repeat it.",
+    ru: "Повторите именно это правило перед следующим ответом, чтобы не повторить ошибку.",
+    kz: "Осы қатені қайталамау үшін келесі жауап алдында осы ережені қайталаңыз.",
+  },
+  "filler-heavy": {
+    en: "Try replacing filler words like \"euh\" with a short silent pause instead — it will sound more confident.",
+    ru: "Попробуйте заменить слова-паразиты вроде «euh» короткой паузой — это прозвучит увереннее.",
+    kz: "«Euh» сияқты толықтырғыш сөздердің орнына қысқа үнсіз кідірісті қолданып көріңіз — бұл сенімдірек естіледі.",
+  },
+  "thin-correct": {
+    en: "Correct, but quite short — expand your answer with another sentence next time.",
+    ru: "Правильно, но довольно кратко — в следующий раз дополните ответ ещё одним предложением.",
+    kz: "Дұрыс, бірақ біршама қысқа — келесі жолы жауабыңызды тағы бір сөйлеммен толықтырыңыз.",
+  },
+  "well-done-push-further": {
+    en: "Well done — this is a strong, complete answer. Use more linking words to push it even further.",
+    ru: "Отлично — это сильный, законченный ответ. Используйте больше связующих слов, чтобы сделать его ещё лучше.",
+    kz: "Керемет — бұл мықты, толық жауап. Оны одан әрі жақсарту үшін көбірек жалғаулық сөздерді қолданыңыз.",
+  },
+  "keep-practicing": {
+    en: "Keep practicing consistently — small, regular sessions build fluency fastest.",
+    ru: "Продолжайте регулярно практиковаться — короткие регулярные занятия быстрее всего развивают беглость речи.",
+    kz: "Тұрақты жаттығуды жалғастырыңыз — қысқа әрі жүйелі сабақтар еркін сөйлеуді жылдам дамытады.",
+  },
+};
+
+/** Ranked candidate list (language-neutral) — computed once in analyzeTurn
+ * from this turn's real signals; the actual pick (with anti-repeat) happens
+ * in localizeTurnFeedback once the feedback language and prior tips are
+ * known. */
+function buildCoachingTipCandidates(
+  relevant: boolean,
+  structureIssue: StructureIssue,
+  matchedMistakes: { ruleId: string }[],
+  fillerCount: number,
+  wordCount: number
+): CoachingTipId[] {
+  const candidates: CoachingTipId[] = [];
+  if (!relevant) candidates.push("off-topic");
+  if (structureIssue === "missing-support") candidates.push("missing-support");
+  if (structureIssue === "missing-example") candidates.push("missing-example");
+  if (structureIssue === "missing-conclusion") candidates.push("missing-conclusion");
+  if (matchedMistakes.length > 0) {
+    const rule = GRAMMAR_RULES.find((r) => r.id === matchedMistakes[0].ruleId);
+    if (rule) candidates.push(`grammar-${rule.category}` as CoachingTipId);
+  }
+  if (fillerCount >= 2) candidates.push("filler-heavy");
+  if (relevant && structureIssue === "none" && wordCount < 15) candidates.push("thin-correct");
+  if (relevant && structureIssue === "none" && wordCount >= 15 && matchedMistakes.length === 0) {
+    candidates.push("well-done-push-further");
+  }
+  candidates.push("keep-practicing");
+  return candidates;
+}
+
+function pickCoachingTip(
+  candidates: CoachingTipId[],
+  previousCoachingTips: string[],
+  language: FeedbackLanguage
+): string {
+  for (const id of candidates) {
+    const text = COACHING_TIPS[id][language];
+    if (!previousCoachingTips.includes(text)) return text;
+  }
+  return COACHING_TIPS[candidates[0]][language];
+}
 
 const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
   A1: {
@@ -1156,7 +1378,10 @@ export interface TurnSelection {
    * precisely instead of with a generic mismatch note. */
   looksLikeSelfIntro: boolean;
   structureIssue: StructureIssue;
-  matchedMistakes: { ruleId: string; original: string; correction: string }[];
+  /** A rewrite of the student's own transcript — see buildImprovedAnswer. */
+  improvedAnswer: string;
+  coachingTipCandidates: CoachingTipId[];
+  matchedMistakes: { ruleId: string; original: string; correction: string; sentence: string }[];
   fillerCount: number;
   mispronuncedWords: string[];
   strengthIndices: number[];
@@ -1193,6 +1418,21 @@ export function analyzeTurn(
   const structureIssue = classifyStructure(responseText, relevant, wordCount);
   const fillerCount = countFillerWords(responseText);
   const matchedMistakes = findGrammarMistakes(responseText);
+  const improvedAnswer = buildImprovedAnswer(
+    responseText,
+    matchedMistakes,
+    structureIssue,
+    relevant,
+    looksLikeSelfIntro,
+    wordCount
+  );
+  const coachingTipCandidates = buildCoachingTipCandidates(
+    relevant,
+    structureIssue,
+    matchedMistakes,
+    fillerCount,
+    wordCount
+  );
 
   const jitter = Math.floor(Math.random() * 3) - 1;
   let turnScore = Math.max(
@@ -1217,6 +1457,8 @@ export function analyzeTurn(
     relevant,
     looksLikeSelfIntro,
     structureIssue,
+    improvedAnswer,
+    coachingTipCandidates,
     matchedMistakes,
     fillerCount,
     mispronuncedWords,
@@ -1229,7 +1471,8 @@ export function analyzeTurn(
 
 export function localizeTurnFeedback(
   selection: TurnSelection,
-  language: FeedbackLanguage
+  language: FeedbackLanguage,
+  previousCoachingTips: string[] = []
 ): TurnFeedback {
   const profile = MOCK_SPEAKING_PROFILES[selection.level];
   const grammarErrors: SpeakingGrammarMistake[] = selection.matchedMistakes.map((m) => {
@@ -1237,6 +1480,7 @@ export function localizeTurnFeedback(
     return {
       original: m.original,
       correction: m.correction,
+      sentence: m.sentence,
       category: rule.category,
       whyWrong: rule.explanation[language],
       howToFix: buildHowToFix(m.correction, language),
@@ -1300,11 +1544,8 @@ export function localizeTurnFeedback(
     strengths,
     areasForImprovement,
     suggestions,
-    // Populated client-side from the question's curated model answer when
-    // available (see speaking/page.tsx's handleSubmitTurn) — the mock
-    // evaluator itself has no way to grade against a specific answer, so it
-    // never fabricates one here.
-    betterExampleAnswer: null,
+    improvedAnswer: selection.improvedAnswer,
+    coachingTip: pickCoachingTip(selection.coachingTipCandidates, previousCoachingTips, language),
     encouragement: encouragement[language],
     turnScore: selection.turnScore,
   };
