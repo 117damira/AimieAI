@@ -163,7 +163,7 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
       "Handles a short everyday transaction",
       "Uses simple present-tense sentences with basic vocabulary",
     ],
-    prepTimeMinutes: 10,
+    prepTimeMinutes: 0,
     estimatedSpeakingMinutes: { min: 5, max: 7 },
   },
   A2: {
@@ -267,7 +267,7 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
       "Negotiates simple plans in a role-play",
       "Vocabulary covers everyday topics (family, daily life, leisure)",
     ],
-    prepTimeMinutes: 10,
+    prepTimeMinutes: 0,
     estimatedSpeakingMinutes: { min: 6, max: 8 },
   },
   B1: {

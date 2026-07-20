@@ -6,6 +6,8 @@ import { Mic, Square, Loader2, AlertCircle } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useSpeechRecognition } from "@/lib/hooks/useSpeechRecognition";
+import { useStopwatch } from "@/lib/hooks/useStopwatch";
+import { formatMMSS } from "@/lib/hooks/useCountdown";
 import { cn } from "@/lib/utils/cn";
 
 /** DELF answers are always spoken in French, regardless of feedback language. */
@@ -21,6 +23,7 @@ export function SpeakingResponseInput({
   const { t } = useLanguage();
   const { isSupported, isListening, transcript, interimTranscript, confidence, error, start, stop, reset } =
     useSpeechRecognition(RECOGNITION_LANG);
+  const elapsedSeconds = useStopwatch(isListening);
   const wasListening = useRef(false);
 
   useEffect(() => {
@@ -90,8 +93,13 @@ export function SpeakingResponseInput({
               ? t.speaking.analyzing
               : isListening
               ? t.speaking.listening
+              : elapsedSeconds > 0
+              ? t.speaking.youSpokeFor(Math.floor(elapsedSeconds / 60), elapsedSeconds % 60)
               : t.speaking.tapToSpeak}
           </p>
+          {isListening && (
+            <p className="text-xs tabular-nums text-muted">{formatMMSS(elapsedSeconds)}</p>
+          )}
         </div>
 
         {(transcript || interimTranscript) && (

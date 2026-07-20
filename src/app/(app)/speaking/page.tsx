@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, AlertCircle, Volume2 } from "lucide-react";
+import { Loader2, AlertCircle, Volume2, LogOut } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
@@ -26,6 +26,7 @@ import { SpeakingExaminerReport as SpeakingExaminerReportView } from "@/componen
 import { SpeakingWelcomeScreen } from "@/components/speaking/SpeakingWelcomeScreen";
 import { SpeakingPreparationTimer } from "@/components/speaking/SpeakingPreparationTimer";
 import { SpeakingTopicChoice } from "@/components/speaking/SpeakingTopicChoice";
+import { SpeakingExitExamDialog } from "@/components/speaking/SpeakingExitExamDialog";
 
 type Mode = "select" | "live" | "written";
 type Phase =
@@ -37,9 +38,6 @@ type Phase =
   | "turn-feedback"
   | "compiling-report"
   | "report";
-
-/** Short pause after the AI finishes speaking feedback, before auto-advancing. */
-const LIVE_FEEDBACK_ADVANCE_BUFFER_MS = 900;
 
 interface QueueItem extends GeneratedSpeakingQuestion {
   questionId: string;
@@ -68,16 +66,17 @@ export default function SpeakingPracticePage() {
   const [phase, setPhase] = useState<Phase>("asking");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [queue, setQueue] = useState<QueueItem[]>([]);
-  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [topicChoices, setTopicChoices] = useState<GeneratedTopicChoice[]>([]);
   const [isLoadingTopics, setIsLoadingTopics] = useState(false);
   const [completedTurns, setCompletedTurns] = useState<CompletedTurn[]>([]);
   const [currentFeedback, setCurrentFeedback] = useState<TurnFeedback | null>(null);
   const [report, setReport] = useState<SpeakingExaminerReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
 
   const lastTurnRequestRef = useRef<TurnRequestBody | null>(null);
   const prevLanguageRef = useRef(language);
+  const lastSpokenQuestionIdRef = useRef<string | null>(null);
   const currentItem = queue[currentIndex];
 
   async function fetchSessionQuestions(
@@ -132,14 +131,11 @@ export default function SpeakingPracticePage() {
   }
 
   async function loadQuestions(topic?: string) {
-    setIsLoadingQuestions(true);
     try {
       const questions = await fetchSessionQuestions(level, language, topic);
       setQueue(questions);
     } catch (err) {
       setError(err instanceof Error ? err.message : t.common.somethingWentWrong);
-    } finally {
-      setIsLoadingQuestions(false);
     }
   }
 
@@ -167,30 +163,26 @@ export default function SpeakingPracticePage() {
     }
   }
 
-  // Live mode: speak each new question aloud in French as soon as it appears.
+  // Live mode: speak each new question aloud in French exactly once, as soon
+  // as it first appears — during "preparing" (B1/B2, prompt shown before the
+  // timer) if there is prep time, or "asking" directly (A1/A2, no prep time).
   useEffect(() => {
-    if (mode === "live" && phase === "asking" && currentItem) {
-      void speak(currentItem.prompt, EXAM_SPEECH_LOCALE);
-    }
+    if (mode !== "live" || !currentItem) return;
+    if (phase !== "preparing" && phase !== "asking") return;
+    if (lastSpokenQuestionIdRef.current === currentItem.questionId) return;
+    lastSpokenQuestionIdRef.current = currentItem.questionId;
+    void speak(currentItem.prompt, EXAM_SPEECH_LOCALE);
   }, [mode, phase, currentItem]);
 
-  // Live mode: speak the feedback summary, then auto-advance once it finishes.
+  // Live mode: speak the feedback summary aloud once — the student always
+  // clicks "Next Question" themselves; nothing auto-advances.
   useEffect(() => {
     if (mode !== "live" || phase !== "turn-feedback" || !currentFeedback) return;
-    let cancelled = false;
     const spokenSummary = [
       currentFeedback.relevance ? t.speaking.answeredQuestion : t.speaking.needsMoreDevelopment,
       currentFeedback.encouragement,
     ].join(". ");
-    speak(spokenSummary, FEEDBACK_SPEECH_LOCALES[language]).then(() => {
-      if (cancelled) return;
-      setTimeout(() => {
-        if (!cancelled) handleContinue();
-      }, LIVE_FEEDBACK_ADVANCE_BUFFER_MS);
-    });
-    return () => {
-      cancelled = true;
-    };
+    void speak(spokenSummary, FEEDBACK_SPEECH_LOCALES[language]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, phase, currentFeedback]);
 
@@ -281,6 +273,7 @@ export default function SpeakingPracticePage() {
     setReport(null);
     setError(null);
     lastTurnRequestRef.current = null;
+    lastSpokenQuestionIdRef.current = null;
   }
 
   function handleSelectMode(next: "live" | "written") {
@@ -297,6 +290,12 @@ export default function SpeakingPracticePage() {
     }
   }
 
+  /** DELF has no preparation time at A1/A2 — go straight to the question;
+   * B1/B2 show the prompt during a real preparation countdown first. */
+  function proceedPastWelcome() {
+    setPhase(levelConfig.prepTimeMinutes > 0 ? "preparing" : "asking");
+  }
+
   function handleStartExam() {
     if (level === "B2") {
       setPhase("topic-choice");
@@ -306,13 +305,13 @@ export default function SpeakingPracticePage() {
         .catch((err) => setError(err instanceof Error ? err.message : t.common.somethingWentWrong))
         .finally(() => setIsLoadingTopics(false));
     } else {
-      setPhase("preparing");
+      proceedPastWelcome();
     }
   }
 
   function handleSelectTopic(topic: GeneratedTopicChoice) {
-    setPhase("preparing");
     void loadQuestions(topic.title);
+    proceedPastWelcome();
   }
 
   function handlePreparationDone() {
@@ -330,9 +329,17 @@ export default function SpeakingPracticePage() {
       <PageHeader
         title={t.speaking.pageTitle}
         description={t.speaking.pageDescription}
-        onBack={mode !== "select" ? handleRestart : undefined}
-        backLabel={t.common.back}
+        action={
+          mode !== "select" && phase !== "report" ? (
+            <Button variant="outline" size="sm" onClick={() => setIsExitDialogOpen(true)}>
+              <LogOut className="h-4 w-4" />
+              {t.speaking.exitExam}
+            </Button>
+          ) : undefined
+        }
       />
+
+      <SpeakingExitExamDialog open={isExitDialogOpen} onClose={() => setIsExitDialogOpen(false)} />
 
       {error && (
         <div className="flex items-center gap-2 rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-600">
@@ -362,18 +369,9 @@ export default function SpeakingPracticePage() {
         )
       )}
 
-      {mode === "live" && phase === "preparing" && (
-        <SpeakingPreparationTimer
-          totalMinutes={levelConfig.prepTimeMinutes}
-          onSkip={handlePreparationDone}
-          onComplete={handlePreparationDone}
-        />
-      )}
-
       {mode !== "select" &&
         phase !== "welcome" &&
         phase !== "topic-choice" &&
-        phase !== "preparing" &&
         phase !== "report" && (
           <div className="flex flex-col gap-6">
             {currentItem && (
@@ -391,6 +389,26 @@ export default function SpeakingPracticePage() {
                   {t.speaking.generatingQuestions}
                 </CardContent>
               </Card>
+            )}
+
+            {currentItem && phase === "preparing" && (
+              <>
+                <SpeakingQuestionCard
+                  partLabel={currentItem.partLabel}
+                  prompt={currentItem.prompt}
+                  translation={currentItem.translation}
+                  suggestedDurationSeconds={currentItem.suggestedDurationSeconds}
+                />
+                <Button variant="secondary" size="sm" className="self-start" onClick={handleRepeatQuestion}>
+                  <Volume2 className="h-4 w-4" />
+                  {t.speaking.repeatQuestion}
+                </Button>
+                <SpeakingPreparationTimer
+                  totalMinutes={levelConfig.prepTimeMinutes}
+                  onSkip={handlePreparationDone}
+                  onComplete={handlePreparationDone}
+                />
+              </>
             )}
 
             {currentItem && (phase === "asking" || phase === "evaluating-turn") && (
@@ -423,7 +441,7 @@ export default function SpeakingPracticePage() {
                     ? t.speaking.nextQuestion
                     : t.speaking.finishSeeReport
                 }
-                autoAdvancing={mode === "live"}
+                showPronunciationWords={mode === "live"}
               />
             )}
 
@@ -437,10 +455,6 @@ export default function SpeakingPracticePage() {
             )}
           </div>
         )}
-
-      {mode === "live" && phase === "preparing" && isLoadingQuestions && (
-        <p className="text-xs text-muted">{t.speaking.generatingQuestions}</p>
-      )}
 
       {phase === "report" && report && (
         <div className="flex flex-col gap-6">

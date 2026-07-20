@@ -51,14 +51,26 @@ const followUpQuestionSchema = z
   .object({ prompt: z.string(), translation: z.string() })
   .nullable();
 
+const mispronuncedWordSchema = z.object({
+  word: z.string(),
+  note: z.string(),
+});
+
 const turnFeedbackSchema = z.object({
   relevance: z.boolean(),
   taskCompletionNote: z.string(),
   coherenceNote: z.string(),
   grammarErrors: z.array(grammarMistakeSchema),
   vocabularyNote: z.string(),
+  sentenceVarietyNote: z.string(),
   fluencyNote: z.string(),
   pronunciationNote: z.string(),
+  mispronuncedWords: z.array(mispronuncedWordSchema),
+  naturalnessNote: z.string(),
+  strengths: z.array(z.string()),
+  areasForImprovement: z.array(z.string()),
+  suggestions: z.array(z.string()),
+  betterExampleAnswer: z.string().nullable(),
   encouragement: z.string(),
   turnScore: z.number().min(0).max(25),
 }) satisfies z.ZodType<TurnFeedback>;
@@ -148,13 +160,15 @@ export async function evaluateTurnWithClaude(
   const { level, partId, partLabel, prompt, transcript, wordCount, recognitionConfidence, language } = params;
   const allowFollowUp = isConversationalPart(level, partId);
 
-  const system = `You are an official DELF French oral examiner evaluating a candidate's spoken answer, transcribed by speech recognition. Grade strictly against the real DELF ${level} "Production Orale" rubric for the "${partLabel}" exercise. Base every judgment ONLY on the transcript provided — never invent details the candidate didn't say.
+  const system = `You are an experienced official DELF French oral examiner evaluating a candidate's spoken answer, transcribed by speech recognition. Grade strictly against the real DELF ${level} "Production Orale" rubric for the "${partLabel}" exercise. Base every judgment ONLY on the transcript provided — never invent details the candidate didn't say, and never give generic or templated feedback — everything must be specific to what this candidate actually said.
 
-Assess: whether the candidate actually answered the question (relevance and taskCompletionNote), how coherent the answer was (coherenceNote), grammar, vocabulary, pronunciation (proxy only — see below), and fluency.
+Evaluate the full examiner rubric: task achievement and relevance to the prompt (relevance, taskCompletionNote), coherence and organization of ideas (coherenceNote), grammar accuracy, vocabulary range (vocabularyNote), sentence variety — does the candidate vary sentence structure or repeat the same pattern (sentenceVarietyNote), fluency (fluencyNote), pronunciation (proxy only — see below), and naturalness of expression — does it sound idiomatic or stilted/translated (naturalnessNote).
 
 For EVERY grammar mistake, teach, don't just flag: explain what is wrong and why (whyWrong), how to correct it (howToFix), give a fresh correct French example sentence demonstrating the rule (betterExample), and how to avoid repeating this mistake (howToAvoid).
 
-The transcript comes from browser speech recognition, not audio, so you cannot hear pronunciation directly — base "pronunciationNote" on disfluencies, hesitations, and the provided recognition confidence score as a proxy, and say so plainly rather than claiming certainty you don't have.
+The transcript comes from browser speech recognition, not audio, so you cannot hear pronunciation directly. For "pronunciationNote", give an overall proxy assessment based on disfluencies, hesitations, and the provided recognition confidence score, and say so plainly rather than claiming certainty you don't have. Additionally, in "mispronuncedWords", pick up to 3 real words from the transcript that are commonly mispronounced by ${level}-level French learners for a genuine phonetic reason (nasal vowels, silent endings, liaison, etc.) — each with the exact word and a brief note on the correct pronunciation. Only include words that actually appear in the transcript; return an empty array if none are notably tricky.
+
+Then provide, specific to this exact answer: 2-4 "strengths" (what the candidate did well), 2-4 "areasForImprovement" (specific weaknesses), and 2-4 "suggestions" (concrete, actionable advice). If — and only if — a noticeably stronger answer would help the candidate, write one in "betterExampleAnswer": a model response in French at the ${level} level answering the same question; otherwise set it to null.
 
 ${
   allowFollowUp
@@ -163,9 +177,9 @@ ${
 }
 
 Respond with ONLY a single JSON object, no prose, no markdown fences, matching exactly this shape:
-{ "feedback": { "relevance": boolean, "taskCompletionNote": string, "coherenceNote": string, "grammarErrors": [{ "original": string, "correction": string, "category": "verb" | "agreement" | "sentence-structure" | "other", "whyWrong": string, "howToFix": string, "betterExample": string, "howToAvoid": string }], "vocabularyNote": string, "fluencyNote": string, "pronunciationNote": string, "encouragement": string, "turnScore": number (0-25) }, "followUpQuestion": { "prompt": string, "translation": string } | null }
+{ "feedback": { "relevance": boolean, "taskCompletionNote": string, "coherenceNote": string, "grammarErrors": [{ "original": string, "correction": string, "category": "verb" | "agreement" | "sentence-structure" | "other", "whyWrong": string, "howToFix": string, "betterExample": string, "howToAvoid": string }], "vocabularyNote": string, "sentenceVarietyNote": string, "fluencyNote": string, "pronunciationNote": string, "mispronuncedWords": [{ "word": string, "note": string }], "naturalnessNote": string, "strengths": string[], "areasForImprovement": string[], "suggestions": string[], "betterExampleAnswer": string | null, "encouragement": string, "turnScore": number (0-25) }, "followUpQuestion": { "prompt": string, "translation": string } | null }
 
-All string values must be written in ${FEEDBACK_LANGUAGE_NAMES[language]}, except grammarErrors[].original/correction/betterExample and followUpQuestion.prompt, which are French.`;
+All string values must be written in ${FEEDBACK_LANGUAGE_NAMES[language]}, except grammarErrors[].original/correction/betterExample, mispronuncedWords[].word, followUpQuestion.prompt, and betterExampleAnswer, which are French.`;
 
   const userPrompt = `DELF level: ${level}
 Exercise part: ${partLabel}

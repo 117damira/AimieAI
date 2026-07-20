@@ -15,6 +15,8 @@ export function SpeakingWelcomeScreen({
   const { t, language } = useLanguage();
   const { min, max } = levelConfig.estimatedSpeakingMinutes;
   const durationLabel = min === max ? t.speaking.minutesUnit(min) : `${min}–${max} min`;
+  const prepTimeLabel =
+    levelConfig.prepTimeMinutes === 0 ? t.speaking.noPrepTime : t.speaking.minutesUnit(levelConfig.prepTimeMinutes);
 
   return (
     <Card>
@@ -28,7 +30,7 @@ export function SpeakingWelcomeScreen({
         <CardDescription>{levelConfig.structureDescription[language]}</CardDescription>
       </CardHeader>
       <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <WelcomeStat icon={Timer} label={t.speaking.prepTimeLabel} value={t.speaking.minutesUnit(levelConfig.prepTimeMinutes)} />
+        <WelcomeStat icon={Timer} label={t.speaking.prepTimeLabel} value={prepTimeLabel} />
         <WelcomeStat icon={Clock} label={t.speaking.estimatedDurationLabel} value={durationLabel} />
         <WelcomeStat icon={ListChecks} label={t.speaking.numberOfPartsLabel} value={String(levelConfig.parts.length)} />
       </CardContent>

@@ -200,6 +200,13 @@ export interface Dictionary {
     needsMoreDevelopment: string;
     generatingQuestions: string;
     startExam: string;
+    noPrepTime: string;
+    exitExam: string;
+    exitExamConfirmTitle: string;
+    exitExamConfirmDescription: string;
+    exitExamConfirmCancel: string;
+    exitExamConfirmYes: string;
+    youSpokeFor: (min: number, sec: number) => string;
     prepTimeLabel: string;
     estimatedDurationLabel: string;
     numberOfPartsLabel: string;
@@ -228,6 +235,15 @@ export interface Dictionary {
       howToFix: string;
       betterExample: string;
       howToAvoid: string;
+      sentenceVarietyLabel: string;
+      naturalnessLabel: string;
+      mispronuncedWordsTitle: string;
+      playPronunciation: string;
+      strengthsTitle: string;
+      areasForImprovementTitle: string;
+      suggestionsTitle: string;
+      betterExampleAnswerTitle: string;
+      betterExampleAnswerUnavailableNote: string;
     };
     report: {
       taskCompletion: string;
@@ -671,6 +687,14 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       needsMoreDevelopment: "Needs more development",
       generatingQuestions: "Generating your questions...",
       startExam: "Start Exam",
+      noPrepTime: "None",
+      exitExam: "Exit Exam",
+      exitExamConfirmTitle: "Are you sure you want to exit the exam?",
+      exitExamConfirmDescription: "Your progress in this session won't be saved.",
+      exitExamConfirmCancel: "Cancel",
+      exitExamConfirmYes: "Yes, exit",
+      youSpokeFor: (min, sec) =>
+        min > 0 ? `You spoke for ${min} min ${sec} sec.` : `You spoke for ${sec} seconds.`,
       prepTimeLabel: "Preparation time",
       estimatedDurationLabel: "Estimated duration",
       numberOfPartsLabel: "Speaking parts",
@@ -699,6 +723,15 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         howToFix: "How to fix it",
         betterExample: "Better example",
         howToAvoid: "How to avoid this next time",
+        sentenceVarietyLabel: "Sentence variety",
+        naturalnessLabel: "Naturalness of expression",
+        mispronuncedWordsTitle: "Watch your pronunciation on these words",
+        playPronunciation: "Play correct pronunciation",
+        strengthsTitle: "Strengths",
+        areasForImprovementTitle: "Areas for Improvement",
+        suggestionsTitle: "Suggested Improvements",
+        betterExampleAnswerTitle: "Better Example Answer",
+        betterExampleAnswerUnavailableNote: "A personalized model answer requires a configured Claude API key.",
       },
       report: {
         taskCompletion: "Task Completion",
@@ -1166,6 +1199,14 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       needsMoreDevelopment: "Нужно развить ответ",
       generatingQuestions: "Генерируем ваши вопросы...",
       startExam: "Начать экзамен",
+      noPrepTime: "Нет",
+      exitExam: "Выйти из экзамена",
+      exitExamConfirmTitle: "Вы уверены, что хотите выйти из экзамена?",
+      exitExamConfirmDescription: "Прогресс в этой сессии не будет сохранён.",
+      exitExamConfirmCancel: "Отмена",
+      exitExamConfirmYes: "Да, выйти",
+      youSpokeFor: (min, sec) =>
+        min > 0 ? `Вы говорили ${min} мин ${sec} сек.` : `Вы говорили ${sec} сек.`,
       prepTimeLabel: "Время подготовки",
       estimatedDurationLabel: "Примерная длительность",
       numberOfPartsLabel: "Части экзамена",
@@ -1194,6 +1235,15 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         howToFix: "Как исправить",
         betterExample: "Лучший пример",
         howToAvoid: "Как избежать этого в следующий раз",
+        sentenceVarietyLabel: "Разнообразие предложений",
+        naturalnessLabel: "Естественность речи",
+        mispronuncedWordsTitle: "Обратите внимание на произношение этих слов",
+        playPronunciation: "Воспроизвести правильное произношение",
+        strengthsTitle: "Сильные стороны",
+        areasForImprovementTitle: "Что нужно улучшить",
+        suggestionsTitle: "Рекомендации",
+        betterExampleAnswerTitle: "Более удачный пример ответа",
+        betterExampleAnswerUnavailableNote: "Персонализированный образец ответа требует настроенного ключа Claude API.",
       },
       report: {
         taskCompletion: "Выполнение задания",
@@ -1666,6 +1716,14 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       needsMoreDevelopment: "Жауапты толықтыру керек",
       generatingQuestions: "Сұрақтарыңыз дайындалуда...",
       startExam: "Емтиханды бастау",
+      noPrepTime: "Жоқ",
+      exitExam: "Емтиханнан шығу",
+      exitExamConfirmTitle: "Емтиханнан шығғыңыз келетініне сенімдісіз бе?",
+      exitExamConfirmDescription: "Осы сессиядағы прогресс сақталмайды.",
+      exitExamConfirmCancel: "Бас тарту",
+      exitExamConfirmYes: "Иә, шығу",
+      youSpokeFor: (min, sec) =>
+        min > 0 ? `Сіз ${min} мин ${sec} сек сөйледіңіз.` : `Сіз ${sec} сек сөйледіңіз.`,
       prepTimeLabel: "Дайындық уақыты",
       estimatedDurationLabel: "Болжамды ұзақтығы",
       numberOfPartsLabel: "Емтихан бөлімдері",
@@ -1694,6 +1752,15 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         howToFix: "Қалай түзетуге болады",
         betterExample: "Жақсырақ мысал",
         howToAvoid: "Келесі жолы бұдан қалай аулақ болу керек",
+        sentenceVarietyLabel: "Сөйлем әртүрлілігі",
+        naturalnessLabel: "Сөйлеудің табиғилығы",
+        mispronuncedWordsTitle: "Осы сөздердің айтылымына назар аударыңыз",
+        playPronunciation: "Дұрыс айтылымын ойнату",
+        strengthsTitle: "Күшті жақтары",
+        areasForImprovementTitle: "Жақсарту қажет тұстар",
+        suggestionsTitle: "Ұсыныстар",
+        betterExampleAnswerTitle: "Жақсырақ жауап мысалы",
+        betterExampleAnswerUnavailableNote: "Жеке үлгі жауап алу үшін Claude API кілті теңшелуі керек.",
       },
       report: {
         taskCompletion: "Тапсырманы орындау",

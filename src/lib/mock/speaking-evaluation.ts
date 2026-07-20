@@ -2,6 +2,7 @@ import { DELF_SPEAKING_LEVELS } from "@/config/delf-speaking";
 import type { DelfLevel, FeedbackLanguage } from "@/types/writing-evaluation";
 import type {
   CompletedTurn,
+  MispronuncedWord,
   SpeakingExaminerReport,
   SpeakingGrammarMistake,
   TurnFeedback,
@@ -38,10 +39,105 @@ interface MockSpeakingLevelProfile {
   vocabularyRangeNotes: TranslatedText[];
   taskCompletionNotes: TranslatedText[];
   coherenceNotes: TranslatedText[];
+  sentenceVarietyNotes: TranslatedText[];
+  naturalnessNotes: TranslatedText[];
   strengths: TranslatedText[];
   weaknesses: TranslatedText[];
   improvementTips: TranslatedText[];
   baseScore: number;
+}
+
+/** A curated set of real French words genuinely known to be commonly
+ * mispronounced by learners, each with a defensible phonetic reason —
+ * matched against the actual transcript (never fabricated), capped at 2
+ * per turn. This is a light, honest illustration for the offline fallback;
+ * Claude's live path can identify richer, context-specific words. */
+interface TrickyWordEntry {
+  word: string; // French, matched case-insensitively as a whole word
+  note: TranslatedText;
+}
+
+const TRICKY_PRONUNCIATION_WORDS: TrickyWordEntry[] = [
+  {
+    word: "beaucoup",
+    note: {
+      en: "The final \"p\" is silent — pronounced \"bo-kou\", not \"bo-koup\".",
+      ru: "Конечная «p» не произносится — звучит как «бо-ку», а не «бо-куп».",
+      kz: "Соңғы «p» айтылмайды — «бо-ку» деп айтылады, «бо-куп» емес.",
+    },
+  },
+  {
+    word: "vingt",
+    note: {
+      en: "Pronounced \"vɛ̃\" — the \"g\" and final \"t\" are silent (except in liaison, e.g. \"vingt-et-un\").",
+      ru: "Произносится «вэ̃» — «g» и конечная «t» не произносятся (кроме связки, напр. «vingt-et-un»).",
+      kz: "«Вэ̃» деп айтылады — «g» мен соңғы «t» айтылмайды (liaison жағдайынан басқа, мыс. «vingt-et-un»).",
+    },
+  },
+  {
+    word: "temps",
+    note: {
+      en: "The \"p\" and final \"s\" are silent — pronounced simply \"tɑ̃\".",
+      ru: "«P» и конечная «s» не произносятся — произносится просто «тɑ̃».",
+      kz: "«P» мен соңғы «s» айтылмайды — жай ғана «тɑ̃» деп айтылады.",
+    },
+  },
+  {
+    word: "monsieur",
+    note: {
+      en: "An irregular pronunciation — \"məsjø\", not read letter-by-letter.",
+      ru: "Нерегулярное произношение — «məsjø», не читается по буквам.",
+      kz: "Ерекше айтылым — «məsjø», әріптеп оқылмайды.",
+    },
+  },
+  {
+    word: "femme",
+    note: {
+      en: "The \"e\" is pronounced like \"a\" — \"fam\", an exception to the usual spelling rule.",
+      ru: "«E» произносится как «a» — «фам», исключение из обычного правила чтения.",
+      kz: "«E» «a» болып айтылады — «фам», әдеттегі оқылу ережесінің ерекшелігі.",
+    },
+  },
+  {
+    word: "toujours",
+    note: {
+      en: "The final \"s\" IS pronounced here — \"tou-jour-s\", unlike most French plurals.",
+      ru: "Здесь конечная «s» ПРОИЗНОСИТСЯ — «ту-жур-с», в отличие от большинства форм множественного числа.",
+      kz: "Мұнда соңғы «s» АЙТЫЛАДЫ — «ту-жур-с», көптеген француз көпше түрлерінен өзгеше.",
+    },
+  },
+  {
+    word: "aujourd'hui",
+    note: {
+      en: "Said as one flowing word — \"o-jour-dui\" — don't pause at the apostrophe.",
+      ru: "Произносится слитно — «о-жур-дюи» — не делайте паузу на апострофе.",
+      kz: "Бір тұтас сөз ретінде айтылады — «о-жур-дюи» — апострофта кідірмеңіз.",
+    },
+  },
+  {
+    word: "œufs",
+    note: {
+      en: "Tricky one: the \"f\" is pronounced in the singular \"œuf\" but silent in the plural \"œufs\".",
+      ru: "Сложный случай: «f» произносится в единственном числе «œuf», но не произносится во множественном «œufs».",
+      kz: "Күрделі жағдай: жекеше «œuf»-те «f» айтылады, ал көпше «œufs»-те айтылмайды.",
+    },
+  },
+];
+
+function findMispronuncedWords(transcript: string): string[] {
+  const lower = transcript.toLowerCase();
+  return TRICKY_PRONUNCIATION_WORDS.filter((entry) =>
+    new RegExp(`\\b${entry.word.replace(/'/g, "['’]")}\\b`, "i").test(lower)
+  )
+    .slice(0, 2)
+    .map((entry) => entry.word);
+}
+
+function localizeMispronuncedWords(words: string[], language: FeedbackLanguage): MispronuncedWord[] {
+  return words.map((word) => {
+    const entry = TRICKY_PRONUNCIATION_WORDS.find((e) => e.word === word)!;
+    return { word: entry.word, note: entry.note[language] };
+  });
 }
 
 /** Generic, category-keyed "how to avoid this again" tips, reused across
@@ -173,6 +269,30 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
         en: "The answer stayed on one clear idea without wandering off topic.",
         ru: "Ответ оставался в рамках одной чёткой мысли, не отклоняясь от темы.",
         kz: "Жауап тақырыптан ауытқымай, бір анық ойға негізделді.",
+      },
+    ],
+    sentenceVarietyNotes: [
+      {
+        en: "Uses mostly simple, short sentences — appropriate for A1, with little variation yet.",
+        ru: "Использует в основном простые, короткие предложения — уместно для уровня A1, разнообразия пока немного.",
+        kz: "Негізінен қарапайым, қысқа сөйлемдерді қолданады — A1 деңгейіне сай, әзірге әртүрлілік аз.",
+      },
+      {
+        en: "A few sentences link two ideas with \"et\" or \"mais\", showing early variety.",
+        ru: "Несколько предложений связывают две мысли через «et» или «mais», показывая начальное разнообразие.",
+        kz: "Бірнеше сөйлем екі ойды «et» немесе «mais» арқылы байланыстырады, бұл бастапқы әртүрлілікті көрсетеді.",
+      },
+    ],
+    naturalnessNotes: [
+      {
+        en: "Sounds like a direct, simple answer — natural for this level, though a little translated in places.",
+        ru: "Звучит как прямой, простой ответ — естественно для этого уровня, хотя местами ощущается перевод.",
+        kz: "Тікелей, қарапайым жауап сияқты естіледі — бұл деңгейге табиғи, дегенмен кейбір жерлерде аударма сияқты.",
+      },
+      {
+        en: "Phrasing is straightforward and easy to follow, typical of an A1 learner.",
+        ru: "Формулировки прямые и легко воспринимаются, что типично для уровня A1.",
+        kz: "Тіркестер қарапайым және түсінуге жеңіл, бұл A1 деңгейіндегі оқушыға тән.",
       },
     ],
     strengths: [
@@ -332,6 +452,30 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
         kz: "Ойлар қарапайым жалғаулық сөздермен байланысып, түсінікті болды.",
       },
     ],
+    sentenceVarietyNotes: [
+      {
+        en: "Combines a few short sentences with \"parce que\" or \"et donc\", showing growing variety.",
+        ru: "Соединяет несколько коротких предложений через «parce que» или «et donc», показывая растущее разнообразие.",
+        kz: "Бірнеше қысқа сөйлемді «parce que» немесе «et donc» арқылы біріктіреді, бұл өсіп келе жатқан әртүрлілікті көрсетеді.",
+      },
+      {
+        en: "Sentence patterns are still fairly repetitive — mostly subject-verb-object.",
+        ru: "Структура предложений всё ещё довольно однообразна — в основном подлежащее-сказуемое-дополнение.",
+        kz: "Сөйлем құрылымы әлі де біршама бірыңғай — негізінен бастауыш-баяндауыш-толықтауыш.",
+      },
+    ],
+    naturalnessNotes: [
+      {
+        en: "Mostly natural phrasing, with a couple of expressions that sound slightly translated from another language.",
+        ru: "В основном естественные формулировки, с парой выражений, звучащих как перевод с другого языка.",
+        kz: "Негізінен табиғи тіркестер, бірақ екі-үш өрнек басқа тілден аударылғандай естіледі.",
+      },
+      {
+        en: "Sounds like genuine spoken French for this level, with only minor awkward phrasing.",
+        ru: "Звучит как настоящая устная французская речь для этого уровня, с лишь небольшими неловкими формулировками.",
+        kz: "Бұл деңгейге сай нағыз ауызша француз тілі сияқты естіледі, тек аздаған ыңғайсыз тіркестер бар.",
+      },
+    ],
     strengths: [
       {
         en: "Narrates a past event with a mostly clear timeline",
@@ -482,6 +626,30 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
         en: "The response held together well, though a couple of transitions felt abrupt.",
         ru: "Ответ был в целом связным, хотя пара переходов ощущались резкими.",
         kz: "Жауап тұтастай жақсы құрылды, бірақ бірнеше өтулер кенеттен болды.",
+      },
+    ],
+    sentenceVarietyNotes: [
+      {
+        en: "Uses a good mix of sentence lengths and some subordinate clauses (parce que, bien que).",
+        ru: "Использует хорошее сочетание предложений разной длины и несколько придаточных предложений (parce que, bien que).",
+        kz: "Әртүрлі ұзындықтағы сөйлемдер мен бірнеше бағыныңқы сөйлемдерді (parce que, bien que) жақсы үйлестіреді.",
+      },
+      {
+        en: "Relies heavily on one or two sentence patterns — try varying structure more.",
+        ru: "Сильно опирается на один-два типа предложений — стоит больше разнообразить структуру.",
+        kz: "Бір-екі сөйлем үлгісіне тым көп сүйенеді — құрылымды көбірек әртараптандыруға тырысыңыз.",
+      },
+    ],
+    naturalnessNotes: [
+      {
+        en: "Expression feels fairly natural, with occasional phrasing that sounds translated rather than spoken.",
+        ru: "Выражение мыслей звучит довольно естественно, но иногда формулировки напоминают перевод, а не живую речь.",
+        kz: "Ойды жеткізу біршама табиғи, бірақ кейде тіркестер ауызша сөйлеуден гөрі аудармаға ұқсайды.",
+      },
+      {
+        en: "Sounds like genuine conversational French, with good use of natural connectors.",
+        ru: "Звучит как настоящая разговорная французская речь, с удачным использованием естественных связок.",
+        kz: "Нағыз сөйлесу тіліндегі француз тілі сияқты естіледі, табиғи жалғаулықтарды жақсы қолданады.",
       },
     ],
     strengths: [
@@ -636,6 +804,30 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
         kz: "Ойлар жалпы тұтас болды, әр тармақты байланыстыратын күрделі жалғаулықтармен.",
       },
     ],
+    sentenceVarietyNotes: [
+      {
+        en: "Strong variety of complex sentence structures, including subordinate and relative clauses.",
+        ru: "Богатое разнообразие сложных синтаксических конструкций, включая придаточные и относительные предложения.",
+        kz: "Бағыныңқы және қатыстық сөйлемдерді қоса алғанда, күрделі сөйлем құрылымдарының бай әртүрлілігі.",
+      },
+      {
+        en: "Sentence structure is solid but could use more varied subordination for a B2 register.",
+        ru: "Структура предложений уверенная, но для регистра B2 стоит использовать более разнообразное подчинение.",
+        kz: "Сөйлем құрылымы сенімді, бірақ B2 регистріне сай бағыныңқылықты әртараптандыру керек.",
+      },
+    ],
+    naturalnessNotes: [
+      {
+        en: "Expression is largely natural and idiomatic, appropriate for a formal B2 discussion.",
+        ru: "Выражение мыслей в основном естественное и идиоматичное, уместное для формальной дискуссии уровня B2.",
+        kz: "Ойды жеткізу негізінен табиғи әрі идиоматикалық, формалды B2 талқылауына сай.",
+      },
+      {
+        en: "Mostly natural, though a few phrases sound more like written than spoken French.",
+        ru: "В основном естественно, хотя несколько фраз звучат больше как письменный, а не разговорный французский.",
+        kz: "Негізінен табиғи, дегенмен бірнеше тіркес ауызша емес, жазбаша француз тіліне ұқсайды.",
+      },
+    ],
     strengths: [
       {
         en: "Presents a clear, well-structured argument with a defined thesis",
@@ -711,6 +903,10 @@ export interface TurnSelection {
   relevant: boolean;
   selectedErrorIds: string[];
   fillerCount: number;
+  mispronuncedWords: string[];
+  strengthIndices: number[];
+  weaknessIndices: number[];
+  tipIndices: number[];
   turnScore: number;
 }
 
@@ -747,6 +943,11 @@ export function analyzeTurn(
   const jitter = Math.floor(Math.random() * 3) - 1;
   const turnScore = Math.max(5, Math.min(25, profile.baseScore + jitter - Math.min(fillerCount, 3)));
 
+  const mispronuncedWords = findMispronuncedWords(responseText);
+  const strengthIndices = pickIndices(profile.strengths.length, Math.min(2, profile.strengths.length));
+  const weaknessIndices = pickIndices(profile.weaknesses.length, Math.min(2, profile.weaknesses.length));
+  const tipIndices = pickIndices(profile.improvementTips.length, Math.min(2, profile.improvementTips.length));
+
   return {
     level,
     partId,
@@ -755,6 +956,10 @@ export function analyzeTurn(
     relevant,
     selectedErrorIds,
     fillerCount,
+    mispronuncedWords,
+    strengthIndices,
+    weaknessIndices,
+    tipIndices,
     turnScore,
   };
 }
@@ -793,6 +998,16 @@ export function localizeTurnFeedback(
     ][language];
   const coherenceNote =
     profile.coherenceNotes[Math.floor(Math.random() * profile.coherenceNotes.length)][language];
+  const sentenceVarietyNote =
+    profile.sentenceVarietyNotes[
+      Math.floor(Math.random() * profile.sentenceVarietyNotes.length)
+    ][language];
+  const naturalnessNote =
+    profile.naturalnessNotes[Math.floor(Math.random() * profile.naturalnessNotes.length)][language];
+  const mispronuncedWords = localizeMispronuncedWords(selection.mispronuncedWords, language);
+  const strengths = selection.strengthIndices.map((i) => profile.strengths[i][language]);
+  const areasForImprovement = selection.weaknessIndices.map((i) => profile.weaknesses[i][language]);
+  const suggestions = selection.tipIndices.map((i) => profile.improvementTips[i][language]);
 
   const encouragement: TranslatedText = selection.relevant
     ? {
@@ -812,8 +1027,18 @@ export function localizeTurnFeedback(
     coherenceNote,
     grammarErrors,
     vocabularyNote,
+    sentenceVarietyNote,
     fluencyNote,
     pronunciationNote,
+    mispronuncedWords,
+    naturalnessNote,
+    strengths,
+    areasForImprovement,
+    suggestions,
+    // Fabricating a fake model answer would be worse than omitting it —
+    // this becomes real once ANTHROPIC_API_KEY is configured (see
+    // lib/ai/speaking-evaluator.ts's evaluateTurnWithClaude).
+    betterExampleAnswer: null,
     encouragement: encouragement[language],
     turnScore: selection.turnScore,
   };

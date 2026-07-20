@@ -20,6 +20,16 @@ export interface SpeakingGrammarMistake {
   howToAvoid: string;
 }
 
+/** A specific word from the student's transcript flagged as commonly
+ * mispronounced by learners at this level — phonetically grounded (nasal
+ * vowels, silent endings, liaison), not a claim of certain audio detection.
+ * Live Examiner mode only surfaces this in the UI; Written Practice never
+ * shows it (see `SpeakingTurnFeedback`'s `showPronunciationWords` prop). */
+export interface MispronuncedWord {
+  word: string; // French, exactly as it appears in the transcript
+  note: string; // brief explanation, in the feedback language
+}
+
 /** Feedback shown right after a single spoken answer, before the next
  * question is asked. */
 export interface TurnFeedback {
@@ -30,11 +40,23 @@ export interface TurnFeedback {
   coherenceNote: string;
   grammarErrors: SpeakingGrammarMistake[];
   vocabularyNote: string;
+  /** Variety of sentence structures used, vs. repeating the same pattern. */
+  sentenceVarietyNote: string;
   fluencyNote: string;
   /** Best-effort proxy — browser speech recognition can't do true phoneme
    * analysis, so this is inferred from recognition confidence + disfluencies
    * in the transcript, not acoustic/phonetic scoring. */
   pronunciationNote: string;
+  mispronuncedWords: MispronuncedWord[];
+  /** How natural/idiomatic the phrasing sounded vs. stilted or translated. */
+  naturalnessNote: string;
+  strengths: string[];
+  areasForImprovement: string[];
+  suggestions: string[];
+  /** A stronger model answer at the target DELF level, in French, for the
+   * student to compare against — null when not generated (always null in
+   * the offline mock; populated when Claude is configured). */
+  betterExampleAnswer: string | null;
   encouragement: string;
   /** Raw per-turn score out of 25, carried through so the final report can
    * aggregate real per-turn results instead of re-rolling its own score. */
