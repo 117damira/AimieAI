@@ -244,6 +244,7 @@ export interface Dictionary {
       suggestionsTitle: string;
       betterExampleAnswerTitle: string;
       betterExampleAnswerUnavailableNote: string;
+      noGrammarMistakes: string;
     };
     report: {
       taskCompletion: string;
@@ -732,6 +733,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         suggestionsTitle: "Suggested Improvements",
         betterExampleAnswerTitle: "Better Example Answer",
         betterExampleAnswerUnavailableNote: "A personalized model answer requires a configured Claude API key.",
+        noGrammarMistakes: "No grammar mistakes detected in this answer.",
       },
       report: {
         taskCompletion: "Task Completion",
@@ -1244,6 +1246,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         suggestionsTitle: "Рекомендации",
         betterExampleAnswerTitle: "Более удачный пример ответа",
         betterExampleAnswerUnavailableNote: "Персонализированный образец ответа требует настроенного ключа Claude API.",
+        noGrammarMistakes: "В этом ответе грамматических ошибок не обнаружено.",
       },
       report: {
         taskCompletion: "Выполнение задания",
@@ -1761,6 +1764,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         suggestionsTitle: "Ұсыныстар",
         betterExampleAnswerTitle: "Жақсырақ жауап мысалы",
         betterExampleAnswerUnavailableNote: "Жеке үлгі жауап алу үшін Claude API кілті теңшелуі керек.",
+        noGrammarMistakes: "Бұл жауапта грамматикалық қателер табылмады.",
       },
       report: {
         taskCompletion: "Тапсырманы орындау",

@@ -48,7 +48,7 @@ export function SpeakingTurnFeedback({
         <FeedbackRow label={f.taskCompletionLabel} value={feedback.taskCompletionNote} />
         <FeedbackRow label={f.coherenceLabel} value={feedback.coherenceNote} />
 
-        {feedback.grammarErrors.length > 0 && (
+        {feedback.grammarErrors.length > 0 ? (
           <div className="flex flex-col gap-3">
             {feedback.grammarErrors.map((err, i) => (
               <div
@@ -68,6 +68,8 @@ export function SpeakingTurnFeedback({
               </div>
             ))}
           </div>
+        ) : (
+          <p className="text-sm text-success-600">{f.noGrammarMistakes}</p>
         )}
 
         <FeedbackRow label={f.vocabularyLabel} value={feedback.vocabularyNote} />

@@ -13,6 +13,11 @@ import type { DelfLevel, FeedbackLanguage } from "@/types/writing-evaluation";
  * are the actual French exam content and are never translated.
  */
 
+export interface SpeakingQuestionAlternate {
+  prompt: string; // French
+  translation: Record<FeedbackLanguage, string>;
+}
+
 export interface SpeakingQuestionSpec {
   id: string;
   prompt: string; // French — the actual exam prompt, never translated
@@ -20,6 +25,10 @@ export interface SpeakingQuestionSpec {
    * prompt itself is never auto-translated. */
   translation: Record<FeedbackLanguage, string>;
   suggestedDurationSeconds: number;
+  /** Alternate curated phrasings for this same slot — the offline static
+   * fallback randomly picks among the base prompt and these each session,
+   * so two consecutive no-API-key sessions aren't always identical. */
+  alternates?: SpeakingQuestionAlternate[];
 }
 
 export interface SpeakingExercisePart {
@@ -78,6 +87,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Сәлеметсіз бе! Өзіңізді таныстыра аласыз ба: атыңыз кім, жасыңыз нешеде және қай жерде тұрасыз?",
             },
             suggestedDurationSeconds: 45,
+            alternates: [
+              {
+                prompt: "Bonjour ! Comment vous appelez-vous, quel âge avez-vous, et dans quelle ville habitez-vous ?",
+                translation: {
+                  en: "Hello! What's your name, how old are you, and which city do you live in?",
+                  ru: "Здравствуйте! Как вас зовут, сколько вам лет и в каком городе вы живёте?",
+                  kz: "Сәлеметсіз бе! Атыңыз кім, жасыңыз нешеде және қай қалада тұрасыз?",
+                },
+              },
+            ],
           },
           {
             id: "a1-ed-2",
@@ -88,6 +107,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Бос уақытыңызда не істегенді ұнатасыз?",
             },
             suggestedDurationSeconds: 30,
+            alternates: [
+              {
+                prompt: "Qu'aimez-vous faire le week-end ?",
+                translation: {
+                  en: "What do you like to do on weekends?",
+                  ru: "Что вы любите делать по выходным?",
+                  kz: "Демалыс күндері не істегенді ұнатасыз?",
+                },
+              },
+            ],
           },
           {
             id: "a1-ed-3",
@@ -99,6 +128,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Сізде аға-іні, апа-қарындас бар ма? Отбасыңыз туралы азырақ айтып беріңізші.",
             },
             suggestedDurationSeconds: 30,
+            alternates: [
+              {
+                prompt: "Combien de personnes y a-t-il dans votre famille ? Parlez-moi d'elles.",
+                translation: {
+                  en: "How many people are in your family? Tell me about them.",
+                  ru: "Сколько человек в вашей семье? Расскажите о них.",
+                  kz: "Отбасыңызда неше адам бар? Олар туралы айтып беріңіз.",
+                },
+              },
+            ],
           },
         ],
       },
@@ -121,6 +160,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Міне, түйінді сөз: ДЕМАЛЫС. Осы тақырып бойынша маған үш сұрақ қойыңыз (мысалы: қайда, қашан, кіммен).",
             },
             suggestedDurationSeconds: 60,
+            alternates: [
+              {
+                prompt: "Voici un mot clé : LE SPORT. Posez-moi trois questions sur ce sujet.",
+                translation: {
+                  en: "Here is a keyword: SPORT. Ask me three questions on this topic.",
+                  ru: "Вот ключевое слово: СПОРТ. Задайте мне три вопроса по этой теме.",
+                  kz: "Міне, түйінді сөз: СПОРТ. Осы тақырып бойынша маған үш сұрақ қойыңыз.",
+                },
+              },
+            ],
           },
         ],
       },
@@ -143,6 +192,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Сіз дүкенде тұрсыз және досыңызға сыйлық сатып алғыңыз келеді. Сатушыдан көмек сұраңыз.",
             },
             suggestedDurationSeconds: 45,
+            alternates: [
+              {
+                prompt: "Vous êtes au restaurant et vous voulez commander un repas. Demandez de l'aide au serveur.",
+                translation: {
+                  en: "You are at a restaurant and want to order a meal. Ask the waiter for help.",
+                  ru: "Вы в ресторане и хотите заказать еду. Попросите официанта о помощи.",
+                  kz: "Сіз мейрамханадасыз және тамақ тапсырыс бергіңіз келеді. Даяршыдан көмек сұраңыз.",
+                },
+              },
+            ],
           },
           {
             id: "a1-ds-2",
@@ -153,6 +212,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Сатушы сізге екі зат ұсынады: қайсысын таңдайсыз және неге?",
             },
             suggestedDurationSeconds: 30,
+            alternates: [
+              {
+                prompt: "Le serveur vous propose deux plats : lequel choisissez-vous, et pourquoi ?",
+                translation: {
+                  en: "The waiter offers you two dishes: which one do you choose, and why?",
+                  ru: "Официант предлагает вам два блюда: какое вы выберете и почему?",
+                  kz: "Даяршы сізге екі тағам ұсынады: қайсысын таңдайсыз және неге?",
+                },
+              },
+            ],
           },
         ],
       },
@@ -194,6 +263,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Өзіңізді таныстырыңыз: атыңыз, жұмысыңыз немесе оқуыңыз және қалаңыз.",
             },
             suggestedDurationSeconds: 45,
+            alternates: [
+              {
+                prompt: "Comment vous appelez-vous, que faites-vous dans la vie, et où habitez-vous ?",
+                translation: {
+                  en: "What's your name, what do you do for a living, and where do you live?",
+                  ru: "Как вас зовут, чем вы занимаетесь и где вы живёте?",
+                  kz: "Атыңыз кім, немен айналысасыз және қай жерде тұрасыз?",
+                },
+              },
+            ],
           },
           {
             id: "a2-ed-2",
@@ -204,6 +283,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Өткен демалыс күндері не істедіңіз?",
             },
             suggestedDurationSeconds: 30,
+            alternates: [
+              {
+                prompt: "Qu'est-ce que vous avez fait pendant vos dernières vacances ?",
+                translation: {
+                  en: "What did you do during your last vacation?",
+                  ru: "Что вы делали во время последнего отпуска?",
+                  kz: "Соңғы демалысыңызда не істедіңіз?",
+                },
+              },
+            ],
           },
         ],
       },
@@ -225,6 +314,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Маған туған қалаңыз немесе ауылыңыз туралы айтып беріңіз.",
             },
             suggestedDurationSeconds: 60,
+            alternates: [
+              {
+                prompt: "Décrivez votre quartier ou votre maison.",
+                translation: {
+                  en: "Describe your neighborhood or your house.",
+                  ru: "Опишите свой район или свой дом.",
+                  kz: "Ауданыңызды немесе үйіңізді сипаттаңыз.",
+                },
+              },
+            ],
           },
         ],
       },
@@ -247,6 +346,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Сіз досыңызға қоңырау шалып, осы демалыс күндері серуенге шығуды ұсынасыз. Іс-шара мен уақытты ұсыныңыз.",
             },
             suggestedDurationSeconds: 45,
+            alternates: [
+              {
+                prompt: "Vous invitez un ami à dîner chez vous ce week-end. Proposez un jour et une heure.",
+                translation: {
+                  en: "You invite a friend to dinner at your place this weekend. Suggest a day and a time.",
+                  ru: "Вы приглашаете друга на ужин к себе в эти выходные. Предложите день и время.",
+                  kz: "Сіз досыңызды осы демалыс күндері үйіңізге кешкі асқа шақырасыз. Күн мен уақытты ұсыныңыз.",
+                },
+              },
+            ],
           },
           {
             id: "a2-ds-2",
@@ -257,6 +366,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Досыңыз сол күні бос емес: басқа шешім ұсыныңыз.",
             },
             suggestedDurationSeconds: 30,
+            alternates: [
+              {
+                prompt: "Votre ami propose de changer le lieu du dîner : que répondez-vous ?",
+                translation: {
+                  en: "Your friend suggests changing the location of the dinner: how do you respond?",
+                  ru: "Ваш друг предлагает изменить место ужина: что вы ответите?",
+                  kz: "Досыңыз кешкі ас өтетін жерді өзгертуді ұсынады: сіз не деп жауап бересіз?",
+                },
+              },
+            ],
           },
         ],
       },
@@ -298,6 +417,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Өзіңізді қысқаша таныстырыңыз: сіз кімсіз және неге француз тілін үйреніп жатырсыз?",
             },
             suggestedDurationSeconds: 45,
+            alternates: [
+              {
+                prompt: "Qui êtes-vous et quels sont vos projets pour l'avenir ?",
+                translation: {
+                  en: "Who are you and what are your plans for the future?",
+                  ru: "Кто вы и какие у вас планы на будущее?",
+                  kz: "Сіз кімсіз және болашаққа қандай жоспарларыңыз бар?",
+                },
+              },
+            ],
           },
         ],
       },
@@ -320,6 +449,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Сіз достарыңызбен саяхатқа шығасыз, бірақ бюджет туралы келісе алмай жатырсыздар. Көзқарасыңызды түсіндіріп, ымыраға келу жолын ұсыныңыз.",
             },
             suggestedDurationSeconds: 60,
+            alternates: [
+              {
+                prompt: "Vous organisez un voyage avec des amis, mais vous n'êtes pas d'accord sur le logement. Expliquez votre point de vue et proposez un compromis.",
+                translation: {
+                  en: "You're organizing a trip with friends, but you disagree about accommodation. Explain your point of view and propose a compromise.",
+                  ru: "Вы организуете поездку с друзьями, но не согласны насчёт жилья. Объясните свою точку зрения и предложите компромисс.",
+                  kz: "Сіз достарыңызбен саяхат ұйымдастырасыз, бірақ тұрғын үй туралы келісе алмайсыздар. Көзқарасыңызды түсіндіріп, ымыраға келу жолын ұсыныңыз.",
+                },
+              },
+            ],
           },
           {
             id: "b1-ei-2",
@@ -330,6 +469,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Досыңыз қонақүйде түнейтін түндер санын азайтуды ұсынады: сіз бұл туралы не ойлайсыз?",
             },
             suggestedDurationSeconds: 45,
+            alternates: [
+              {
+                prompt: "Votre ami propose de changer complètement de destination : qu'en pensez-vous ?",
+                translation: {
+                  en: "Your friend suggests changing the destination completely: what do you think?",
+                  ru: "Ваш друг предлагает полностью изменить место назначения: что вы об этом думаете?",
+                  kz: "Досыңыз бару жерін мүлдем өзгертуді ұсынады: сіз бұл туралы не ойлайсыз?",
+                },
+              },
+            ],
           },
         ],
       },
@@ -352,6 +501,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Құжат: «Көбірек қызметкерлер үйден жұмыс істейді». Сіз бұл туралы не ойлайсыз? Бұл жақсы нәрсе ме?",
             },
             suggestedDurationSeconds: 75,
+            alternates: [
+              {
+                prompt: "Document : « De plus en plus de gens font leurs achats en ligne plutôt qu'en magasin. » Qu'en pensez-vous ? Est-ce une bonne évolution ?",
+                translation: {
+                  en: "Document: \"More and more people shop online rather than in stores.\" What do you think? Is this a good development?",
+                  ru: "Документ: «Всё больше людей делают покупки онлайн, а не в магазинах». Что вы об этом думаете? Это хорошая тенденция?",
+                  kz: "Құжат: «Көбірек адамдар дүкенде емес, онлайн сатып алады». Сіз бұл туралы не ойлайсыз? Бұл жақсы үрдіс пе?",
+                },
+              },
+            ],
           },
           {
             id: "b1-pv-2",
@@ -362,6 +521,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Сіздің ойыңызша, қашықтан жұмыс істеудің кемшіліктері қандай?",
             },
             suggestedDurationSeconds: 45,
+            alternates: [
+              {
+                prompt: "Quels sont les inconvénients des achats en ligne selon vous ?",
+                translation: {
+                  en: "What are the disadvantages of online shopping, in your opinion?",
+                  ru: "Какие, по вашему мнению, недостатки покупок онлайн?",
+                  kz: "Сіздің ойыңызша, онлайн сатып алудың кемшіліктері қандай?",
+                },
+              },
+            ],
           },
         ],
       },
@@ -403,6 +572,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Құжат: «Әлеуметтік желілер жастарға оң немесе теріс әсер ете ме?» Көзқарасыңызды құрылымды түрде ұсыныңыз.",
             },
             suggestedDurationSeconds: 120,
+            alternates: [
+              {
+                prompt: "Document : « Le télétravail va-t-il devenir la norme pour tous les métiers ? » Présentez votre point de vue de façon structurée.",
+                translation: {
+                  en: "Document: \"Will remote work become the norm for all professions?\" Present your point of view in a structured way.",
+                  ru: "Документ: «Станет ли удалённая работа нормой для всех профессий?» Изложите свою точку зрения структурированно.",
+                  kz: "Құжат: «Қашықтан жұмыс барлық мамандықтар үшін норма бола ма?» Көзқарасыңызды құрылымды түрде ұсыныңыз.",
+                },
+              },
+            ],
           },
           {
             id: "b2-pv-2",
@@ -414,6 +593,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Кейбіреулер әлеуметтік желілер әлеуметтік байланыстан гөрі оқшаулануға ықпал етеді дейді. Бұл дәлелге қалай жауап бересіз?",
             },
             suggestedDurationSeconds: 60,
+            alternates: [
+              {
+                prompt: "Certains disent que le télétravail réduit la productivité plutôt que de l'améliorer. Que répondez-vous à cet argument ?",
+                translation: {
+                  en: "Some say remote work reduces productivity rather than improving it. How do you respond to this argument?",
+                  ru: "Некоторые говорят, что удалённая работа снижает продуктивность, а не повышает её. Что вы ответите на этот аргумент?",
+                  kz: "Кейбіреулер қашықтан жұмыс өнімділікті арттырудың орнына төмендетеді дейді. Бұл дәлелге қалай жауап бересіз?",
+                },
+              },
+            ],
           },
           {
             id: "b2-pv-3",
@@ -424,6 +613,16 @@ export const DELF_SPEAKING_LEVELS: Record<DelfLevel, DelfSpeakingLevelConfig> = 
               kz: "Теріс әсерлерді шектеу үшін қандай шешімдер ұсынар едіңіз?",
             },
             suggestedDurationSeconds: 60,
+            alternates: [
+              {
+                prompt: "Quelles solutions proposeriez-vous pour que le télétravail profite à la fois aux employés et aux entreprises ?",
+                translation: {
+                  en: "What solutions would you propose so that remote work benefits both employees and companies?",
+                  ru: "Какие решения вы предложили бы, чтобы удалённая работа приносила пользу и сотрудникам, и компаниям?",
+                  kz: "Қашықтан жұмыс қызметкерлерге де, компанияларға да пайда әкелуі үшін қандай шешімдер ұсынар едіңіз?",
+                },
+              },
+            ],
           },
         ],
       },
@@ -467,18 +666,29 @@ export interface FlatSpeakingQuestion {
 }
 
 /** Flattens a level's parts/questions into a single ordered queue for
- * driving a speaking session one question at a time. */
+ * driving a speaking session one question at a time. Randomly picks
+ * between each question's base prompt and its curated `alternates` (if
+ * any) so two consecutive offline (no-API-key) sessions at the same level
+ * aren't always identical — every option is still hand-verified DELF-style
+ * content, never generated on the fly. */
 export function flattenSpeakingParts(
   config: DelfSpeakingLevelConfig
 ): FlatSpeakingQuestion[] {
   return config.parts.flatMap((part) =>
-    part.questions.map((question) => ({
-      partId: part.id,
-      partLabel: part.partLabel,
-      questionId: question.id,
-      prompt: question.prompt,
-      translation: question.translation,
-      suggestedDurationSeconds: question.suggestedDurationSeconds,
-    }))
+    part.questions.map((question) => {
+      const options = [
+        { prompt: question.prompt, translation: question.translation },
+        ...(question.alternates ?? []),
+      ];
+      const chosen = options[Math.floor(Math.random() * options.length)];
+      return {
+        partId: part.id,
+        partLabel: part.partLabel,
+        questionId: question.id,
+        prompt: chosen.prompt,
+        translation: chosen.translation,
+        suggestedDurationSeconds: question.suggestedDurationSeconds,
+      };
+    })
   );
 }

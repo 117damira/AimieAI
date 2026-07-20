@@ -22,14 +22,26 @@ function getVoicesAsync(): Promise<SpeechSynthesisVoice[]> {
 }
 
 /** Filters available voices by BCP-47 locale prefix (e.g. "fr", "en", "kk")
- * and prefers a female-sounding one by name. Returns null if no voice
- * matches the locale at all — callers should degrade silently. */
+ * and prefers a clear, natural-sounding one. Network/cloud voices
+ * (`localService === false`, e.g. Chrome's "Google français") are
+ * consistently clearer than default on-device voices, which can sound
+ * muffled — so among locale matches we prefer a female-named network voice
+ * first, then any network voice, then a female-named local voice, then
+ * whatever else matches. Returns null if nothing matches the locale at
+ * all — callers should degrade silently. */
 async function pickVoice(localePrefix: string): Promise<SpeechSynthesisVoice | null> {
   if (typeof window === "undefined" || !window.speechSynthesis) return null;
   const voices = await getVoicesAsync();
   const matches = voices.filter((v) => v.lang.toLowerCase().startsWith(localePrefix.toLowerCase()));
   if (matches.length === 0) return null;
-  return matches.find((v) => FEMALE_NAME_PATTERN.test(v.name)) ?? matches[0];
+
+  const networkMatches = matches.filter((v) => !v.localService);
+  const femaleNetwork = networkMatches.find((v) => FEMALE_NAME_PATTERN.test(v.name));
+  if (femaleNetwork) return femaleNetwork;
+  if (networkMatches.length > 0) return networkMatches[0];
+
+  const femaleLocal = matches.find((v) => FEMALE_NAME_PATTERN.test(v.name));
+  return femaleLocal ?? matches[0];
 }
 
 /** Speaks `text` aloud using the best available voice for `localePrefix`.
@@ -51,8 +63,8 @@ export function speak(text: string, localePrefix: string): Promise<void> {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.voice = voice;
       utterance.lang = voice.lang;
-      utterance.rate = 0.95;
-      utterance.pitch = 1;
+      utterance.rate = 1;
+      utterance.pitch = 1.05;
       utterance.onend = () => resolve();
       utterance.onerror = () => resolve();
       window.speechSynthesis.speak(utterance);

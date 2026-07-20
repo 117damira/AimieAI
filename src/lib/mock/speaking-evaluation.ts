@@ -22,18 +22,7 @@ import type {
 
 type TranslatedText = Record<FeedbackLanguage, string>;
 
-interface GrammarErrorTemplate {
-  id: string;
-  original: string;
-  correction: string;
-  category: SpeakingGrammarMistake["category"];
-  explanation: TranslatedText;
-  /** A fresh, correct French example demonstrating the rule. */
-  betterExample: string;
-}
-
 interface MockSpeakingLevelProfile {
-  grammarPool: GrammarErrorTemplate[];
   pronunciationNotes: TranslatedText[];
   fluencyNotes: TranslatedText[];
   vocabularyRangeNotes: TranslatedText[];
@@ -176,46 +165,291 @@ function buildHowToFix(correction: string, language: FeedbackLanguage): string {
 
 const FILLER_WORDS = ["euh", "du coup", "genre", "en fait", "quoi", "voilà", "bah"];
 
+/**
+ * Real, transcript-grounded grammar detection — every rule only fires when
+ * its pattern genuinely appears in what the student said; `original` is
+ * always the actual matched substring (never a canned phrase), and
+ * `correction` is computed FROM that substring. This replaces the previous
+ * design where 1-2 mistakes were picked at random from a fixed per-level
+ * pool regardless of the transcript — that was fabricating errors.
+ */
+interface GrammarRule {
+  id: string;
+  category: SpeakingGrammarMistake["category"];
+  regex: RegExp;
+  correction: (matched: string) => string;
+  explanation: TranslatedText;
+  betterExample: string;
+}
+
+const JE_CONJUGATION_MAP: Record<string, string> = {
+  aimer: "j'aime",
+  vouloir: "je veux",
+  pouvoir: "je peux",
+  aller: "je vais",
+  faire: "je fais",
+  habiter: "j'habite",
+  parler: "je parle",
+  manger: "je mange",
+  travailler: "je travaille",
+  étudier: "j'étudie",
+  avoir: "j'ai",
+  être: "je suis",
+  jouer: "je joue",
+  regarder: "je regarde",
+  écouter: "j'écoute",
+};
+
+const SUBJONCTIF_JE_MAP: Record<string, string> = { vais: "aille", peux: "puisse", veux: "veuille", fais: "fasse" };
+const SUBJONCTIF_IL_MAP: Record<string, string> = { est: "soit", a: "ait", peut: "puisse", doit: "doive", va: "aille" };
+
+const GRAMMAR_RULES: GrammarRule[] = [
+  {
+    id: "etre-age",
+    category: "verb",
+    regex: /\bje\s+suis\s+([a-zà-ÿ0-9-]+)\s+ans?\b/i,
+    correction: (m) => m.replace(/\bje\s+suis\b/i, "j'ai"),
+    explanation: {
+      en: "Age is expressed with \"avoir\" (avoir + age), not \"être\".",
+      ru: "Возраст выражается с помощью глагола «avoir» (avoir + возраст), а не «être».",
+      kz: "Жас мөлшері «avoir» етістігімен беріледі (avoir + жас), «être» емес.",
+    },
+    betterExample: "J'ai vingt ans et mon frère a dix-huit ans.",
+  },
+  {
+    id: "gender-article",
+    category: "agreement",
+    regex: /\bun\s+(maison|voiture|ville|chose|idée|université|semaine|année|table|chambre|cuisine)\b/i,
+    correction: (m) => m.replace(/\bun\b/i, "une"),
+    explanation: {
+      en: "This noun is feminine, so it takes \"une\", not \"un\".",
+      ru: "Это существительное женского рода, поэтому употребляется с «une», а не «un».",
+      kz: "Бұл зат есім әйел тегінде, сондықтан «une» қолданылады, «un» емес.",
+    },
+    betterExample: "J'habite dans une maison avec un grand jardin.",
+  },
+  {
+    id: "infinitive-not-conjugated",
+    category: "sentence-structure",
+    regex: new RegExp(`\\bje\\s+(${Object.keys(JE_CONJUGATION_MAP).join("|")})\\b`, "i"),
+    correction: (m) => {
+      const verb = m.trim().split(/\s+/)[1]?.toLowerCase() ?? "";
+      return JE_CONJUGATION_MAP[verb] ?? m;
+    },
+    explanation: {
+      en: "The verb must be conjugated, not left in the infinitive.",
+      ru: "Глагол нужно спрягать, а не оставлять в инфинитиве.",
+      kz: "Етістік тұйық түрде қалмай, жіктелуі керек.",
+    },
+    betterExample: "J'aime le sport et je joue au football le week-end.",
+  },
+  {
+    id: "passe-compose-aux",
+    category: "verb",
+    regex: /\bj['’]ai\s+(allée?s?|arrivée?s?|partie?s?|venue?s?|entrée?s?|sortie?s?|montée?s?|descendue?s?|restée?s?|tombée?s?|née?s?)\b/i,
+    correction: (m) => m.replace(/j['’]ai/i, "je suis"),
+    explanation: {
+      en: "This verb takes \"être\" as its auxiliary in the passé composé, not \"avoir\".",
+      ru: "Этот глагол в passé composé спрягается с «être», а не с «avoir».",
+      kz: "Бұл етістік passé composé-де «être» көмекші етістігімен тіркеседі, «avoir» емес.",
+    },
+    betterExample: "Hier, je suis allé(e) au cinéma avec des amis.",
+  },
+  {
+    id: "preposition-penser-de",
+    category: "other",
+    regex: /\bje\s+pense\s+de\s+\w+/i,
+    correction: (m) => m.replace(/\spense\s+de\s+/i, " pense "),
+    explanation: {
+      en: "\"Penser\" + infinitive doesn't take \"de\" when expressing an intention.",
+      ru: "«Penser» + инфинитив не требует предлога «de» при выражении намерения.",
+      kz: "Ниетті білдіргенде «penser» + тұйық етістік «de» септеулігін қажет етпейді.",
+    },
+    betterExample: "Je pense sortir ce soir avec ma sœur.",
+  },
+  {
+    id: "agreement-participle-elle",
+    category: "agreement",
+    regex: /\belle\s+est\s+(allé|arrivé|parti|venu|entré|sorti|monté|descendu|resté|tombé|né)\b(?!e)/i,
+    correction: (m) => `${m}e`,
+    explanation: {
+      en: "With \"être\", the past participle agrees with the subject: it needs an \"e\" for a feminine subject.",
+      ru: "С «être» причастие прошедшего времени согласуется с подлежащим: для женского рода нужна «e».",
+      kz: "«Être»-мен есімше бастауышпен келіседі: әйелдік тек үшін «e» қажет.",
+    },
+    betterExample: "Elle est allée au marché ce matin.",
+  },
+  {
+    id: "subjonctif-il-faut-que",
+    category: "verb",
+    regex: /\bil\s+faut\s+que\s+je\s+(vais|peux|veux|fais)\b/i,
+    correction: (m) => {
+      const match = m.match(/(vais|peux|veux|fais)$/i);
+      const verb = match ? match[1].toLowerCase() : "";
+      const subj = SUBJONCTIF_JE_MAP[verb] ?? verb;
+      const jePart = /^[aeiouhâêîôûéèë]/i.test(subj) ? "j'" : "je ";
+      return m.replace(/je\s+(vais|peux|veux|fais)$/i, `${jePart}${subj}`);
+    },
+    explanation: {
+      en: "\"Il faut que\" requires the subjunctive, not the indicative.",
+      ru: "«Il faut que» требует сослагательного наклонения, а не изъявительного.",
+      kz: "«Il faut que» бағыныңқы райды талап етеді, ашық рай емес.",
+    },
+    betterExample: "Il faut que j'aille au rendez-vous avant midi.",
+  },
+  {
+    id: "double-comparative",
+    category: "sentence-structure",
+    regex: /\bplus\s+meilleur\b/i,
+    correction: (m) => m.replace(/plus\s+meilleur/i, "meilleur"),
+    explanation: {
+      en: "\"Meilleur\" is already the comparative of \"bon\" — adding \"plus\" doubles the comparison.",
+      ru: "«Meilleur» уже является сравнительной формой «bon» — добавление «plus» создаёт двойное сравнение.",
+      kz: "«Meilleur» «bon» сөзінің салыстырмалы түрі — «plus» қосу қосарланған салыстыру жасайды.",
+    },
+    betterExample: "Ce restaurant est meilleur que l'autre.",
+  },
+  {
+    id: "anglicism-definitivement",
+    category: "other",
+    regex: /\bdéfinitivement\b/i,
+    correction: (m) => m.replace(/définitivement/i, "tout à fait"),
+    explanation: {
+      en: "\"Définitivement\" is an anglicism here; \"tout à fait\" is the natural French equivalent.",
+      ru: "«Définitivement» здесь — англицизм; естественный французский эквивалент — «tout à fait».",
+      kz: "Бұл жерде «définitivement» — ағылшыншылдық; табиғи француз баламасы — «tout à fait».",
+    },
+    betterExample: "Je suis tout à fait d'accord avec cette proposition.",
+  },
+  {
+    id: "subjonctif-bien-que",
+    category: "verb",
+    regex: /\bbien\s+(qu['’]il|qu['’]elle)\s+(est|a|peut|doit|va)\b/i,
+    correction: (m) => {
+      const match = m.match(/(est|a|peut|doit|va)$/i);
+      const verb = match ? match[1].toLowerCase() : "";
+      const subj = SUBJONCTIF_IL_MAP[verb] ?? verb;
+      return m.replace(new RegExp(`${verb}$`, "i"), subj);
+    },
+    explanation: {
+      en: "\"Bien que\" always triggers the subjunctive, not the indicative.",
+      ru: "«Bien que» всегда требует сослагательного наклонения, а не изъявительного.",
+      kz: "«Bien que» әрқашан бағыныңқы райды талап етеді, ашық рай емес.",
+    },
+    betterExample: "Bien qu'il soit difficile de changer ses habitudes, il faut essayer.",
+  },
+  {
+    id: "nuance-absolu",
+    category: "other",
+    regex: /\b(totalement|complètement)\s+faux\b/i,
+    correction: (m) => m.replace(/(totalement|complètement)\s+faux/i, "en grande partie inexact"),
+    explanation: {
+      en: "At higher levels, absolute statements benefit from more nuanced hedging language.",
+      ru: "На продвинутом уровне категоричные утверждения лучше смягчать более нюансированными формулировками.",
+      kz: "Жоғары деңгейде категориялық тұжырымдарды нәзігірек тілмен жеткізген жөн.",
+    },
+    betterExample: "Cela me semble en grande partie inexact, à mon avis.",
+  },
+  {
+    id: "stacked-connectors",
+    category: "sentence-structure",
+    regex: /\bcependant,?\s+néanmoins\b/i,
+    correction: (m) => m.replace(/,?\s+néanmoins/i, ""),
+    explanation: {
+      en: "Avoid stacking two contrastive connectors in a row — pick one to keep the argument clear.",
+      ru: "Избегайте нагромождения двух противительных союзов подряд — выберите один для ясности аргумента.",
+      kz: "Екі қарсы мәнді жалғаулықты қатар қоймаңыз — дәлелдің анықтығы үшін біреуін таңдаңыз.",
+    },
+    betterExample: "Cependant, il faut reconnaître que la situation est complexe.",
+  },
+];
+
+/** Scans the actual transcript against every rule and returns only genuine
+ * matches (capped at 3) — never invents a mistake that wasn't said. */
+function findGrammarMistakes(transcript: string): { ruleId: string; original: string; correction: string }[] {
+  const results: { ruleId: string; original: string; correction: string }[] = [];
+  for (const rule of GRAMMAR_RULES) {
+    const match = transcript.match(rule.regex);
+    if (match) {
+      results.push({ ruleId: rule.id, original: match[0], correction: rule.correction(match[0]) });
+      if (results.length >= 3) break;
+    }
+  }
+  return results;
+}
+
+/** Words that carry no topical meaning — excluded when comparing the
+ * question's real content words against the transcript's, so relevance
+ * detection isn't fooled by shared pronouns/articles/question-verbs. */
+const FRENCH_STOPWORDS = new Set([
+  "je", "tu", "il", "elle", "on", "nous", "vous", "ils", "elles", "le", "la", "les", "un", "une", "des", "de", "du",
+  "et", "ou", "mais", "donc", "car", "que", "qui", "quoi", "dont", "dans", "sur", "avec", "pour", "par", "sans", "sous",
+  "votre", "vos", "notre", "nos", "leur", "leurs", "cette", "cet", "ces", "mon", "ma", "mes", "ton", "ta", "tes", "son", "sa", "ses",
+  "est", "es", "suis", "sont", "êtes", "sommes", "être", "avoir", "ai", "as", "avons", "avez", "ont",
+  "me", "te", "se", "lui", "y", "en", "au", "aux", "ne", "pas", "plus", "très", "bien", "aussi", "comme", "autre", "autres",
+  "pouvez", "voulez", "faire", "fait", "faites", "proposez", "expliquez", "présentez", "parlez", "dites", "pensez",
+]);
+
+const ACCENT_MAP: Record<string, string> = {
+  à: "a", â: "a", ä: "a", é: "e", è: "e", ê: "e", ë: "e", î: "i", ï: "i",
+  ô: "o", ö: "o", ù: "u", û: "u", ü: "u", ç: "c", œ: "oe", æ: "ae",
+};
+
+function normalizeWord(word: string): string {
+  return word
+    .toLowerCase()
+    .split("")
+    .map((ch) => ACCENT_MAP[ch] ?? ch)
+    .join("");
+}
+
+function extractContentWords(text: string): string[] {
+  return text
+    .replace(/[.,!?;:"'«»()]/g, " ")
+    .split(/\s+/)
+    .map(normalizeWord)
+    .filter((w) => w.length >= 4 && !FRENCH_STOPWORDS.has(w));
+}
+
+/** Real relevance detection — compares the actual question's content words
+ * against the actual transcript's, instead of the previous `wordCount >= 5`
+ * heuristic, which marked any sufficiently long answer relevant regardless
+ * of whether it addressed the question at all. */
+/** Self-introduction questions ("Présentez-vous", "Comment vous
+ * appelez-vous ?") don't share literal vocabulary with a valid answer — a
+ * correct response talks about the candidate, not the question's own
+ * wording — so keyword overlap alone would wrongly flag genuine
+ * introductions as off-topic. Recognized directly instead. */
+const SELF_INTRO_QUESTION_PATTERN = /présent|appelez|votre nom|qui êtes-vous/i;
+const SELF_INTRO_ANSWER_PATTERN = /je m['’]appelle|mon nom est|j['’]ai\s+\d+\s+ans|j['’]habite/i;
+
+function computeRelevance(prompt: string, transcript: string, wordCount: number): boolean {
+  if (wordCount < 3) return false;
+  if (SELF_INTRO_QUESTION_PATTERN.test(prompt) && SELF_INTRO_ANSWER_PATTERN.test(transcript)) {
+    return true;
+  }
+  const questionWords = extractContentWords(prompt);
+  if (questionWords.length === 0) return wordCount >= 5;
+  const answerWords = new Set(extractContentWords(transcript));
+  if (questionWords.some((w) => answerWords.has(w))) return true;
+  // No shared content words with the question — only give credit for a
+  // developed answer; a short, unrelated answer (e.g. a stock
+  // self-introduction to a question that asked for something else) is
+  // correctly flagged rather than marked relevant by word count alone.
+  return wordCount >= 8;
+}
+
+function buildOffTopicNote(prompt: string, language: FeedbackLanguage): string {
+  const templates: TranslatedText = {
+    en: `This answer doesn't address what was asked ("${prompt}"). Make sure to respond directly to the question before adding extra details.`,
+    ru: `Этот ответ не отвечает на заданный вопрос («${prompt}»). Убедитесь, что вы отвечаете именно на вопрос, прежде чем добавлять детали.`,
+    kz: `Бұл жауап қойылған сұраққа жауап бермейді («${prompt}»). Қосымша деталь қоспас бұрын сұраққа тікелей жауап беруге көз жеткізіңіз.`,
+  };
+  return templates[language];
+}
+
 const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
   A1: {
-    grammarPool: [
-      {
-        id: "a1s-etre-age",
-        original: "je suis vingt ans",
-        correction: "j'ai vingt ans",
-        category: "verb",
-        explanation: {
-          en: "Age is expressed with \"avoir\" (avoir + age), not \"être\".",
-          ru: "Возраст выражается с помощью глагола «avoir» (avoir + возраст), а не «être».",
-          kz: "Жас мөлшері «avoir» етістігімен беріледі (avoir + жас), «être» емес.",
-        },
-        betterExample: "J'ai vingt ans et mon frère a dix-huit ans.",
-      },
-      {
-        id: "a1s-gender-article",
-        original: "j'habite dans un maison",
-        correction: "j'habite dans une maison",
-        category: "agreement",
-        explanation: {
-          en: "\"Maison\" is feminine, so it takes \"une\", not \"un\".",
-          ru: "«Maison» — слово женского рода, поэтому употребляется с «une», а не «un».",
-          kz: "«Maison» — әйел тегіндегі сөз, сондықтан «une» қолданылады, «un» емес.",
-        },
-        betterExample: "J'habite dans une maison avec un grand jardin.",
-      },
-      {
-        id: "a1s-infinitive",
-        original: "je aimer le sport",
-        correction: "j'aime le sport",
-        category: "sentence-structure",
-        explanation: {
-          en: "The verb must be conjugated (\"j'aime\"), not left in the infinitive.",
-          ru: "Глагол нужно спрягать («j'aime»), а не оставлять в инфинитиве.",
-          kz: "Етістік тұйық түрде қалмай, жіктелуі керек («j'aime»).",
-        },
-        betterExample: "J'aime le sport et je joue au football le week-end.",
-      },
-    ],
     pronunciationNotes: [
       {
         en: "Pronunciation is understandable overall, with a few vowel sounds that need refinement.",
@@ -359,44 +593,6 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
     baseScore: 17,
   },
   A2: {
-    grammarPool: [
-      {
-        id: "a2s-passe-compose-aux",
-        original: "j'ai allé à la piscine",
-        correction: "je suis allé(e) à la piscine",
-        category: "verb",
-        explanation: {
-          en: "\"Aller\" takes \"être\" as its auxiliary in the passé composé, not \"avoir\".",
-          ru: "Глагол «aller» в passé composé спрягается с «être», а не с «avoir».",
-          kz: "«Aller» етістігі passé composé-де «être» көмекші етістігімен тіркеседі, «avoir» емес.",
-        },
-        betterExample: "Hier, je suis allé(e) au cinéma avec des amis.",
-      },
-      {
-        id: "a2s-preposition",
-        original: "je pense de sortir ce soir",
-        correction: "je pense sortir ce soir",
-        category: "other",
-        explanation: {
-          en: "\"Penser\" + infinitive doesn't take \"de\" when expressing an intention.",
-          ru: "«Penser» + инфинитив не требует предлога «de» при выражении намерения.",
-          kz: "Ниетті білдіргенде «penser» + тұйық етістік «de» септеулігін қажет етпейді.",
-        },
-        betterExample: "Je pense sortir ce soir avec ma sœur.",
-      },
-      {
-        id: "a2s-agreement-participle",
-        original: "elle est allé au marché",
-        correction: "elle est allée au marché",
-        category: "agreement",
-        explanation: {
-          en: "With \"être\", the past participle agrees with the subject: \"allée\" for a feminine subject.",
-          ru: "С «être» причастие прошедшего времени согласуется с подлежащим: «allée» для женского рода.",
-          kz: "«Être»-мен есімше бастауышпен келіседі: әйелдік тегі үшін «allée».",
-        },
-        betterExample: "Elle est allée au marché ce matin.",
-      },
-    ],
     pronunciationNotes: [
       {
         en: "Pronunciation is clear enough to follow easily, with occasional stress on the wrong syllable.",
@@ -540,44 +736,6 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
     baseScore: 16,
   },
   B1: {
-    grammarPool: [
-      {
-        id: "b1s-subjonctif",
-        original: "il faut que je vais au rendez-vous",
-        correction: "il faut que j'aille au rendez-vous",
-        category: "verb",
-        explanation: {
-          en: "\"Il faut que\" requires the subjunctive: \"que j'aille\", not the indicative \"je vais\".",
-          ru: "«Il faut que» требует сослагательного наклонения: «que j'aille», а не изъявительного «je vais».",
-          kz: "«Il faut que» бағыныңқы райды талап етеді: «que j'aille», ашық рай «je vais» емес.",
-        },
-        betterExample: "Il faut que j'aille au rendez-vous avant midi.",
-      },
-      {
-        id: "b1s-conditionnel",
-        original: "si j'ai le temps, je viendrai",
-        correction: "si j'ai le temps, je viendrai (correct) / si j'avais le temps, je viendrais",
-        category: "sentence-structure",
-        explanation: {
-          en: "Keep the tense sequence consistent: \"si\" + présent goes with futur; \"si\" + imparfait goes with conditionnel.",
-          ru: "Соблюдайте последовательность времён: «si» + présent сочетается с futur; «si» + imparfait — с conditionnel.",
-          kz: "Шақ тізбегін сақтаңыз: «si» + présent — futur-мен, «si» + imparfait — conditionnel-мен қолданылады.",
-        },
-        betterExample: "Si j'avais le temps, je viendrais avec plaisir.",
-      },
-      {
-        id: "b1s-anglicism",
-        original: "je suis d'accord avec ça, définitivement",
-        correction: "je suis tout à fait d'accord avec cela",
-        category: "other",
-        explanation: {
-          en: "\"Définitivement\" is an anglicism here; \"tout à fait\" is the natural French equivalent.",
-          ru: "«Définitivement» здесь — англицизм; естественный французский эквивалент — «tout à fait».",
-          kz: "Бұл жерде «définitivement» — ағылшыншылдық; табиғи француз баламасы — «tout à fait».",
-        },
-        betterExample: "Je suis tout à fait d'accord avec cette proposition.",
-      },
-    ],
     pronunciationNotes: [
       {
         en: "Pronunciation is clear and generally accurate, supporting easy comprehension.",
@@ -716,44 +874,6 @@ const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
     baseScore: 15,
   },
   B2: {
-    grammarPool: [
-      {
-        id: "b2s-subjonctif-bien-que",
-        original: "bien qu'il est difficile de changer, il faut essayer",
-        correction: "bien qu'il soit difficile de changer, il faut essayer",
-        category: "verb",
-        explanation: {
-          en: "\"Bien que\" always triggers the subjunctive: \"soit\", not the indicative \"est\".",
-          ru: "«Bien que» всегда требует сослагательного наклонения: «soit», а не изъявительного «est».",
-          kz: "«Bien que» әрқашан бағыныңқы райды талап етеді: «soit», ашық рай «est» емес.",
-        },
-        betterExample: "Bien qu'il soit difficile de changer ses habitudes, il faut essayer.",
-      },
-      {
-        id: "b2s-nuance",
-        original: "c'est totalement faux, je pense",
-        correction: "cela me semble en grande partie inexact",
-        category: "other",
-        explanation: {
-          en: "At B2, absolute statements (\"totalement faux\") benefit from more nuanced hedging language.",
-          ru: "На уровне B2 категоричные утверждения («totalement faux») лучше смягчать более нюансированными формулировками.",
-          kz: "B2 деңгейінде категориялық тұжырымдарды («totalement faux») нәзігірек тілмен жеткізген жөн.",
-        },
-        betterExample: "Cela me semble en grande partie inexact, à mon avis.",
-      },
-      {
-        id: "b2s-stacked-connectors",
-        original: "cependant, néanmoins, il faut dire que",
-        correction: "cependant, il faut dire que",
-        category: "sentence-structure",
-        explanation: {
-          en: "Avoid stacking two contrastive connectors in a row — pick one to keep the argument clear.",
-          ru: "Избегайте нагромождения двух противительных союзов подряд — выберите один для ясности аргумента.",
-          kz: "Екі қарсы мәнді жалғаулықты қатар қоймаңыз — дәлелдің анықтығы үшін біреуін таңдаңыз.",
-        },
-        betterExample: "Cependant, il faut reconnaître que la situation est complexe.",
-      },
-    ],
     pronunciationNotes: [
       {
         en: "Pronunciation is fluent and natural, with intonation supporting the argument's structure.",
@@ -899,9 +1019,12 @@ export interface TurnSelection {
   level: DelfLevel;
   partId: string;
   questionId: string;
+  /** The actual French question — kept so an off-topic answer can be
+   * explained by quoting what was really asked, never invented. */
+  prompt: string;
   wordCount: number;
   relevant: boolean;
-  selectedErrorIds: string[];
+  matchedMistakes: { ruleId: string; original: string; correction: string }[];
   fillerCount: number;
   mispronuncedWords: string[];
   strengthIndices: number[];
@@ -928,20 +1051,23 @@ export function analyzeTurn(
   level: DelfLevel,
   partId: string,
   questionId: string,
+  prompt: string,
   responseText: string,
   wordCount: number
 ): TurnSelection {
   const profile = MOCK_SPEAKING_PROFILES[level];
-  const relevant = wordCount >= 5;
+  const relevant = computeRelevance(prompt, responseText, wordCount);
   const fillerCount = countFillerWords(responseText);
-
-  const errorCount = Math.min(1 + Math.floor(Math.random() * 2), profile.grammarPool.length);
-  const selectedErrorIds = pickIndices(profile.grammarPool.length, errorCount).map(
-    (i) => profile.grammarPool[i].id
-  );
+  const matchedMistakes = findGrammarMistakes(responseText);
 
   const jitter = Math.floor(Math.random() * 3) - 1;
-  const turnScore = Math.max(5, Math.min(25, profile.baseScore + jitter - Math.min(fillerCount, 3)));
+  let turnScore = Math.max(
+    5,
+    Math.min(25, profile.baseScore + jitter - Math.min(fillerCount, 3) - matchedMistakes.length)
+  );
+  // Task achievement is heavily weighted in real DELF grading — an answer
+  // that doesn't address the question is capped well below a passing score.
+  if (!relevant) turnScore = Math.min(turnScore, 10);
 
   const mispronuncedWords = findMispronuncedWords(responseText);
   const strengthIndices = pickIndices(profile.strengths.length, Math.min(2, profile.strengths.length));
@@ -952,9 +1078,10 @@ export function analyzeTurn(
     level,
     partId,
     questionId,
+    prompt,
     wordCount,
     relevant,
-    selectedErrorIds,
+    matchedMistakes,
     fillerCount,
     mispronuncedWords,
     strengthIndices,
@@ -969,16 +1096,16 @@ export function localizeTurnFeedback(
   language: FeedbackLanguage
 ): TurnFeedback {
   const profile = MOCK_SPEAKING_PROFILES[selection.level];
-  const grammarErrors: SpeakingGrammarMistake[] = selection.selectedErrorIds.map((id) => {
-    const template = profile.grammarPool.find((e) => e.id === id)!;
+  const grammarErrors: SpeakingGrammarMistake[] = selection.matchedMistakes.map((m) => {
+    const rule = GRAMMAR_RULES.find((r) => r.id === m.ruleId)!;
     return {
-      original: template.original,
-      correction: template.correction,
-      category: template.category,
-      whyWrong: template.explanation[language],
-      howToFix: buildHowToFix(template.correction, language),
-      betterExample: template.betterExample,
-      howToAvoid: HOW_TO_AVOID_BY_CATEGORY[template.category][language],
+      original: m.original,
+      correction: m.correction,
+      category: rule.category,
+      whyWrong: rule.explanation[language],
+      howToFix: buildHowToFix(m.correction, language),
+      betterExample: rule.betterExample,
+      howToAvoid: HOW_TO_AVOID_BY_CATEGORY[rule.category][language],
     };
   });
 
@@ -992,10 +1119,11 @@ export function localizeTurnFeedback(
     profile.pronunciationNotes[
       Math.floor(Math.random() * profile.pronunciationNotes.length)
     ][language];
-  const taskCompletionNote =
-    profile.taskCompletionNotes[
-      Math.floor(Math.random() * profile.taskCompletionNotes.length)
-    ][language];
+  const taskCompletionNote = selection.relevant
+    ? profile.taskCompletionNotes[
+        Math.floor(Math.random() * profile.taskCompletionNotes.length)
+      ][language]
+    : buildOffTopicNote(selection.prompt, language);
   const coherenceNote =
     profile.coherenceNotes[Math.floor(Math.random() * profile.coherenceNotes.length)][language];
   const sentenceVarietyNote =
@@ -1016,9 +1144,9 @@ export function localizeTurnFeedback(
         kz: "Жақсы жауап — келесі сұраққа өтейік.",
       }
     : {
-        en: "Try to develop your answer a bit more next time.",
-        ru: "В следующий раз постарайтесь развить ответ немного подробнее.",
-        kz: "Келесі жолы жауапты біраз толығырақ дамытуға тырысыңыз.",
+        en: "Listen carefully to the question and try again next time — answer what's actually asked.",
+        ru: "В следующий раз внимательно слушайте вопрос и отвечайте именно на то, что спрашивается.",
+        kz: "Келесі жолы сұрақты мұқият тыңдап, нақты сұралғанға жауап беруге тырысыңыз.",
       };
 
   return {
@@ -1066,7 +1194,67 @@ const TASK_COMPLETION_SUMMARY = {
     ru: `Все части устного экзамена DELF ${level} были выполнены.`,
     kz: `DELF ${level} ауызша емтиханының барлық бөлімдері орындалды.`,
   }),
+  withIssues: (irrelevantCount: number, total: number): TranslatedText => ({
+    en: `${total - irrelevantCount} of ${total} answers directly addressed the question asked; ${irrelevantCount} did not stay on topic.`,
+    ru: `${total - irrelevantCount} из ${total} ответов напрямую отвечали на заданный вопрос; ${irrelevantCount} не соответствовали теме.`,
+    kz: `${total} жауаптың ${total - irrelevantCount}-і қойылған сұраққа тікелей жауап берді; ${irrelevantCount}-і тақырыптан ауытқыды.`,
+  }),
 };
+
+const ALL_RELEVANT_STRENGTH: TranslatedText = {
+  en: "Addressed every question directly, without going off-topic",
+  ru: "Отвечал(а) на каждый вопрос по существу, не отклоняясь от темы",
+  kz: "Тақырыптан ауытқымай, әрбір сұраққа тікелей жауап берді",
+};
+
+const IMPROVEMENT_STRENGTH: TranslatedText = {
+  en: "Showed clear improvement as the session progressed",
+  ru: "Показал(а) явное улучшение по ходу сессии",
+  kz: "Сессия барысында айқын жақсару көрсетті",
+};
+
+const NO_REPEATED_ERRORS_STRENGTH: TranslatedText = {
+  en: "No grammar mistake repeated more than once across the session",
+  ru: "Ни одна грамматическая ошибка не повторилась за всю сессию",
+  kz: "Сессия бойы бірде-бір грамматикалық қате қайталанбады",
+};
+
+function buildIrrelevantWeakness(count: number, total: number): TranslatedText {
+  return {
+    en: `${count} of ${total} answers didn't address the question that was actually asked`,
+    ru: `${count} из ${total} ответов не отвечали на заданный вопрос`,
+    kz: `${total} жауаптың ${count}-і нақты қойылған сұраққа жауап бермеді`,
+  };
+}
+
+function buildRecurringPronunciationNote(words: string[]): TranslatedText {
+  const list = words.join("\", \"");
+  return {
+    en: `Pronunciation of "${list}" came up more than once — worth extra practice.`,
+    ru: `Произношение слов «${words.join("», «")}» повторялось несколько раз — стоит потренировать отдельно.`,
+    kz: `«${words.join("», «")}» сөздерінің айтылымы бірнеше рет қайталанды — қосымша жаттығу қажет.`,
+  };
+}
+
+const CONSISTENCY_WEAKNESS: TranslatedText = {
+  en: "Performance dipped in the later part of the session — pace yourself to stay consistent",
+  ru: "Результат снизился во второй части сессии — старайтесь сохранять темп до конца",
+  kz: "Сессияның екінші бөлігінде нәтиже төмендеді — соңына дейін қарқынды сақтауға тырысыңыз",
+};
+
+const RE_READ_QUESTION_SUGGESTION: TranslatedText = {
+  en: "Before answering, repeat the question in your head to make sure you address exactly what's asked",
+  ru: "Перед ответом мысленно повторите вопрос, чтобы убедиться, что вы отвечаете именно на него",
+  kz: "Жауап бермес бұрын сұрақты ойыңызда қайталап, нақты соған жауап беріп жатқаныңызға көз жеткізіңіз",
+};
+
+function buildPracticeWordsSuggestion(words: string[]): TranslatedText {
+  return {
+    en: `Practice saying "${words.join("\", \"")}" out loud a few times before your next session`,
+    ru: `Потренируйтесь произносить «${words.join("», «")}» вслух несколько раз перед следующей сессией`,
+    kz: `Келесі сессияға дейін «${words.join("», «")}» сөздерін бірнеше рет дауыстап айтып жаттығыңыз`,
+  };
+}
 
 const GRAMMAR_SUMMARY = {
   withErrors: (count: number, level: DelfLevel): TranslatedText => ({
@@ -1124,23 +1312,70 @@ export function synthesizeReportFromTurns(
     .filter((part) => completedPartIds.has(part.id))
     .map((part) => part.partLabel);
 
+  const total = completedTurns.length;
+  const irrelevantCount = completedTurns.filter((t) => !t.feedback.relevance).length;
+
+  const mispronouncedCounts = new Map<string, number>();
+  for (const t of completedTurns) {
+    for (const mw of t.feedback.mispronuncedWords) {
+      mispronouncedCounts.set(mw.word, (mispronouncedCounts.get(mw.word) ?? 0) + 1);
+    }
+  }
+  const recurringMispronounced = [...mispronouncedCounts.entries()]
+    .filter(([, count]) => count >= 2)
+    .map(([word]) => word);
+
+  const average = (nums: number[]) => (nums.length === 0 ? 0 : nums.reduce((a, b) => a + b, 0) / nums.length);
+  const half = Math.ceil(total / 2);
+  const firstHalfAvg = average(completedTurns.slice(0, half).map((t) => t.feedback.turnScore));
+  const secondHalfAvg = average(completedTurns.slice(half).map((t) => t.feedback.turnScore));
+  const improved = total >= 4 && secondHalfAvg - firstHalfAvg >= 2;
+  const declined = total >= 4 && firstHalfAvg - secondHalfAvg >= 2;
+
   const estimatedScore = Math.max(
     5,
-    Math.min(
-      25,
-      Math.round(
-        completedTurns.reduce((sum, t) => sum + t.feedback.turnScore, 0) /
-          Math.max(1, completedTurns.length)
-      )
-    )
+    Math.min(25, Math.round(completedTurns.reduce((sum, t) => sum + t.feedback.turnScore, 0) / Math.max(1, total)))
   );
   const scoreOutOf = 25;
   const ratio = estimatedScore / scoreOutOf;
   const tier = ratio >= 0.75 ? "strong" : ratio >= 0.5 ? "borderline" : "weak";
 
+  // Every list below is built from real observations about this specific
+  // session first, and only padded with a static (but still accurate) pool
+  // entry when there aren't enough dynamic observations to fill it out —
+  // never a purely pre-written summary independent of what happened.
+  const dynamicStrengths: string[] = [];
+  if (total > 0 && irrelevantCount === 0) dynamicStrengths.push(ALL_RELEVANT_STRENGTH[language]);
+  if (improved) dynamicStrengths.push(IMPROVEMENT_STRENGTH[language]);
+  if (total >= 2 && commonErrors.length === 0) dynamicStrengths.push(NO_REPEATED_ERRORS_STRENGTH[language]);
+  const strengths =
+    dynamicStrengths.length >= 2
+      ? dynamicStrengths.slice(0, 3)
+      : [...dynamicStrengths, ...profile.strengths.slice(0, 3 - dynamicStrengths.length).map((s) => s[language])];
+
+  const dynamicWeaknesses: string[] = [];
+  if (irrelevantCount > 0) dynamicWeaknesses.push(buildIrrelevantWeakness(irrelevantCount, total)[language]);
+  if (recurringMispronounced.length > 0) {
+    dynamicWeaknesses.push(buildRecurringPronunciationNote(recurringMispronounced)[language]);
+  }
+  if (declined) dynamicWeaknesses.push(CONSISTENCY_WEAKNESS[language]);
+  const weaknesses =
+    dynamicWeaknesses.length > 0
+      ? dynamicWeaknesses.slice(0, 3)
+      : profile.weaknesses.slice(0, 2).map((w) => w[language]);
+
+  const dynamicSuggestions: string[] = [];
+  if (irrelevantCount > 0) dynamicSuggestions.push(RE_READ_QUESTION_SUGGESTION[language]);
+  if (recurringMispronounced.length > 0) dynamicSuggestions.push(buildPracticeWordsSuggestion(recurringMispronounced)[language]);
+  if (commonErrors.length > 0) dynamicSuggestions.push(HOW_TO_AVOID_BY_CATEGORY[commonErrors[0].category][language]);
+  const suggestions =
+    dynamicSuggestions.length >= 2
+      ? dynamicSuggestions.slice(0, 3)
+      : [...dynamicSuggestions, ...profile.improvementTips.slice(0, 3 - dynamicSuggestions.length).map((s) => s[language])];
+
   return {
     level,
-    totalQuestions: completedTurns.length,
+    totalQuestions: total,
     grammar: {
       summary:
         commonErrors.length > 0
@@ -1155,7 +1390,10 @@ export function synthesizeReportFromTurns(
       ][language],
     },
     pronunciation: {
-      summary: profile.pronunciationNotes[0][language],
+      summary:
+        recurringMispronounced.length > 0
+          ? buildRecurringPronunciationNote(recurringMispronounced)[language]
+          : profile.pronunciationNotes[0][language],
       note: profile.pronunciationNotes[
         Math.min(1, profile.pronunciationNotes.length - 1)
       ][language],
@@ -1165,7 +1403,10 @@ export function synthesizeReportFromTurns(
       pace: profile.fluencyNotes[Math.min(1, profile.fluencyNotes.length - 1)][language],
     },
     taskCompletion: {
-      summary: TASK_COMPLETION_SUMMARY.complete(level)[language],
+      summary:
+        irrelevantCount > 0
+          ? TASK_COMPLETION_SUMMARY.withIssues(irrelevantCount, total)[language]
+          : TASK_COMPLETION_SUMMARY.complete(level)[language],
       partsCompleted,
     },
     repeatedMistakes: commonErrors.map((e) => `${e.original} → ${e.correction}`),
@@ -1173,9 +1414,9 @@ export function synthesizeReportFromTurns(
       count: fillerTotal,
       examples: fillerExamples,
     },
-    strengths: profile.strengths.slice(0, 3).map((s) => s[language]),
-    weaknesses: profile.weaknesses.slice(0, Math.min(2, profile.weaknesses.length)).map((w) => w[language]),
-    suggestions: profile.improvementTips.slice(0, 3).map((s) => s[language]),
+    strengths,
+    weaknesses,
+    suggestions,
     estimatedScore,
     scoreOutOf,
     scoreExplanation: SCORE_EXPLANATION[tier](level, estimatedScore, scoreOutOf)[language],
