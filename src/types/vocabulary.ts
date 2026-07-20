@@ -27,16 +27,28 @@ export interface VocabularyEntry {
   timesCorrect: number;
 }
 
+/** One real grammar mistake found in the student's actual sentence. */
+export interface VocabularyMistake {
+  original: string;
+  correction: string;
+  /** What was wrong, why, and which grammar rule applies — one paragraph. */
+  whyWrong: string;
+}
+
 /** Feedback on a student's own example sentence using a target vocabulary
- * word — evaluates real usage, never a generic "good job". */
+ * word — evaluates real usage, never a generic "good job". `status` is only
+ * ever decided after word-usage, semantic-fit, and grammar have all been
+ * checked — never assumed correct by default. */
 export interface VocabularySentenceFeedback {
-  /** Whether the target word was actually used, and used correctly. */
-  usedCorrectly: boolean;
-  /** The student's sentence with real grammar mistakes corrected (or, if
-   * the word wasn't used at all, a natural example sentence using it). */
-  correctedSentence: string;
-  /** What was wrong and why — null when there was nothing to correct. */
-  whyWrong: string | null;
+  status: "correct" | "not-used" | "incorrect";
+  /** The student's own sentence with every real mistake corrected — null
+   * only when status is "correct" and nothing needed changing (the UI shows
+   * "No corrections needed." instead of echoing the input back). When the
+   * word wasn't used at all, this is a natural example sentence instead,
+   * since there's nothing of the student's own to correct. */
+  correctedSentence: string | null;
+  /** Every real grammar mistake found — empty when there are none. */
+  mistakes: VocabularyMistake[];
   /** A more natural phrasing suggestion — null when the sentence already
    * reads naturally. */
   naturalSuggestion: string | null;

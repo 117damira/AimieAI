@@ -58,7 +58,7 @@ export default function VocabularyPage() {
       if (!res.ok) throw new Error(data.error || t.vocabulary.aiFeedbackErrorGeneric);
       const nextFeedback = data.feedback as VocabularySentenceFeedback;
       setFeedback(nextFeedback);
-      recordVocabularyPractice(wordOfTheDay.word, wordOfTheDay.definition, nextFeedback.usedCorrectly);
+      recordVocabularyPractice(wordOfTheDay.word, wordOfTheDay.definition, nextFeedback.status === "correct");
     } catch (err) {
       setError(err instanceof Error ? err.message : t.vocabulary.aiFeedbackErrorGeneric);
     } finally {
@@ -194,8 +194,12 @@ export default function VocabularyPage() {
               <Sparkles className="h-[18px] w-[18px] text-primary-500" />
               <CardTitle>{t.vocabulary.aiFeedback}</CardTitle>
               {feedback && (
-                <Badge variant={feedback.usedCorrectly ? "success" : "danger"}>
-                  {feedback.usedCorrectly ? t.vocabulary.usedCorrectlyBadge : t.vocabulary.notUsedBadge}
+                <Badge variant={feedback.status === "correct" ? "success" : "danger"}>
+                  {feedback.status === "correct"
+                    ? t.vocabulary.usedCorrectlyBadge
+                    : feedback.status === "not-used"
+                      ? t.vocabulary.notUsedBadge
+                      : t.vocabulary.incorrectUsageBadge}
                 </Badge>
               )}
             </div>
@@ -208,14 +212,34 @@ export default function VocabularyPage() {
                   <span className="text-xs font-semibold text-foreground">
                     {t.vocabulary.correctedSentenceLabel}
                   </span>
-                  <p className="rounded-xl bg-background p-3 text-sm italic text-foreground">
-                    &ldquo;{feedback.correctedSentence}&rdquo;
-                  </p>
+                  {feedback.correctedSentence ? (
+                    <p className="rounded-xl bg-background p-3 text-sm italic text-foreground">
+                      &ldquo;{feedback.correctedSentence}&rdquo;
+                    </p>
+                  ) : (
+                    <p className="text-sm text-success-600">{t.vocabulary.noCorrectionsNeeded}</p>
+                  )}
                 </div>
-                {feedback.whyWrong && (
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs font-semibold text-foreground">{t.vocabulary.whyWrongLabel}</span>
-                    <p className="text-sm text-muted">{feedback.whyWrong}</p>
+                {feedback.mistakes.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs font-semibold text-foreground">{t.vocabulary.mistakesLabel}</span>
+                    {feedback.mistakes.map((mistake, i) => (
+                      <div
+                        key={i}
+                        className="flex flex-col gap-1 rounded-xl border border-border bg-background p-3"
+                      >
+                        <div className="flex flex-wrap items-center gap-2 text-sm">
+                          <span className="text-foreground line-through decoration-danger-500">
+                            {mistake.original}
+                          </span>
+                          <span className="font-medium text-success-600">{mistake.correction}</span>
+                        </div>
+                        <p className="text-xs text-muted">
+                          <span className="font-medium text-foreground">{t.vocabulary.whyWrongLabel}: </span>
+                          {mistake.whyWrong}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 )}
                 {feedback.naturalSuggestion && (

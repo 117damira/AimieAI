@@ -512,3 +512,17 @@ export function getWordOfTheDay(
   return bank[index];
 }
 
+/** Finds a word's real, hand-authored entry across every level's bank —
+ * used by the vocabulary evaluator to offer a genuine example sentence
+ * (never a generated placeholder) when the student's own sentence can't be
+ * corrected (the target word wasn't used at all, or the input wasn't a
+ * real sentence). */
+export function findWordEntry(word: string): WordOfTheDay | undefined {
+  const normalized = word.trim().toLowerCase();
+  for (const bank of Object.values(WORD_BANKS)) {
+    const match = bank.find((entry) => entry.word.toLowerCase() === normalized);
+    if (match) return match;
+  }
+  return undefined;
+}
+

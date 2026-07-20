@@ -162,6 +162,9 @@ export interface Dictionary {
     aiFeedbackErrorGeneric: string;
     usedCorrectlyBadge: string;
     notUsedBadge: string;
+    incorrectUsageBadge: string;
+    noCorrectionsNeeded: string;
+    mistakesLabel: string;
     correctedSentenceLabel: string;
     whyWrongLabel: string;
     naturalSuggestionLabel: string;
@@ -697,8 +700,11 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       aiFeedbackDescription: "Examiner-style feedback on your sentence will appear here.",
       aiFeedbackEmptyState: "Write a sentence and click \"Get AI Feedback\" to see how you did.",
       aiFeedbackErrorGeneric: "Couldn't evaluate your sentence right now — please try again.",
-      usedCorrectlyBadge: "Used correctly",
+      usedCorrectlyBadge: "Correct usage",
       notUsedBadge: "Word not used",
+      incorrectUsageBadge: "Incorrect usage",
+      noCorrectionsNeeded: "No corrections needed.",
+      mistakesLabel: "Mistakes",
       correctedSentenceLabel: "Corrected sentence",
       whyWrongLabel: "Why",
       naturalSuggestionLabel: "More natural",
@@ -1262,8 +1268,11 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       aiFeedbackDescription: "Здесь появится отзыв на ваше предложение в стиле экзаменатора.",
       aiFeedbackEmptyState: "Напишите предложение и нажмите «Получить отзыв ИИ», чтобы узнать результат.",
       aiFeedbackErrorGeneric: "Не удалось оценить предложение — попробуйте ещё раз.",
-      usedCorrectlyBadge: "Использовано правильно",
+      usedCorrectlyBadge: "Правильное использование",
       notUsedBadge: "Слово не использовано",
+      incorrectUsageBadge: "Неправильное использование",
+      noCorrectionsNeeded: "Исправления не требуются.",
+      mistakesLabel: "Ошибки",
       correctedSentenceLabel: "Исправленное предложение",
       whyWrongLabel: "Почему",
       naturalSuggestionLabel: "Более естественно",
@@ -1834,6 +1843,9 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       aiFeedbackErrorGeneric: "Сөйлемді бағалау мүмкін болмады — қайталап көріңіз.",
       usedCorrectlyBadge: "Дұрыс қолданылды",
       notUsedBadge: "Сөз қолданылмады",
+      incorrectUsageBadge: "Қате қолданылды",
+      noCorrectionsNeeded: "Түзету қажет емес.",
+      mistakesLabel: "Қателер",
       correctedSentenceLabel: "Түзетілген сөйлем",
       whyWrongLabel: "Неге",
       naturalSuggestionLabel: "Табиғырақ нұсқа",
