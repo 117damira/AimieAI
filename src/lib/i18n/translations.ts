@@ -237,6 +237,7 @@ export interface Dictionary {
       howToAvoid: string;
       sentenceVarietyLabel: string;
       naturalnessLabel: string;
+      answerStructureLabel: string;
       mispronuncedWordsTitle: string;
       playPronunciation: string;
       strengthsTitle: string;
@@ -726,13 +727,14 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         howToAvoid: "How to avoid this next time",
         sentenceVarietyLabel: "Sentence variety",
         naturalnessLabel: "Naturalness of expression",
+        answerStructureLabel: "Answer structure",
         mispronuncedWordsTitle: "Watch your pronunciation on these words",
         playPronunciation: "Play correct pronunciation",
         strengthsTitle: "Strengths",
         areasForImprovementTitle: "Areas for Improvement",
         suggestionsTitle: "Suggested Improvements",
         betterExampleAnswerTitle: "Better Example Answer",
-        betterExampleAnswerUnavailableNote: "A personalized model answer requires a configured Claude API key.",
+        betterExampleAnswerUnavailableNote: "Keep practicing — a stronger example will appear here as you build up this response.",
         noGrammarMistakes: "No grammar mistakes detected in this answer.",
       },
       report: {
@@ -1239,13 +1241,14 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         howToAvoid: "Как избежать этого в следующий раз",
         sentenceVarietyLabel: "Разнообразие предложений",
         naturalnessLabel: "Естественность речи",
+        answerStructureLabel: "Структура ответа",
         mispronuncedWordsTitle: "Обратите внимание на произношение этих слов",
         playPronunciation: "Воспроизвести правильное произношение",
         strengthsTitle: "Сильные стороны",
         areasForImprovementTitle: "Что нужно улучшить",
         suggestionsTitle: "Рекомендации",
         betterExampleAnswerTitle: "Более удачный пример ответа",
-        betterExampleAnswerUnavailableNote: "Персонализированный образец ответа требует настроенного ключа Claude API.",
+        betterExampleAnswerUnavailableNote: "Продолжайте практиковаться — более сильный пример появится здесь по мере развития ответа.",
         noGrammarMistakes: "В этом ответе грамматических ошибок не обнаружено.",
       },
       report: {
@@ -1757,13 +1760,14 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         howToAvoid: "Келесі жолы бұдан қалай аулақ болу керек",
         sentenceVarietyLabel: "Сөйлем әртүрлілігі",
         naturalnessLabel: "Сөйлеудің табиғилығы",
+        answerStructureLabel: "Жауап құрылымы",
         mispronuncedWordsTitle: "Осы сөздердің айтылымына назар аударыңыз",
         playPronunciation: "Дұрыс айтылымын ойнату",
         strengthsTitle: "Күшті жақтары",
         areasForImprovementTitle: "Жақсарту қажет тұстар",
         suggestionsTitle: "Ұсыныстар",
         betterExampleAnswerTitle: "Жақсырақ жауап мысалы",
-        betterExampleAnswerUnavailableNote: "Жеке үлгі жауап алу үшін Claude API кілті теңшелуі керек.",
+        betterExampleAnswerUnavailableNote: "Жаттығуды жалғастырыңыз — жауабыңыз дамыған сайын мұнда күштірек мысал пайда болады.",
         noGrammarMistakes: "Бұл жауапта грамматикалық қателер табылмады.",
       },
       report: {

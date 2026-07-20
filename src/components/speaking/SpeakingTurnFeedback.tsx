@@ -99,6 +99,7 @@ export function SpeakingTurnFeedback({
         )}
 
         <FeedbackRow label={f.naturalnessLabel} value={feedback.naturalnessNote} />
+        <FeedbackRow label={f.answerStructureLabel} value={feedback.structureNote} />
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <FeedbackList title={f.strengthsTitle} items={feedback.strengths} tone="success" />

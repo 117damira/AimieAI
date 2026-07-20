@@ -50,6 +50,11 @@ export interface TurnFeedback {
   mispronuncedWords: MispronuncedWord[];
   /** How natural/idiomatic the phrasing sounded vs. stilted or translated. */
   naturalnessNote: string;
+  /** Whether the answer has the structural elements a strong DELF response
+   * needs (introduction where appropriate, a direct answer, supporting
+   * detail, an example where appropriate, a conclusion where appropriate),
+   * naming exactly what's missing. */
+  structureNote: string;
   strengths: string[];
   areasForImprovement: string[];
   suggestions: string[];
@@ -109,6 +114,10 @@ export interface GeneratedSpeakingQuestion {
   prompt: string; // French
   translation: string; // in the current feedback language
   suggestedDurationSeconds: number;
+  /** A genuine, curated model answer for this exact question — only present
+   * on the static fallback (see delf-speaking.ts); the Claude-generated path
+   * doesn't pre-author one, since Claude supplies its own per-turn instead. */
+  modelAnswer?: string;
 }
 
 /** A candidate B2 discussion topic offered before the exam begins. */

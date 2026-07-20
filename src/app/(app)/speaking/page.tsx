@@ -195,7 +195,11 @@ export default function SpeakingPracticePage() {
       const requestBody = lastTurnRequestRef.current;
       void (async () => {
         try {
-          const { feedback } = await fetchTurnFeedback(requestBody, language);
+          const { feedback: rawFeedback } = await fetchTurnFeedback(requestBody, language);
+          const feedback: TurnFeedback =
+            rawFeedback.betterExampleAnswer === null && currentItem?.modelAnswer
+              ? { ...rawFeedback, betterExampleAnswer: currentItem.modelAnswer }
+              : rawFeedback;
           setCurrentFeedback(feedback);
           setCompletedTurns((prev) =>
             prev.length === 0 ? prev : [...prev.slice(0, -1), { ...prev[prev.length - 1], feedback }]
@@ -231,7 +235,15 @@ export default function SpeakingPracticePage() {
     };
     lastTurnRequestRef.current = requestBody;
     try {
-      const { feedback, followUpQuestion } = await fetchTurnFeedback(requestBody, language);
+      const { feedback: rawFeedback, followUpQuestion } = await fetchTurnFeedback(requestBody, language);
+      // Offline/mock evaluation has no way to generate a model answer for an
+      // arbitrary transcript, so it always returns betterExampleAnswer: null —
+      // fill in this question's real, curated model answer here instead of
+      // ever showing a "not available" or developer-facing message.
+      const feedback: TurnFeedback =
+        rawFeedback.betterExampleAnswer === null && currentItem.modelAnswer
+          ? { ...rawFeedback, betterExampleAnswer: currentItem.modelAnswer }
+          : rawFeedback;
       const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
       setCompletedTurns((prev) => [
         ...prev,

@@ -28,6 +28,7 @@ function staticFallbackQuestions(level: DelfLevel, language: FeedbackLanguage): 
     prompt: q.prompt,
     translation: q.translation[language],
     suggestedDurationSeconds: q.suggestedDurationSeconds,
+    modelAnswer: q.modelAnswer,
   }));
 }
 

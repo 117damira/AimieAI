@@ -203,6 +203,17 @@ const JE_CONJUGATION_MAP: Record<string, string> = {
 const SUBJONCTIF_JE_MAP: Record<string, string> = { vais: "aille", peux: "puisse", veux: "veuille", fais: "fasse" };
 const SUBJONCTIF_IL_MAP: Record<string, string> = { est: "soit", a: "ait", peut: "puisse", doit: "doive", va: "aille" };
 
+const ETRE_VERB_PARTICIPLE_PATTERN = /^(allé|arrivé|parti|venu|entré|sorti|monté|descendu|resté|tombé|né)/i;
+const AVOIR_CONJ_BY_PRONOUN: Record<string, string> = {
+  tu: "as", il: "a", elle: "a", nous: "avons", vous: "avez", ils: "ont", elles: "ont",
+};
+const ETRE_CONJ_BY_PRONOUN: Record<string, string> = {
+  tu: "es", il: "est", elle: "est", nous: "sommes", vous: "êtes", ils: "sont", elles: "sont",
+};
+const FEMININE_ADJECTIVE_MAP: Record<string, string> = {
+  blanc: "blanche", grand: "grande", petit: "petite", beau: "belle", nouveau: "nouvelle", vieux: "vieille", bon: "bonne",
+};
+
 const GRAMMAR_RULES: GrammarRule[] = [
   {
     id: "etre-age",
@@ -219,7 +230,7 @@ const GRAMMAR_RULES: GrammarRule[] = [
   {
     id: "gender-article",
     category: "agreement",
-    regex: /\bun\s+(maison|voiture|ville|chose|idée|université|semaine|année|table|chambre|cuisine)\b/i,
+    regex: /\bun\s+(maison|voiture|ville|chose|idée|université|semaine|année|table|chambre|cuisine)(?![a-zà-ÿ])/i,
     correction: (m) => m.replace(/\bun\b/i, "une"),
     explanation: {
       en: "This noun is feminine, so it takes \"une\", not \"un\".",
@@ -246,7 +257,11 @@ const GRAMMAR_RULES: GrammarRule[] = [
   {
     id: "passe-compose-aux",
     category: "verb",
-    regex: /\bj['’]ai\s+(allée?s?|arrivée?s?|partie?s?|venue?s?|entrée?s?|sortie?s?|montée?s?|descendue?s?|restée?s?|tombée?s?|née?s?)\b/i,
+    // Trailing lookahead (not `\b`) because `\b` never matches right after an
+    // accented vowel like "é" in JS regex (it isn't a `\w` character) — with
+    // `\b` here, masculine singular forms ("j'ai allé") would silently fail
+    // to match while "e"/"s"-suffixed forms happened to still work.
+    regex: /\bj['’]ai\s+(allée?s?|arrivée?s?|partie?s?|venue?s?|entrée?s?|sortie?s?|montée?s?|descendue?s?|restée?s?|tombée?s?|née?s?)(?![a-zà-ÿ])/i,
     correction: (m) => m.replace(/j['’]ai/i, "je suis"),
     explanation: {
       en: "This verb takes \"être\" as its auxiliary in the passé composé, not \"avoir\".",
@@ -270,7 +285,10 @@ const GRAMMAR_RULES: GrammarRule[] = [
   {
     id: "agreement-participle-elle",
     category: "agreement",
-    regex: /\belle\s+est\s+(allé|arrivé|parti|venu|entré|sorti|monté|descendu|resté|tombé|né)\b(?!e)/i,
+    // `(?![a-zà-ÿ])` instead of `\b(?!e)` — see the passe-compose-aux rule's
+    // comment above; this also doubles as the "not already agreed" check,
+    // since a following "e" (as in "allée") already fails the lookahead.
+    regex: /\belle\s+est\s+(allé|arrivé|parti|venu|entré|sorti|monté|descendu|resté|tombé|né)(?![a-zà-ÿ])/i,
     correction: (m) => `${m}e`,
     explanation: {
       en: "With \"être\", the past participle agrees with the subject: it needs an \"e\" for a feminine subject.",
@@ -362,6 +380,44 @@ const GRAMMAR_RULES: GrammarRule[] = [
     },
     betterExample: "Cependant, il faut reconnaître que la situation est complexe.",
   },
+  {
+    id: "etre-infinitive-passe-compose",
+    category: "verb",
+    regex: /\b(nous|vous|tu|il|elle|ils|elles)\s+être\s+([a-zà-ÿ]+)(?![a-zà-ÿ])/i,
+    correction: (m) => {
+      const match = m.match(/^(nous|vous|tu|il|elle|ils|elles)\s+être\s+([a-zà-ÿ]+)$/i);
+      if (!match) return m;
+      const [, pronounRaw, participle] = match;
+      const pronoun = pronounRaw.toLowerCase();
+      const conjMap = ETRE_VERB_PARTICIPLE_PATTERN.test(participle) ? ETRE_CONJ_BY_PRONOUN : AVOIR_CONJ_BY_PRONOUN;
+      const aux = conjMap[pronoun] ?? participle;
+      return `${pronounRaw} ${aux} ${participle}`;
+    },
+    explanation: {
+      en: "\"Être\" was left as the infinitive instead of being conjugated for the passé composé. The correct auxiliary — \"avoir\" for most verbs, or a conjugated form of \"être\" for a small set of motion/state verbs — depends on the specific verb.",
+      ru: "«Être» осталось в инфинитиве вместо того, чтобы быть спрягаемым для passé composé. Правильный вспомогательный глагол — «avoir» для большинства глаголов или спрягаемая форма «être» для небольшой группы глаголов движения/состояния — зависит от конкретного глагола.",
+      kz: "Passé composé үшін «être» жіктелудің орнына тұйық түрде қалып қойды. Дұрыс көмекші етістік — көптеген етістіктер үшін «avoir», ал қозғалыс/күй етістіктерінің шағын тобы үшін жіктелген «être» — нақты етістікке байланысты.",
+    },
+    betterExample: "Nous avons joué au football hier avec mes amis.",
+  },
+  {
+    id: "adjective-gender-agreement",
+    category: "agreement",
+    regex: /\b(maison|voiture|ville|chose|idée|université|semaine|année|table|chambre|cuisine)\s+(blanc|grand|petit|beau|nouveau|vieux|bon)\b/i,
+    correction: (m) => {
+      const match = m.match(/^(\S+)\s+(\S+)$/);
+      if (!match) return m;
+      const [, noun, adj] = match;
+      const feminine = FEMININE_ADJECTIVE_MAP[adj.toLowerCase()] ?? adj;
+      return `${noun} ${feminine}`;
+    },
+    explanation: {
+      en: "This noun is feminine, so the adjective describing it must also take its feminine form.",
+      ru: "Это существительное женского рода, поэтому описывающее его прилагательное тоже должно быть в женском роде.",
+      kz: "Бұл зат есім әйел тегінде, сондықтан оны сипаттайтын сын есім де әйелдік түрде болуы керек.",
+    },
+    betterExample: "J'habite dans une grande maison blanche avec un joli jardin.",
+  },
 ];
 
 /** Scans the actual transcript against every rule and returns only genuine
@@ -422,6 +478,11 @@ function extractContentWords(text: string): string[] {
  * introductions as off-topic. Recognized directly instead. */
 const SELF_INTRO_QUESTION_PATTERN = /présent|appelez|votre nom|qui êtes-vous/i;
 const SELF_INTRO_ANSWER_PATTERN = /je m['’]appelle|mon nom est|j['’]ai\s+\d+\s+ans|j['’]habite/i;
+/** Unambiguous self-introduction markers only ("j'habite"/"j'ai X ans" are
+ * too common in ordinary sentences on their own) — used to decide whether
+ * an off-topic answer should specifically be called out as "you introduced
+ * yourself" rather than the generic mismatch note. */
+const UNAMBIGUOUS_SELF_INTRO_PATTERN = /je m['’]appelle|mon nom est/i;
 
 function computeRelevance(prompt: string, transcript: string, wordCount: number): boolean {
   if (wordCount < 3) return false;
@@ -432,14 +493,25 @@ function computeRelevance(prompt: string, transcript: string, wordCount: number)
   if (questionWords.length === 0) return wordCount >= 5;
   const answerWords = new Set(extractContentWords(transcript));
   if (questionWords.some((w) => answerWords.has(w))) return true;
-  // No shared content words with the question — only give credit for a
-  // developed answer; a short, unrelated answer (e.g. a stock
-  // self-introduction to a question that asked for something else) is
-  // correctly flagged rather than marked relevant by word count alone.
-  return wordCount >= 8;
+  // No shared content words with the question at all — a real DELF answer
+  // to a specific question virtually always echoes at least one topic word;
+  // zero overlap (regardless of length) means the answer is talking about
+  // something else, not developing a paraphrase.
+  return false;
 }
 
-function buildOffTopicNote(prompt: string, language: FeedbackLanguage): string {
+function buildOffTopicNote(prompt: string, looksLikeSelfIntro: boolean, language: FeedbackLanguage): string {
+  // A self-introduction answered to a non-self-intro question is the most
+  // common off-topic pattern — name it specifically instead of a generic
+  // mismatch note, so the explanation states what the student actually did.
+  if (looksLikeSelfIntro) {
+    const selfIntroTemplates: TranslatedText = {
+      en: `You introduced yourself instead of answering what was asked ("${prompt}"). Make sure to respond directly to the actual question next time.`,
+      ru: `Вы представились вместо того, чтобы ответить на заданный вопрос («${prompt}»). В следующий раз отвечайте именно на заданный вопрос.`,
+      kz: `Сіз сұралғанға («${prompt}») жауап берудің орнына өзіңізді таныстырдыңыз. Келесі жолы нақты сұраққа жауап беруге тырысыңыз.`,
+    };
+    return selfIntroTemplates[language];
+  }
   const templates: TranslatedText = {
     en: `This answer doesn't address what was asked ("${prompt}"). Make sure to respond directly to the question before adding extra details.`,
     ru: `Этот ответ не отвечает на заданный вопрос («${prompt}»). Убедитесь, что вы отвечаете именно на вопрос, прежде чем добавлять детали.`,
@@ -447,6 +519,61 @@ function buildOffTopicNote(prompt: string, language: FeedbackLanguage): string {
   };
   return templates[language];
 }
+
+/** Real, transcript-grounded answer-structure analysis — checks whether the
+ * response actually contains a direct answer, supporting detail, an example
+ * (once the answer is developed enough that one would be expected), and a
+ * conclusion (once it's long enough that one would round it off), rather
+ * than a generic "good structure" note. */
+type StructureIssue = "not-relevant" | "missing-support" | "missing-example" | "missing-conclusion" | "none";
+
+const SUPPORTING_DETAIL_PATTERN = /\b(parce que|car|donc|puisque)\b/i;
+const EXAMPLE_PATTERN = /\b(par exemple|comme|tel que|telle que)\b/i;
+const CONCLUSION_PATTERN = /\b(donc|enfin|voilà|en résumé|bref|en conclusion)\b/i;
+
+function countSentences(text: string): number {
+  return text
+    .split(/[.!?]+/)
+    .map((s) => s.trim())
+    .filter(Boolean).length;
+}
+
+function classifyStructure(transcript: string, relevant: boolean, wordCount: number): StructureIssue {
+  if (!relevant) return "not-relevant";
+  const hasSupportingDetail = countSentences(transcript) >= 2 || SUPPORTING_DETAIL_PATTERN.test(transcript);
+  if (!hasSupportingDetail) return "missing-support";
+  if (wordCount >= 15 && !EXAMPLE_PATTERN.test(transcript)) return "missing-example";
+  if (wordCount >= 20 && !CONCLUSION_PATTERN.test(transcript)) return "missing-conclusion";
+  return "none";
+}
+
+const STRUCTURE_NOTES: Record<StructureIssue, TranslatedText> = {
+  "not-relevant": {
+    en: "Structure can't be fairly assessed here since the answer didn't address the question — focus on answering directly first, then build out detail.",
+    ru: "Оценить структуру здесь сложно, так как ответ не отвечал на вопрос — сначала сосредоточьтесь на прямом ответе, а затем добавляйте детали.",
+    kz: "Мұнда құрылымды әділ бағалау қиын, себебі жауап сұраққа жауап бермеді — алдымен тікелей жауап беруге назар аударып, содан кейін деталь қосыңыз.",
+  },
+  "missing-support": {
+    en: "The answer is a direct response but stays very brief — add a reason or detail (e.g. with \"parce que...\") to develop it further.",
+    ru: "Ответ прямой, но очень краткий — добавьте причину или деталь (например, с «parce que...»), чтобы развить мысль.",
+    kz: "Жауап тікелей, бірақ өте қысқа — оны дамыту үшін себеп немесе деталь қосыңыз (мысалы, «parce que...» арқылы).",
+  },
+  "missing-example": {
+    en: "The answer is developed but doesn't include a concrete example — try adding one with \"par exemple...\" to strengthen it.",
+    ru: "Ответ развёрнут, но не содержит конкретного примера — попробуйте добавить его через «par exemple...», чтобы усилить ответ.",
+    kz: "Жауап дамытылған, бірақ нақты мысал жоқ — оны күшейту үшін «par exemple...» арқылы мысал қосып көріңіз.",
+  },
+  "missing-conclusion": {
+    en: "The answer covers the main point well but doesn't wrap up — a short closing phrase (e.g. \"donc...\" or \"voilà\") would round it off.",
+    ru: "Ответ хорошо раскрывает суть, но не завершён — короткая заключительная фраза (например, «donc...» или «voilà») сделала бы его более законченным.",
+    kz: "Жауап негізгі ойды жақсы ашады, бірақ аяқталмаған — қысқа қорытынды тіркес (мысалы, «donc...» немесе «voilà») оны толықтырар еді.",
+  },
+  none: {
+    en: "Well-structured: a direct answer, developed with supporting detail, in a clear order.",
+    ru: "Хорошо структурировано: прямой ответ, развитый с помощью деталей, в чёткой последовательности.",
+    kz: "Жақсы құрылымдалған: тікелей жауап, деталдармен дамытылған, анық ретпен берілген.",
+  },
+};
 
 const MOCK_SPEAKING_PROFILES: Record<DelfLevel, MockSpeakingLevelProfile> = {
   A1: {
@@ -1024,6 +1151,11 @@ export interface TurnSelection {
   prompt: string;
   wordCount: number;
   relevant: boolean;
+  /** True when the transcript reads as a self-introduction, regardless of
+   * whether that's what was asked — used to explain off-topic answers
+   * precisely instead of with a generic mismatch note. */
+  looksLikeSelfIntro: boolean;
+  structureIssue: StructureIssue;
   matchedMistakes: { ruleId: string; original: string; correction: string }[];
   fillerCount: number;
   mispronuncedWords: string[];
@@ -1057,6 +1189,8 @@ export function analyzeTurn(
 ): TurnSelection {
   const profile = MOCK_SPEAKING_PROFILES[level];
   const relevant = computeRelevance(prompt, responseText, wordCount);
+  const looksLikeSelfIntro = UNAMBIGUOUS_SELF_INTRO_PATTERN.test(responseText);
+  const structureIssue = classifyStructure(responseText, relevant, wordCount);
   const fillerCount = countFillerWords(responseText);
   const matchedMistakes = findGrammarMistakes(responseText);
 
@@ -1081,6 +1215,8 @@ export function analyzeTurn(
     prompt,
     wordCount,
     relevant,
+    looksLikeSelfIntro,
+    structureIssue,
     matchedMistakes,
     fillerCount,
     mispronuncedWords,
@@ -1123,7 +1259,7 @@ export function localizeTurnFeedback(
     ? profile.taskCompletionNotes[
         Math.floor(Math.random() * profile.taskCompletionNotes.length)
       ][language]
-    : buildOffTopicNote(selection.prompt, language);
+    : buildOffTopicNote(selection.prompt, selection.looksLikeSelfIntro, language);
   const coherenceNote =
     profile.coherenceNotes[Math.floor(Math.random() * profile.coherenceNotes.length)][language];
   const sentenceVarietyNote =
@@ -1160,12 +1296,14 @@ export function localizeTurnFeedback(
     pronunciationNote,
     mispronuncedWords,
     naturalnessNote,
+    structureNote: STRUCTURE_NOTES[selection.structureIssue][language],
     strengths,
     areasForImprovement,
     suggestions,
-    // Fabricating a fake model answer would be worse than omitting it —
-    // this becomes real once ANTHROPIC_API_KEY is configured (see
-    // lib/ai/speaking-evaluator.ts's evaluateTurnWithClaude).
+    // Populated client-side from the question's curated model answer when
+    // available (see speaking/page.tsx's handleSubmitTurn) — the mock
+    // evaluator itself has no way to grade against a specific answer, so it
+    // never fabricates one here.
     betterExampleAnswer: null,
     encouragement: encouragement[language],
     turnScore: selection.turnScore,
@@ -1242,10 +1380,58 @@ const CONSISTENCY_WEAKNESS: TranslatedText = {
   kz: "Сессияның екінші бөлігінде нәтиже төмендеді — соңына дейін қарқынды сақтауға тырысыңыз",
 };
 
+const LOW_VOCABULARY_VARIETY_WEAKNESS: TranslatedText = {
+  en: "Vocabulary was fairly repetitive across answers — the same words came up often instead of varied alternatives",
+  ru: "Словарный запас был довольно однообразным в ответах — часто повторялись одни и те же слова вместо разных альтернатив",
+  kz: "Жауаптарда сөздік қор біршама бірыңғай болды — әртүрлі баламалардың орнына бір сөздер жиі қайталанды",
+};
+
+const LOW_VOCABULARY_VARIETY_SUGGESTION: TranslatedText = {
+  en: "Before your next session, note 2-3 synonyms for words you use often, and try working them into your answers",
+  ru: "Перед следующей сессией запишите 2-3 синонима для часто используемых слов и постарайтесь использовать их в ответах",
+  kz: "Келесі сессияға дейін жиі қолданатын сөздерге 2-3 синоним жазып алып, оларды жауаптарыңызға қосуға тырысыңыз",
+};
+
 const RE_READ_QUESTION_SUGGESTION: TranslatedText = {
   en: "Before answering, repeat the question in your head to make sure you address exactly what's asked",
   ru: "Перед ответом мысленно повторите вопрос, чтобы убедиться, что вы отвечаете именно на него",
   kz: "Жауап бермес бұрын сұрақты ойыңызда қайталап, нақты соған жауап беріп жатқаныңызға көз жеткізіңіз",
+};
+
+const RECURRING_STRUCTURE_WEAKNESS: Record<Exclude<StructureIssue, "not-relevant" | "none">, TranslatedText> = {
+  "missing-support": {
+    en: "Several answers stayed too brief without a supporting reason or detail",
+    ru: "Несколько ответов оставались слишком краткими без причины или детали",
+    kz: "Бірнеше жауап себеп немесе деталсыз тым қысқа қалды",
+  },
+  "missing-example": {
+    en: "Several developed answers didn't include a concrete example",
+    ru: "В нескольких развёрнутых ответах не было конкретного примера",
+    kz: "Бірнеше дамытылған жауапта нақты мысал болмады",
+  },
+  "missing-conclusion": {
+    en: "Several longer answers didn't wrap up with a closing statement",
+    ru: "Несколько более длинных ответов не завершались заключительной фразой",
+    kz: "Бірнеше ұзақ жауап қорытынды сөйлемсіз аяқталды",
+  },
+};
+
+const RECURRING_STRUCTURE_SUGGESTION: Record<Exclude<StructureIssue, "not-relevant" | "none">, TranslatedText> = {
+  "missing-support": {
+    en: "Add at least one reason or detail to each answer, e.g. with \"parce que...\"",
+    ru: "Добавляйте хотя бы одну причину или деталь к каждому ответу, например с «parce que...»",
+    kz: "Әр жауапқа кемінде бір себеп немесе деталь қосыңыз, мысалы «parce que...» арқылы",
+  },
+  "missing-example": {
+    en: "Practice adding a concrete example to longer answers with \"par exemple...\"",
+    ru: "Тренируйтесь добавлять конкретный пример к более длинным ответам через «par exemple...»",
+    kz: "Ұзағырақ жауаптарға «par exemple...» арқылы нақты мысал қосуды жаттығыңыз",
+  },
+  "missing-conclusion": {
+    en: "Close longer answers with a short wrap-up phrase like \"donc...\" or \"voilà\"",
+    ru: "Завершайте более длинные ответы короткой заключительной фразой вроде «donc...» или «voilà»",
+    kz: "Ұзағырақ жауаптарды «donc...» немесе «voilà» сияқты қысқа қорытынды тіркеспен аяқтаңыз",
+  },
 };
 
 function buildPracticeWordsSuggestion(words: string[]): TranslatedText {
@@ -1325,6 +1511,26 @@ export function synthesizeReportFromTurns(
     .filter(([, count]) => count >= 2)
     .map(([word]) => word);
 
+  // Recurring structure gaps: re-classify each turn's real transcript (the
+  // per-turn StructureIssue itself isn't stored on CompletedTurn, so this
+  // re-derives it from the same real data rather than adding a new field).
+  const structureIssueCounts = new Map<Exclude<StructureIssue, "not-relevant" | "none">, number>();
+  for (const t of completedTurns) {
+    const issue = classifyStructure(t.transcript, t.feedback.relevance, t.wordCount);
+    if (issue === "not-relevant" || issue === "none") continue;
+    structureIssueCounts.set(issue, (structureIssueCounts.get(issue) ?? 0) + 1);
+  }
+  const recurringStructureIssue = [...structureIssueCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+  const hasRecurringStructureIssue = !!recurringStructureIssue && recurringStructureIssue[1] >= 2;
+
+  // Vocabulary breadth: unique content words ÷ total content words across
+  // the whole session — a real, bounded signal instead of a static note.
+  // Only judged once there's enough text for the ratio to mean anything.
+  const fullContentWords = extractContentWords(fullTranscript);
+  const uniqueContentWordCount = new Set(fullContentWords).size;
+  const vocabularyRatio = fullContentWords.length > 0 ? uniqueContentWordCount / fullContentWords.length : 1;
+  const hasLowVocabularyVariety = fullContentWords.length >= 15 && vocabularyRatio < 0.55;
+
   const average = (nums: number[]) => (nums.length === 0 ? 0 : nums.reduce((a, b) => a + b, 0) / nums.length);
   const half = Math.ceil(total / 2);
   const firstHalfAvg = average(completedTurns.slice(0, half).map((t) => t.feedback.turnScore));
@@ -1359,6 +1565,10 @@ export function synthesizeReportFromTurns(
     dynamicWeaknesses.push(buildRecurringPronunciationNote(recurringMispronounced)[language]);
   }
   if (declined) dynamicWeaknesses.push(CONSISTENCY_WEAKNESS[language]);
+  if (hasRecurringStructureIssue) {
+    dynamicWeaknesses.push(RECURRING_STRUCTURE_WEAKNESS[recurringStructureIssue[0]][language]);
+  }
+  if (hasLowVocabularyVariety) dynamicWeaknesses.push(LOW_VOCABULARY_VARIETY_WEAKNESS[language]);
   const weaknesses =
     dynamicWeaknesses.length > 0
       ? dynamicWeaknesses.slice(0, 3)
@@ -1368,6 +1578,10 @@ export function synthesizeReportFromTurns(
   if (irrelevantCount > 0) dynamicSuggestions.push(RE_READ_QUESTION_SUGGESTION[language]);
   if (recurringMispronounced.length > 0) dynamicSuggestions.push(buildPracticeWordsSuggestion(recurringMispronounced)[language]);
   if (commonErrors.length > 0) dynamicSuggestions.push(HOW_TO_AVOID_BY_CATEGORY[commonErrors[0].category][language]);
+  if (hasRecurringStructureIssue) {
+    dynamicSuggestions.push(RECURRING_STRUCTURE_SUGGESTION[recurringStructureIssue[0]][language]);
+  }
+  if (hasLowVocabularyVariety) dynamicSuggestions.push(LOW_VOCABULARY_VARIETY_SUGGESTION[language]);
   const suggestions =
     dynamicSuggestions.length >= 2
       ? dynamicSuggestions.slice(0, 3)
