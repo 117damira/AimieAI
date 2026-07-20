@@ -1,14 +1,14 @@
 import { DELF_SPEAKING_LEVELS } from "@/config/delf-speaking";
 import type { DelfLevel, FeedbackLanguage, GrammarError } from "@/types/writing-evaluation";
-import type { SpeakingExaminerReport, TurnFeedback } from "@/types/speaking-evaluation";
+import type { CompletedTurn, SpeakingExaminerReport, TurnFeedback } from "@/types/speaking-evaluation";
 
 /**
- * Mock DELF speaking evaluator, mirroring lib/mock/writing-evaluation.ts's
- * two-phase design so a real Claude call can replace it later without
- * touching the response contract or the UI:
- *  - analyzeTurn() / analyzeSession(): language-neutral, has randomness.
- *  - localizeTurnFeedback() / localizeReport(): pure, safe to call on the
- *    client for instant re-translation.
+ * Offline fallback DELF speaking evaluator, used by the API routes when no
+ * ANTHROPIC_API_KEY is configured (see lib/ai/speaking-evaluator.ts for the
+ * real Claude path, which returns the same TurnFeedback/SpeakingExaminerReport
+ * shapes). analyzeTurn()/localizeTurnFeedback() evaluate one turn at a time;
+ * synthesizeReportFromTurns() aggregates the real accumulated CompletedTurn
+ * data (actual transcripts, scores, grammar errors) into a final report.
  *
  * Exam prompts and the student's own answers stay in French; only this
  * AI-generated feedback text is translated.
@@ -629,6 +629,10 @@ export function localizeTurnFeedback(
     profile.vocabularyRangeNotes[
       Math.floor(Math.random() * profile.vocabularyRangeNotes.length)
     ][language];
+  const pronunciationNote =
+    profile.pronunciationNotes[
+      Math.floor(Math.random() * profile.pronunciationNotes.length)
+    ][language];
 
   const encouragement: TranslatedText = selection.relevant
     ? {
@@ -647,69 +651,26 @@ export function localizeTurnFeedback(
     grammarErrors,
     vocabularyNote,
     fluencyNote,
+    pronunciationNote,
     encouragement: encouragement[language],
+    turnScore: selection.turnScore,
   };
 }
 
-/** Language-neutral aggregate of a full session — safe to keep in client
- * state and re-localize instantly. */
-export interface ReportSelection {
-  level: DelfLevel;
-  totalQuestions: number;
-  partsCompleted: string[];
-  repeatedErrorIds: string[];
-  fillerTotal: number;
-  fillerExamples: string[];
-  strengthIndices: number[];
-  weaknessIndices: number[];
-  tipIndices: number[];
-  estimatedScore: number;
-  scoreOutOf: number;
-}
-
-export function analyzeSession(
-  turnSelections: TurnSelection[],
-  level: DelfLevel
-): ReportSelection {
-  const profile = MOCK_SPEAKING_PROFILES[level];
-  const levelConfig = DELF_SPEAKING_LEVELS[level];
-
-  const errorCounts = new Map<string, number>();
-  for (const turn of turnSelections) {
-    for (const id of turn.selectedErrorIds) {
-      errorCounts.set(id, (errorCounts.get(id) ?? 0) + 1);
+/** Finds grammar mistakes that recurred across at least two turns —
+ * grouped by category+original text since real per-turn feedback carries
+ * full GrammarError objects, not ids into a shared pool. */
+function findRepeatedErrors(completedTurns: CompletedTurn[]): GrammarError[] {
+  const counts = new Map<string, { error: GrammarError; count: number }>();
+  for (const turn of completedTurns) {
+    for (const error of turn.feedback.grammarErrors) {
+      const key = `${error.category}:${error.original}`;
+      const existing = counts.get(key);
+      if (existing) existing.count += 1;
+      else counts.set(key, { error, count: 1 });
     }
   }
-  const repeatedErrorIds = [...errorCounts.entries()]
-    .filter(([, count]) => count >= 2)
-    .map(([id]) => id);
-
-  const fillerTotal = turnSelections.reduce((sum, t) => sum + t.fillerCount, 0);
-  const fillerExamples = FILLER_WORDS.slice(0, Math.min(3, fillerTotal > 0 ? 3 : 0));
-
-  const partsCompleted = levelConfig.parts.map((part) => part.partLabel);
-
-  const averageScore =
-    turnSelections.reduce((sum, t) => sum + t.turnScore, 0) / Math.max(1, turnSelections.length);
-  const jitter = Math.floor(Math.random() * 3) - 1;
-  const estimatedScore = Math.max(5, Math.min(25, Math.round(averageScore) + jitter));
-
-  return {
-    level,
-    totalQuestions: turnSelections.length,
-    partsCompleted,
-    repeatedErrorIds,
-    fillerTotal,
-    fillerExamples,
-    strengthIndices: pickIndices(profile.strengths.length, 3),
-    weaknessIndices: pickIndices(
-      profile.weaknesses.length,
-      Math.min(2, profile.weaknesses.length)
-    ),
-    tipIndices: pickIndices(profile.improvementTips.length, 3),
-    estimatedScore,
-    scoreOutOf: 25,
-  };
+  return [...counts.values()].filter((v) => v.count >= 2).map((v) => v.error);
 }
 
 const TASK_COMPLETION_SUMMARY = {
@@ -751,32 +712,52 @@ const SCORE_EXPLANATION = {
   }),
 };
 
-export function localizeReport(
-  selection: ReportSelection,
+/** Offline fallback (no ANTHROPIC_API_KEY configured) — unlike the old
+ * random session synthesis, this aggregates the real accumulated per-turn
+ * data (actual transcripts, actual scores, actual grammar errors already
+ * produced per-turn) instead of re-rolling its own report independently. */
+export function synthesizeReportFromTurns(
+  completedTurns: CompletedTurn[],
+  level: DelfLevel,
   language: FeedbackLanguage
 ): SpeakingExaminerReport {
-  const profile = MOCK_SPEAKING_PROFILES[selection.level];
+  const profile = MOCK_SPEAKING_PROFILES[level];
+  const levelConfig = DELF_SPEAKING_LEVELS[level];
 
-  const commonErrors: GrammarError[] = selection.repeatedErrorIds.map((id) => {
-    const template = profile.grammarPool.find((e) => e.id === id)!;
-    return {
-      original: template.original,
-      correction: template.correction,
-      category: template.category,
-      explanation: template.explanation[language],
-    };
-  });
+  const commonErrors = findRepeatedErrors(completedTurns);
 
-  const ratio = selection.estimatedScore / selection.scoreOutOf;
+  const fullTranscript = completedTurns.map((t) => t.transcript).join(" ");
+  const fillerTotal = countFillerWords(fullTranscript);
+  const fillerExamples = FILLER_WORDS.filter((word) =>
+    new RegExp(`\\b${word.replace(/\s+/g, "\\s+")}\\b`, "i").test(fullTranscript)
+  ).slice(0, 3);
+
+  const completedPartIds = new Set(completedTurns.map((t) => t.partId));
+  const partsCompleted = levelConfig.parts
+    .filter((part) => completedPartIds.has(part.id))
+    .map((part) => part.partLabel);
+
+  const estimatedScore = Math.max(
+    5,
+    Math.min(
+      25,
+      Math.round(
+        completedTurns.reduce((sum, t) => sum + t.feedback.turnScore, 0) /
+          Math.max(1, completedTurns.length)
+      )
+    )
+  );
+  const scoreOutOf = 25;
+  const ratio = estimatedScore / scoreOutOf;
   const tier = ratio >= 0.75 ? "strong" : ratio >= 0.5 ? "borderline" : "weak";
 
   return {
-    level: selection.level,
-    totalQuestions: selection.totalQuestions,
+    level,
+    totalQuestions: completedTurns.length,
     grammar: {
       summary:
         commonErrors.length > 0
-          ? GRAMMAR_SUMMARY.withErrors(commonErrors.length, selection.level)[language]
+          ? GRAMMAR_SUMMARY.withErrors(commonErrors.length, level)[language]
           : GRAMMAR_SUMMARY.noErrors[language],
       commonErrors,
     },
@@ -797,23 +778,19 @@ export function localizeReport(
       pace: profile.fluencyNotes[Math.min(1, profile.fluencyNotes.length - 1)][language],
     },
     taskCompletion: {
-      summary: TASK_COMPLETION_SUMMARY.complete(selection.level)[language],
-      partsCompleted: selection.partsCompleted,
+      summary: TASK_COMPLETION_SUMMARY.complete(level)[language],
+      partsCompleted,
     },
     repeatedMistakes: commonErrors.map((e) => `${e.original} → ${e.correction}`),
     fillerWords: {
-      count: selection.fillerTotal,
-      examples: selection.fillerExamples,
+      count: fillerTotal,
+      examples: fillerExamples,
     },
-    strengths: selection.strengthIndices.map((i) => profile.strengths[i][language]),
-    weaknesses: selection.weaknessIndices.map((i) => profile.weaknesses[i][language]),
-    suggestions: selection.tipIndices.map((i) => profile.improvementTips[i][language]),
-    estimatedScore: selection.estimatedScore,
-    scoreOutOf: selection.scoreOutOf,
-    scoreExplanation: SCORE_EXPLANATION[tier](
-      selection.level,
-      selection.estimatedScore,
-      selection.scoreOutOf
-    )[language],
+    strengths: profile.strengths.slice(0, 3).map((s) => s[language]),
+    weaknesses: profile.weaknesses.slice(0, Math.min(2, profile.weaknesses.length)).map((w) => w[language]),
+    suggestions: profile.improvementTips.slice(0, 3).map((s) => s[language]),
+    estimatedScore,
+    scoreOutOf,
+    scoreExplanation: SCORE_EXPLANATION[tier](level, estimatedScore, scoreOutOf)[language],
   };
 }

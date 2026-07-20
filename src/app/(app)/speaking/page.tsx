@@ -1,26 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Loader2, AlertCircle } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Loader2, AlertCircle, Volume2 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { resolvePracticeLevel } from "@/lib/utils/level";
 import { DELF_SPEAKING_LEVELS, flattenSpeakingParts } from "@/config/delf-speaking";
-import {
-  localizeTurnFeedback,
-  localizeReport,
-  type TurnSelection,
-  type ReportSelection,
-} from "@/lib/mock/speaking-evaluation";
+import { speak, EXAM_SPEECH_LOCALE, FEEDBACK_SPEECH_LOCALES } from "@/lib/utils/voice";
+import type { CompletedTurn, SpeakingExaminerReport, TurnFeedback } from "@/types/speaking-evaluation";
 import type { FeedbackLanguage } from "@/types/writing-evaluation";
 import { SpeakingModeSelect } from "@/components/speaking/SpeakingModeSelect";
 import { SpeakingProgressStepper } from "@/components/speaking/SpeakingProgressStepper";
 import { SpeakingQuestionCard } from "@/components/speaking/SpeakingQuestionCard";
 import { SpeakingResponseInput } from "@/components/speaking/SpeakingResponseInput";
 import { SpeakingTurnFeedback } from "@/components/speaking/SpeakingTurnFeedback";
-import { SpeakingExaminerReport } from "@/components/speaking/SpeakingExaminerReport";
+import { SpeakingExaminerReport as SpeakingExaminerReportView } from "@/components/speaking/SpeakingExaminerReport";
 import { cn } from "@/lib/utils/cn";
 
 const FEEDBACK_LANGUAGES: FeedbackLanguage[] = ["en", "ru", "kz"];
@@ -29,7 +25,17 @@ const LANGUAGE_LABELS: Record<FeedbackLanguage, string> = { en: "EN", ru: "RU", 
 type Mode = "select" | "live" | "written";
 type Phase = "asking" | "evaluating-turn" | "turn-feedback" | "compiling-report" | "report";
 
-const LIVE_AUTO_ADVANCE_DELAY_MS = 2200;
+/** Short pause after the AI finishes speaking feedback, before auto-advancing. */
+const LIVE_FEEDBACK_ADVANCE_BUFFER_MS = 900;
+
+interface TurnRequestBody {
+  partId: string;
+  partLabel: string;
+  questionId: string;
+  prompt: string;
+  transcript: string;
+  recognitionConfidence: number | null;
+}
 
 export default function SpeakingPracticePage() {
   const { profile, recordActivity } = useUserProfile();
@@ -41,37 +47,46 @@ export default function SpeakingPracticePage() {
   const [mode, setMode] = useState<Mode>("select");
   const [phase, setPhase] = useState<Phase>("asking");
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [responseText, setResponseText] = useState("");
   const [language, setLanguage] = useState<FeedbackLanguage>("en");
-  const [turnSelections, setTurnSelections] = useState<TurnSelection[]>([]);
-  const [currentTurnSelection, setCurrentTurnSelection] = useState<TurnSelection | null>(null);
-  const [reportSelection, setReportSelection] = useState<ReportSelection | null>(null);
+  const [completedTurns, setCompletedTurns] = useState<CompletedTurn[]>([]);
+  const [currentFeedback, setCurrentFeedback] = useState<TurnFeedback | null>(null);
+  const [report, setReport] = useState<SpeakingExaminerReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isChangingLanguage, setIsChangingLanguage] = useState(false);
 
+  const lastTurnRequestRef = useRef<TurnRequestBody | null>(null);
   const currentItem = queue[currentIndex];
-  const turnFeedback = currentTurnSelection
-    ? localizeTurnFeedback(currentTurnSelection, language)
-    : null;
-  const report = reportSelection ? localizeReport(reportSelection, language) : null;
 
-  async function handleFinish(selections: TurnSelection[]) {
+  async function fetchTurnFeedback(body: TurnRequestBody, lang: FeedbackLanguage): Promise<TurnFeedback> {
+    const res = await fetch("/api/speaking/evaluate-turn", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ level, ...body, language: lang }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t.speaking.evaluationFailed);
+    return data.feedback as TurnFeedback;
+  }
+
+  async function fetchReport(turns: CompletedTurn[], lang: FeedbackLanguage): Promise<SpeakingExaminerReport> {
+    const res = await fetch("/api/speaking/report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ level, language: lang, completedTurns: turns }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t.speaking.reportGenerationFailed);
+    return data.report as SpeakingExaminerReport;
+  }
+
+  async function handleFinish(turns: CompletedTurn[]) {
     setPhase("compiling-report");
     setError(null);
     try {
-      const res = await fetch("/api/speaking/report", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ level, language, turnSelections: selections }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t.speaking.reportGenerationFailed);
-      const nextSelection = data.selection as ReportSelection;
-      setReportSelection(nextSelection);
+      const nextReport = await fetchReport(turns, language);
+      setReport(nextReport);
       setPhase("report");
-      recordActivity(
-        "speaking",
-        Math.round((nextSelection.estimatedScore / nextSelection.scoreOutOf) * 100)
-      );
+      recordActivity("speaking", Math.round((nextReport.estimatedScore / nextReport.scoreOutOf) * 100));
     } catch (err) {
       setError(err instanceof Error ? err.message : t.common.somethingWentWrong);
       setPhase("turn-feedback");
@@ -81,43 +96,62 @@ export default function SpeakingPracticePage() {
   function handleContinue() {
     if (currentIndex + 1 < queue.length) {
       setCurrentIndex((i) => i + 1);
-      setCurrentTurnSelection(null);
+      setCurrentFeedback(null);
       setPhase("asking");
     } else {
-      void handleFinish(turnSelections);
+      void handleFinish(completedTurns);
     }
   }
 
+  // Live mode: speak each new question aloud in French as soon as it appears.
   useEffect(() => {
-    if (mode === "live" && phase === "turn-feedback") {
-      const timer = setTimeout(handleContinue, LIVE_AUTO_ADVANCE_DELAY_MS);
-      return () => clearTimeout(timer);
+    if (mode === "live" && phase === "asking" && currentItem) {
+      void speak(currentItem.prompt, EXAM_SPEECH_LOCALE);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, phase]);
+  }, [mode, phase, currentIndex]);
 
-  async function handleSubmitTurn() {
-    if (!responseText.trim() || !currentItem) return;
+  // Live mode: speak the feedback summary, then auto-advance once it finishes.
+  useEffect(() => {
+    if (mode !== "live" || phase !== "turn-feedback" || !currentFeedback) return;
+    let cancelled = false;
+    const spokenSummary = [
+      currentFeedback.relevance ? t.speaking.answeredQuestion : t.speaking.needsMoreDevelopment,
+      currentFeedback.encouragement,
+    ].join(". ");
+    speak(spokenSummary, FEEDBACK_SPEECH_LOCALES[language]).then(() => {
+      if (cancelled) return;
+      setTimeout(() => {
+        if (!cancelled) handleContinue();
+      }, LIVE_FEEDBACK_ADVANCE_BUFFER_MS);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, phase, currentFeedback]);
+
+  async function handleSubmitTurn(transcript: string, confidence: number | null) {
+    if (!currentItem) return;
     setPhase("evaluating-turn");
     setError(null);
+    const requestBody: TurnRequestBody = {
+      partId: currentItem.partId,
+      partLabel: currentItem.partLabel,
+      questionId: currentItem.questionId,
+      prompt: currentItem.prompt,
+      transcript,
+      recognitionConfidence: confidence,
+    };
+    lastTurnRequestRef.current = requestBody;
     try {
-      const res = await fetch("/api/speaking/evaluate-turn", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          level,
-          partId: currentItem.partId,
-          questionId: currentItem.questionId,
-          responseText,
-          language,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t.speaking.evaluationFailed);
-      const selection = data.selection as TurnSelection;
-      setTurnSelections((prev) => [...prev, selection]);
-      setCurrentTurnSelection(selection);
-      setResponseText("");
+      const feedback = await fetchTurnFeedback(requestBody, language);
+      const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
+      setCompletedTurns((prev) => [
+        ...prev,
+        { partId: currentItem.partId, questionId: currentItem.questionId, transcript, wordCount, feedback },
+      ]);
+      setCurrentFeedback(feedback);
       setPhase("turn-feedback");
     } catch (err) {
       setError(err instanceof Error ? err.message : t.common.somethingWentWrong);
@@ -125,15 +159,47 @@ export default function SpeakingPracticePage() {
     }
   }
 
+  async function handleLanguageChange(newLang: FeedbackLanguage) {
+    setLanguage(newLang);
+    if (phase === "turn-feedback" && lastTurnRequestRef.current) {
+      setIsChangingLanguage(true);
+      try {
+        const feedback = await fetchTurnFeedback(lastTurnRequestRef.current, newLang);
+        setCurrentFeedback(feedback);
+        setCompletedTurns((prev) =>
+          prev.length === 0 ? prev : [...prev.slice(0, -1), { ...prev[prev.length - 1], feedback }]
+        );
+      } catch {
+        // Keep showing the previous-language feedback rather than erroring out.
+      } finally {
+        setIsChangingLanguage(false);
+      }
+    } else if (phase === "report") {
+      setIsChangingLanguage(true);
+      try {
+        const nextReport = await fetchReport(completedTurns, newLang);
+        setReport(nextReport);
+      } catch {
+        // Keep showing the previous-language report rather than erroring out.
+      } finally {
+        setIsChangingLanguage(false);
+      }
+    }
+  }
+
+  function handleRepeatQuestion() {
+    if (currentItem) void speak(currentItem.prompt, EXAM_SPEECH_LOCALE);
+  }
+
   function handleSelectMode(next: "live" | "written") {
     setMode(next);
     setPhase("asking");
     setCurrentIndex(0);
-    setResponseText("");
-    setTurnSelections([]);
-    setCurrentTurnSelection(null);
-    setReportSelection(null);
+    setCompletedTurns([]);
+    setCurrentFeedback(null);
+    setReport(null);
     setError(null);
+    lastTurnRequestRef.current = null;
   }
 
   function handleRestart() {
@@ -147,6 +213,8 @@ export default function SpeakingPracticePage() {
       <PageHeader
         title={t.speaking.pageTitle}
         description={t.speaking.pageDescription}
+        onBack={mode !== "select" ? handleRestart : undefined}
+        backLabel={t.common.back}
       />
 
       {error && (
@@ -170,7 +238,11 @@ export default function SpeakingPracticePage() {
                 partLabel={currentItem.partLabel}
               />
             </div>
-            <LanguagePicker language={language} onChange={setLanguage} />
+            <LanguagePicker
+              language={language}
+              onChange={handleLanguageChange}
+              disabled={isChangingLanguage}
+            />
           </div>
 
           {(phase === "asking" || phase === "evaluating-turn") && (
@@ -180,18 +252,22 @@ export default function SpeakingPracticePage() {
                 prompt={currentItem.prompt}
                 suggestedDurationSeconds={currentItem.suggestedDurationSeconds}
               />
+              {mode === "live" && phase === "asking" && (
+                <Button variant="secondary" size="sm" className="self-start" onClick={handleRepeatQuestion}>
+                  <Volume2 className="h-4 w-4" />
+                  {t.speaking.repeatQuestion}
+                </Button>
+              )}
               <SpeakingResponseInput
-                value={responseText}
-                onChange={setResponseText}
                 onSubmit={handleSubmitTurn}
                 isSubmitting={phase === "evaluating-turn"}
               />
             </>
           )}
 
-          {phase === "turn-feedback" && turnFeedback && (
+          {phase === "turn-feedback" && currentFeedback && (
             <SpeakingTurnFeedback
-              feedback={turnFeedback}
+              feedback={currentFeedback}
               onContinue={handleContinue}
               continueLabel={
                 currentIndex + 1 < queue.length
@@ -224,10 +300,14 @@ export default function SpeakingPracticePage() {
                   {levelConfig.label}
                 </CardDescription>
               </div>
-              <LanguagePicker language={language} onChange={setLanguage} />
+              <LanguagePicker
+                language={language}
+                onChange={handleLanguageChange}
+                disabled={isChangingLanguage}
+              />
             </CardHeader>
           </Card>
-          <SpeakingExaminerReport report={report} />
+          <SpeakingExaminerReportView report={report} />
           <div className="flex justify-end">
             <Button variant="secondary" onClick={handleRestart}>
               {t.speaking.practiceAgain}
@@ -242,9 +322,11 @@ export default function SpeakingPracticePage() {
 function LanguagePicker({
   language,
   onChange,
+  disabled,
 }: {
   language: FeedbackLanguage;
   onChange: (lang: FeedbackLanguage) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex items-center gap-1 rounded-full border border-border bg-background p-1">
@@ -253,9 +335,10 @@ function LanguagePicker({
           key={lang}
           type="button"
           onClick={() => onChange(lang)}
+          disabled={disabled}
           aria-pressed={language === lang}
           className={cn(
-            "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+            "rounded-full px-3 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
             language === lang
               ? "bg-primary-600 text-white"
               : "text-muted hover:text-foreground"

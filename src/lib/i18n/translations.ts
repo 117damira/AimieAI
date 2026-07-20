@@ -187,11 +187,15 @@ export interface Dictionary {
     questionProgress: (current: number, total: number, part: string) => string;
     minutesUnit: (n: number) => string;
     yourAnswer: string;
-    typeResponseBelow: string;
-    voiceComingSoon: string;
+    speakYourAnswer: string;
+    tapToSpeak: string;
+    listening: string;
+    stopRecording: string;
+    micNotSupportedError: string;
+    micPermissionDeniedError: string;
+    noSpeechDetectedError: string;
+    repeatQuestion: string;
     analyzing: string;
-    submitAnswer: string;
-    responsePlaceholder: string;
     examinerFeedback: string;
     answeredQuestion: string;
     needsMoreDevelopment: string;
@@ -620,11 +624,15 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       questionProgress: (current, total, part) => `Question ${current} of ${total} · ${part}`,
       minutesUnit: (n) => `~${n} min`,
       yourAnswer: "Your Answer",
-      typeResponseBelow: "Type your response below (voice recording is coming soon).",
-      voiceComingSoon: "Voice recording (coming soon)",
+      speakYourAnswer: "Answer using your voice — tap the microphone to start.",
+      tapToSpeak: "Tap to speak",
+      listening: "Listening...",
+      stopRecording: "Stop recording",
+      micNotSupportedError: "Voice input isn't supported in this browser. Please use Chrome or Edge.",
+      micPermissionDeniedError: "Microphone access was denied. Please allow microphone access and try again.",
+      noSpeechDetectedError: "No speech was detected. Please try again.",
+      repeatQuestion: "Repeat question",
       analyzing: "Analyzing...",
-      submitAnswer: "Submit answer",
-      responsePlaceholder: "Write your response here...",
       examinerFeedback: "Examiner feedback",
       answeredQuestion: "Answered the question",
       needsMoreDevelopment: "Needs more development",
@@ -1077,11 +1085,15 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       questionProgress: (current, total, part) => `Вопрос ${current} из ${total} · ${part}`,
       minutesUnit: (n) => `~${n} мин`,
       yourAnswer: "Ваш ответ",
-      typeResponseBelow: "Введите ваш ответ ниже (запись голоса скоро появится).",
-      voiceComingSoon: "Запись голоса (скоро)",
+      speakYourAnswer: "Отвечайте голосом — нажмите на микрофон, чтобы начать.",
+      tapToSpeak: "Нажмите, чтобы говорить",
+      listening: "Слушаю...",
+      stopRecording: "Остановить запись",
+      micNotSupportedError: "Голосовой ввод не поддерживается в этом браузере. Используйте Chrome или Edge.",
+      micPermissionDeniedError: "Доступ к микрофону отклонён. Разрешите доступ к микрофону и попробуйте снова.",
+      noSpeechDetectedError: "Речь не обнаружена. Попробуйте ещё раз.",
+      repeatQuestion: "Повторить вопрос",
       analyzing: "Анализируем...",
-      submitAnswer: "Отправить ответ",
-      responsePlaceholder: "Напишите ваш ответ здесь...",
       examinerFeedback: "Отзыв экзаменатора",
       answeredQuestion: "Ответ по существу",
       needsMoreDevelopment: "Нужно развить ответ",
@@ -1539,11 +1551,15 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       questionProgress: (current, total, part) => `${total} сұрақтың ${current}-і · ${part}`,
       minutesUnit: (n) => `~${n} мин`,
       yourAnswer: "Сіздің жауабыңыз",
-      typeResponseBelow: "Жауабыңызды төменде теріңіз (дауыс жазу жақында қосылады).",
-      voiceComingSoon: "Дауыс жазу (жақында)",
+      speakYourAnswer: "Дауысыңызбен жауап беріңіз — бастау үшін микрофонды басыңыз.",
+      tapToSpeak: "Сөйлеу үшін басыңыз",
+      listening: "Тыңдап тұрмын...",
+      stopRecording: "Жазуды тоқтату",
+      micNotSupportedError: "Бұл браузерде дауыстық енгізу қолдау таппайды. Chrome немесе Edge пайдаланыңыз.",
+      micPermissionDeniedError: "Микрофонға қол жеткізу тыйым салынды. Микрофонға рұқсат беріп, қайта көріңіз.",
+      noSpeechDetectedError: "Сөйлеу анықталмады. Қайта көріңіз.",
+      repeatQuestion: "Сұрақты қайталау",
       analyzing: "Талдануда...",
-      submitAnswer: "Жауапты жіберу",
-      responsePlaceholder: "Жауабыңызды осында жазыңыз...",
       examinerFeedback: "Емтихан алушының пікірі",
       answeredQuestion: "Сұраққа мазмұнды жауап берілді",
       needsMoreDevelopment: "Жауапты толықтыру керек",

@@ -9,7 +9,24 @@ export interface TurnFeedback {
   grammarErrors: GrammarError[];
   vocabularyNote: string;
   fluencyNote: string;
+  /** Best-effort proxy — browser speech recognition can't do true phoneme
+   * analysis, so this is inferred from recognition confidence + disfluencies
+   * in the transcript, not acoustic/phonetic scoring. */
+  pronunciationNote: string;
   encouragement: string;
+  /** Raw per-turn score out of 25, carried through so the final report can
+   * aggregate real per-turn results instead of re-rolling its own score. */
+  turnScore: number;
+}
+
+/** One fully-evaluated turn, kept client-side across the whole session so
+ * the final report reflects the user's actual transcripts — not a re-roll. */
+export interface CompletedTurn {
+  partId: string;
+  questionId: string;
+  transcript: string;
+  wordCount: number;
+  feedback: TurnFeedback;
 }
 
 /** Full examiner report generated after a speaking session ends —
