@@ -1,6 +1,6 @@
 import type { WordOfTheDay } from "@/types";
 import type { OnboardingLevel } from "@/types/user";
-import type { DelfLevel } from "@/types/writing-evaluation";
+import type { DelfLevel, FeedbackLanguage } from "@/types/writing-evaluation";
 import { resolvePracticeLevel } from "@/lib/utils/level";
 
 /** One word bank per DELF practice level. `getWordOfTheDay` picks a
@@ -524,5 +524,15 @@ export function findWordEntry(word: string): WordOfTheDay | undefined {
     if (match) return match;
   }
   return undefined;
+}
+
+/** Every real, hand-authored definition across all levels — used only as
+ * decoy wrong-answer text for the Weekly Quiz when the student hasn't
+ * practiced enough other words yet to supply real distractors. Never
+ * presented as vocabulary the student has learned. */
+export function getAllDefinitions(language: FeedbackLanguage): string[] {
+  return Object.values(WORD_BANKS)
+    .flat()
+    .map((entry) => entry.definition[language]);
 }
 

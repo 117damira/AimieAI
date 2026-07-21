@@ -335,8 +335,13 @@ export interface Dictionary {
     basedOnVocabulary: string;
     progressLabel: string;
     questionBadge: (n: number) => string;
-    comingSoonMessage: string;
     submitQuiz: string;
+    emptyStateTitle: string;
+    emptyStateDescription: string;
+    emptyStateCta: string;
+    scoreSummary: (correct: number, total: number) => string;
+    correctAnswerLabel: string;
+    tryAgain: string;
   };
 
   progress: {
@@ -526,6 +531,10 @@ export interface Dictionary {
     setExamDateLink: string;
     dailyPlanTitle: string;
     dailyPlanDescription: string;
+    daysUntilExam: (n: number) => string;
+    examTodayLabel: string;
+    examPastLabel: string;
+    moreTasksLabel: (n: number) => string;
   };
 }
 
@@ -888,12 +897,17 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
     quiz: {
       pageTitle: "Weekly Quiz",
       pageDescription: "Review the vocabulary you've learned this week and reinforce your memory.",
-      wordsToReview: (n) => `${n} words to review`,
-      basedOnVocabulary: "Based on your vocabulary from this week",
+      wordsToReview: (n) => `${n} word${n === 1 ? "" : "s"} to review`,
+      basedOnVocabulary: "Based on the vocabulary you've actually practiced",
       progressLabel: "Progress",
       questionBadge: (n) => `Question ${n}`,
-      comingSoonMessage: "Quiz scoring and review will be enabled once the assessment engine is connected.",
       submitQuiz: "Submit Quiz",
+      emptyStateTitle: "No vocabulary to review yet",
+      emptyStateDescription: "Practice at least one word in Vocabulary to unlock your Weekly Quiz.",
+      emptyStateCta: "Go to Vocabulary",
+      scoreSummary: (correct, total) => `You got ${correct} out of ${total} correct.`,
+      correctAnswerLabel: "Correct answer",
+      tryAgain: "Try Again",
     },
 
     progress: {
@@ -1103,6 +1117,10 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       setExamDateLink: "Set exam date",
       dailyPlanTitle: "Your daily plan",
       dailyPlanDescription: "Adapts to your remaining days, level, and real practice history.",
+      daysUntilExam: (n) => `${n} day${n === 1 ? "" : "s"} until your DELF exam`,
+      examTodayLabel: "Your DELF exam is today",
+      examPastLabel: "Your DELF exam date has passed",
+      moreTasksLabel: (n) => `+${n} more`,
     },
   },
 
@@ -1464,12 +1482,17 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
     quiz: {
       pageTitle: "Еженедельный тест",
       pageDescription: "Повторите слова, изученные на этой неделе, и закрепите их в памяти.",
-      wordsToReview: (n) => `${n} слов на повторение`,
-      basedOnVocabulary: "На основе вашего словаря за эту неделю",
+      wordsToReview: (n) => `${n} слов${n === 1 ? "о" : ""} на повторение`,
+      basedOnVocabulary: "На основе слов, которые вы действительно практиковали",
       progressLabel: "Прогресс",
       questionBadge: (n) => `Вопрос ${n}`,
-      comingSoonMessage: "Оценка и разбор теста будут доступны после подключения движка оценивания.",
       submitQuiz: "Отправить тест",
+      emptyStateTitle: "Пока нет слов для повторения",
+      emptyStateDescription: "Потренируйте хотя бы одно слово в разделе «Словарь», чтобы открыть еженедельный тест.",
+      emptyStateCta: "Перейти к словарю",
+      scoreSummary: (correct, total) => `Правильных ответов: ${correct} из ${total}.`,
+      correctAnswerLabel: "Правильный ответ",
+      tryAgain: "Попробовать снова",
     },
 
     progress: {
@@ -1685,6 +1708,10 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       setExamDateLink: "Указать дату экзамена",
       dailyPlanTitle: "Ваш план на день",
       dailyPlanDescription: "Подстраивается под оставшиеся дни, ваш уровень и реальную историю практики.",
+      daysUntilExam: (n) => `${n} дн${n === 1 ? "ень" : n >= 2 && n <= 4 ? "я" : "ей"} до экзамена DELF`,
+      examTodayLabel: "Ваш экзамен DELF сегодня",
+      examPastLabel: "Дата вашего экзамена DELF уже прошла",
+      moreTasksLabel: (n) => `+${n} ещё`,
     },
   },
 
@@ -2046,11 +2073,16 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       pageTitle: "Апталық тест",
       pageDescription: "Осы аптада үйренген сөздерді қайталап, есте сақтауды бекітіңіз.",
       wordsToReview: (n) => `Қайталауға ${n} сөз`,
-      basedOnVocabulary: "Осы аптадағы сөздік қорыңыз негізінде",
+      basedOnVocabulary: "Сіз шынымен жаттыққан сөздік қор негізінде",
       progressLabel: "Прогресс",
       questionBadge: (n) => `${n}-сұрақ`,
-      comingSoonMessage: "Тест бағалау және шолу бағалау жүйесі қосылғаннан кейін іске қосылады.",
       submitQuiz: "Тестті жіберу",
+      emptyStateTitle: "Әзірге қайталайтын сөз жоқ",
+      emptyStateDescription: "Апталық тестті ашу үшін «Сөздік» бөлімінде кемінде бір сөзді жаттығыңыз.",
+      emptyStateCta: "Сөздікке өту",
+      scoreSummary: (correct, total) => `Сіз ${total} сұрақтың ${correct}-іне дұрыс жауап бердіңіз.`,
+      correctAnswerLabel: "Дұрыс жауап",
+      tryAgain: "Қайта көру",
     },
 
     progress: {
@@ -2260,6 +2292,10 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       setExamDateLink: "Емтихан күнін көрсету",
       dailyPlanTitle: "Күндізгі жоспарыңыз",
       dailyPlanDescription: "Қалған күндерге, деңгейіңізге және нақты жаттығу тарихыңызға бейімделеді.",
+      daysUntilExam: (n) => `DELF емтиханыңызға ${n} күн қалды`,
+      examTodayLabel: "DELF емтиханыңыз бүгін",
+      examPastLabel: "DELF емтихан күніңіз өтіп кетті",
+      moreTasksLabel: (n) => `тағы +${n}`,
     },
   },
 };

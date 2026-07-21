@@ -126,6 +126,12 @@ export interface SentenceFragment {
   sentence: string;
 }
 
+/** Conventional letter/message sign-offs — genuinely not full sentences by
+ * French writing convention (like "Sincerely, John" in English), so they
+ * must never be flagged as a grammar mistake for lacking a verb. */
+const CLOSING_SALUTATION_PATTERN =
+  /^(cordialement|bien\s+[aà]\s+vous|[aà]\s+bient[oô]t|salutations|amicalement|bisous)\b/i;
+
 /** Flags sentences that contain no recognizable French verb form at all —
  * e.g. "Je and ma famille." has a subject and an object but no verb. This
  * is a conservative, whitelist-based heuristic (real coverage, not a full
@@ -141,6 +147,7 @@ export function findSentenceFragments(text: string): SentenceFragment[] {
 
   const fragments: SentenceFragment[] = [];
   for (const sentence of sentences) {
+    if (CLOSING_SALUTATION_PATTERN.test(sentence.trim())) continue;
     const tokens = normalize(sentence)
       .replace(/[,;:"'’«»()]/g, " ")
       .split(/\s+/)

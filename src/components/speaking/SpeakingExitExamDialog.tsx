@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { Modal, Button } from "@/components/ui";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -9,15 +8,17 @@ import { stopSpeaking } from "@/lib/utils/voice";
 export interface SpeakingExitExamDialogProps {
   open: boolean;
   onClose: () => void;
+  /** Always returns to Speaking's own mode-selection — exiting mid-exam
+   * never leaves the Speaking module for Dashboard or any other page. */
+  onConfirm: () => void;
 }
 
-export function SpeakingExitExamDialog({ open, onClose }: SpeakingExitExamDialogProps) {
+export function SpeakingExitExamDialog({ open, onClose, onConfirm }: SpeakingExitExamDialogProps) {
   const { t } = useLanguage();
-  const router = useRouter();
 
   function handleConfirm() {
     stopSpeaking();
-    router.push("/dashboard");
+    onConfirm();
   }
 
   return (

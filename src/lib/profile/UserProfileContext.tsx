@@ -59,6 +59,9 @@ interface UserProfileContextValue {
    * session's topic rotation (lib/writing/topicRotation.ts) knows what to
    * avoid repeating. */
   recordWritingTopic: (level: DelfLevel, promptId: string) => void;
+  /** Increments quizzesCompleted after a real Weekly Quiz submission —
+   * never called for anything other than an actual graded attempt. */
+  recordQuizCompletion: () => void;
   clearProfile: () => void;
 }
 
@@ -279,6 +282,12 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
             ...prev,
             writingTopicHistory: { ...currentHistory, [level]: nextForLevel },
           };
+        });
+      },
+      recordQuizCompletion: () => {
+        setProfile((prev) => {
+          if (!prev) return prev;
+          return { ...prev, stats: { ...prev.stats, quizzesCompleted: prev.stats.quizzesCompleted + 1 } };
         });
       },
       clearProfile: () => setProfile(null),

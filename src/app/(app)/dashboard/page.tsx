@@ -54,13 +54,17 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1.5">
-        <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
-          {isFirstDashboardView
-            ? d.greetingFirstTime(profile.firstName)
-            : d.greeting(profile.firstName)}
-        </h1>
-        <p className="text-sm text-muted">{d.subtitle(exam.name)}</p>
+      <div className="relative overflow-hidden rounded-3xl border border-primary-800/20 bg-primary-900/90 px-6 py-8 shadow-lg shadow-primary-900/20 sm:px-8 sm:py-10">
+        <div className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-primary-400/25 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-primary-500/15 blur-3xl" />
+        <div className="relative flex flex-col gap-1.5">
+          <h1 className="font-display text-2xl font-semibold text-white sm:text-3xl">
+            {isFirstDashboardView
+              ? d.greetingFirstTime(profile.firstName)
+              : d.greeting(profile.firstName)}
+          </h1>
+          <p className="text-sm text-primary-100/80">{d.subtitle(exam.name)}</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

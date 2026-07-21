@@ -132,7 +132,20 @@ export function analyzeResponse(
 
   const vocabularyDiversity = lexicalDiversity(responseText);
   const hasAdvancedConnectors = ADVANCED_CONNECTOR_PATTERN.test(responseText);
-  const isCoherent = sentenceCount <= 1 || BASIC_CONNECTOR_PATTERN.test(responseText) || hasAdvancedConnectors;
+  // A response is only "coherent" if it actually has real sentence structure
+  // (a recognizable verb somewhere — see findSentenceFragments) AND, once
+  // there's more than one sentence, actually links them with a connector.
+  // Never assumed true just because there's no punctuation to split on —
+  // that previously let pure word-salad ("asdf qwerty bonjour") through as
+  // "coherent" by definition (sentenceCount defaulted to 1).
+  const isCoherent =
+    fragments.length === 0 && (sentenceCount <= 1 || BASIC_CONNECTOR_PATTERN.test(responseText) || hasAdvancedConnectors);
+
+  // Real, meaningless input (keyboard mashing, word salad with no actual
+  // grammar) is different from a genuine but off-topic essay: every
+  // "sentence" fails to produce a recognizable verb at all. This drives a
+  // much harsher score floor than ordinary off-topic writing.
+  const isMeaningless = fragments.length > 0 && fragments.length >= sentenceCount;
 
   const missingElementKeys: MissingElementKey[] = [];
   if (!hasIntroduction) missingElementKeys.push("greeting");
@@ -143,14 +156,19 @@ export function analyzeResponse(
 
   let score = LEVEL_SCORE_CEILING[level];
   score -= matchedMistakes.length * 2;
-  score -= fragments.length * 2;
+  score -= fragments.length * 3;
   if (!inRange) score -= 2;
   if (!hasIntroduction) score -= 2;
-  if (CONCLUSION_REQUIRED_BY_LEVEL[level] && !hasConclusion) score -= 2;
-  if (!isCoherent) score -= 2;
+  if (CONCLUSION_REQUIRED_BY_LEVEL[level] && !hasConclusion) score -= 3;
+  if (!isCoherent) score -= 3;
   if (vocabularyDiversity < 0.5 && wordCount >= 20) score -= 2;
-  score = Math.max(5, Math.min(25, score));
-  if (!addressedPrompt) score = Math.min(score, 10);
+  score = Math.max(0, Math.min(25, score));
+  if (!addressedPrompt) {
+    // Genuinely meaningless input (no real sentence structure anywhere)
+    // scores near zero; a real but off-topic essay is weak but not
+    // worthless, so it keeps the more moderate cap.
+    score = Math.min(score, isMeaningless ? 3 : 10);
+  }
   const estimatedScore = score;
 
   return {
@@ -361,6 +379,11 @@ const STRENGTH_STRUCTURE: TranslatedText = {
   ru: "Присутствуют и чёткое вступление, и правильное заключение",
   kz: "Анық кіріспе мен дұрыс қорытынды бар",
 };
+const STRENGTH_INTRO_ONLY: TranslatedText = {
+  en: "Included a clear introduction",
+  ru: "Присутствует чёткое вступление",
+  kz: "Анық кіріспе бар",
+};
 const STRENGTH_VOCAB: TranslatedText = {
   en: "Used a wide range of vocabulary without much repetition",
   ru: "Использован широкий словарный запас без сильных повторов",
@@ -452,8 +475,12 @@ function buildExamReadiness(
     strengths.push(STRENGTH_ADDRESSED_PROMPT[language]);
     if (selection.respectedFormat) strengths.push(STRENGTH_IN_RANGE[language]);
     if (totalMistakes === 0) strengths.push(STRENGTH_NO_MISTAKES[language]);
-    if (selection.hasIntroduction && (!selection.conclusionRequired || selection.hasConclusion)) {
+    // Only ever claim a "proper conclusion" when one genuinely exists —
+    // never because the level simply doesn't require one.
+    if (selection.hasIntroduction && selection.hasConclusion) {
       strengths.push(STRENGTH_STRUCTURE[language]);
+    } else if (selection.hasIntroduction && !selection.conclusionRequired) {
+      strengths.push(STRENGTH_INTRO_ONLY[language]);
     }
     if (selection.vocabularyDiversity >= 0.7 && selection.wordCount >= 15) strengths.push(STRENGTH_VOCAB[language]);
     if (selection.isCoherent && selection.wordCount >= 15) strengths.push(STRENGTH_COHERENT[language]);
@@ -529,33 +556,43 @@ const SCORE_EXPLANATION = {
   }),
 };
 
-const GREETING_SCAFFOLD: TranslatedText = {
-  en: "Bonjour,",
-  ru: "Bonjour,",
-  kz: "Bonjour,",
+// Several genuine, natural phrasings per slot — picked deterministically
+// from a hash of the student's OWN text, so the exact same essay always
+// improves the same way, but two different essays essentially never render
+// the same wrapping phrases. This is what keeps the output from reading as
+// one fixed template stamped onto every submission.
+const GREETING_VARIANTS = ["Bonjour,", "Bonjour à tous,", "Cher correspondant,", "Salut,"];
+const CLOSING_VARIANTS = ["Cordialement,", "Bien à vous,", "À bientôt,", "Amicalement,"];
+const FLUENCY_CONNECTOR_VARIANTS = ["De plus, ", "Ensuite, ", "Par ailleurs, ", "En outre, "];
+const EXPAND_LEAD_VARIANTS: Record<FeedbackLanguage, string[]> = {
+  en: ["[Add here, in your own words:", "[Develop this further — write about:", "[Continue with your own ideas about:"],
+  ru: ["[Добавьте здесь своими словами:", "[Разверните эту мысль — напишите о:", "[Продолжите своими словами о:"],
+  kz: ["[Мұнда өз сөзіңізбен қосыңыз:", "[Мұны әрі қарай дамытыңыз — жазыңыз:", "[Өз ойларыңызбен жалғастырыңыз:"],
 };
-const CLOSING_SCAFFOLD: TranslatedText = {
-  en: "Cordialement,",
-  ru: "Cordialement,",
-  kz: "Cordialement,",
-};
-const EXPAND_PLACEHOLDER = {
-  build: (missingLabels: string[], language: FeedbackLanguage): string => {
-    const lead: TranslatedText = {
-      en: "[Add here, in your own words:",
-      ru: "[Добавьте здесь своими словами:",
-      kz: "[Мұнда өз сөзіңізбен қосыңыз:",
-    };
-    return `${lead[language]} ${missingLabels.join(", ")}]`;
-  },
-};
+
+/** Deterministic string hash (djb2) — seeds which natural phrasing variant
+ * is picked for a given essay, without any true randomness. */
+function hashText(input: string): number {
+  let hash = 5381;
+  for (let i = 0; i < input.length; i++) {
+    hash = (hash * 33) ^ input.charCodeAt(i);
+  }
+  return Math.abs(hash);
+}
+
+function pickVariant<T>(variants: T[], seed: string): T {
+  return variants[hashText(seed) % variants.length];
+}
 
 /** The scaffold — greetings, closings, and bracketed placeholders — is
  * always formulaic register filler or an explicit instruction to the
  * student, never a fabricated personal fact. Grammar fixes come straight
- * from the same corrections shown in languageAccuracy.errors. */
+ * from the same corrections shown in languageAccuracy.errors. Which exact
+ * phrasing is used varies per-essay (see pickVariant above) so the result
+ * is never a single fixed template. */
 function buildImprovedVersion(selection: EvaluationSelection, language: FeedbackLanguage): string {
-  let body = selection.originalText.trim();
+  const original = selection.originalText.trim();
+  let body = original;
   // Fragments first: markMissingVerb() only inserts a marker, it doesn't
   // remove any text, so grammar-rule substrings (e.g. "and", "avons
   // travail") are still present afterward for the next loop to find. Doing
@@ -572,8 +609,22 @@ function buildImprovedVersion(selection: EvaluationSelection, language: Feedback
     }
   }
 
+  // A light, safe fluency/structure improvement: when the essay has real
+  // sentences but none are linked by a connector, join the first two with
+  // one — never touching wording, just adding real cohesion.
+  if (!selection.isCoherent && selection.fragments.length === 0) {
+    const sentenceBoundary = body.search(/[.!?]\s+/);
+    if (sentenceBoundary !== -1) {
+      const splitAt = body.indexOf(" ", sentenceBoundary) + 1;
+      const connector = pickVariant(FLUENCY_CONNECTOR_VARIANTS, `${original}-connector`);
+      const rest = body.slice(splitAt);
+      const lowerFirstRest = rest.charAt(0).toLowerCase() + rest.slice(1);
+      body = `${body.slice(0, splitAt)}${connector}${lowerFirstRest}`;
+    }
+  }
+
   const parts: string[] = [];
-  if (!selection.hasIntroduction) parts.push(GREETING_SCAFFOLD[language]);
+  if (!selection.hasIntroduction) parts.push(pickVariant(GREETING_VARIANTS, `${original}-greeting`));
   parts.push(body);
 
   const contentGapKeys = selection.missingElementKeys.filter(
@@ -581,10 +632,11 @@ function buildImprovedVersion(selection: EvaluationSelection, language: Feedback
   );
   if (contentGapKeys.length > 0) {
     const labels = contentGapKeys.map((k) => MISSING_ELEMENT_LABELS[k][language]);
-    parts.push(EXPAND_PLACEHOLDER.build(labels, language));
+    const lead = pickVariant(EXPAND_LEAD_VARIANTS[language], `${original}-lead`);
+    parts.push(`${lead} ${labels.join(", ")}]`);
   }
 
-  if (!selection.hasConclusion) parts.push(CLOSING_SCAFFOLD[language]);
+  if (!selection.hasConclusion) parts.push(pickVariant(CLOSING_VARIANTS, `${original}-closing`));
 
   return parts.join("\n\n");
 }

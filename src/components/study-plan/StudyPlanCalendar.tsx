@@ -4,6 +4,8 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import type { StudyPlanDay } from "@/lib/study-plan/generatePlan";
+import { STUDY_PLAN_SKILL_CLASSES } from "@/config/studyPlanColors";
 
 function toIso(date: Date): string {
   const year = date.getFullYear();
@@ -13,14 +15,22 @@ function toIso(date: Date): string {
 }
 
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const MAX_VISIBLE_TASKS = 2;
 
-export function StudyPlanCalendar({ examDate }: { examDate: string | null }) {
+export function StudyPlanCalendar({
+  examDate,
+  plan,
+}: {
+  examDate: string | null;
+  plan: StudyPlanDay[];
+}) {
   const { t } = useLanguage();
   const initialMonth = examDate ? new Date(examDate) : new Date();
   const [visibleMonth, setVisibleMonth] = useState(
     new Date(initialMonth.getFullYear(), initialMonth.getMonth(), 1)
   );
 
+  const planByDate = new Map(plan.map((day) => [day.date, day]));
   const todayIso = toIso(new Date());
 
   const year = visibleMonth.getFullYear();
@@ -71,20 +81,47 @@ export function StudyPlanCalendar({ examDate }: { examDate: string | null }) {
           const iso = toIso(date);
           const isExamDay = examDate === iso;
           const isToday = todayIso === iso;
+          const day = planByDate.get(iso);
+          const tasks = day?.tasks ?? [];
+          const visibleTasks = tasks.slice(0, MAX_VISIBLE_TASKS);
+          const hiddenCount = tasks.length - visibleTasks.length;
+
           return (
             <div
               key={iso}
               className={cn(
-                "flex aspect-square flex-col items-center justify-center gap-0.5 rounded-xl text-sm",
+                "flex min-h-[92px] flex-col gap-1 rounded-xl p-1.5 text-sm sm:min-h-[104px]",
                 isExamDay
-                  ? "bg-danger-500 font-semibold text-white shadow-sm"
+                  ? "bg-danger-500 text-white shadow-sm"
                   : isToday
-                    ? "border border-primary-400 text-foreground"
-                    : "text-foreground hover:bg-background"
+                    ? "border border-primary-400"
+                    : "border border-transparent hover:bg-background"
               )}
             >
-              <span>{date.getDate()}</span>
-              {isExamDay && <span className="text-[9px] font-bold uppercase leading-none">{t.studyPlan.testDay}</span>}
+              <span className={cn("px-0.5 font-medium", isExamDay && "font-semibold")}>{date.getDate()}</span>
+              {isExamDay ? (
+                <span className="px-0.5 text-[9px] font-bold uppercase leading-none">{t.studyPlan.testDay}</span>
+              ) : (
+                <div className="flex flex-col gap-0.5">
+                  {visibleTasks.map((task, taskIndex) => (
+                    <span
+                      key={`${iso}-${task.skill}-${taskIndex}`}
+                      className={cn(
+                        "truncate rounded px-1 py-0.5 text-[10px] font-medium leading-tight",
+                        STUDY_PLAN_SKILL_CLASSES[task.skill]
+                      )}
+                      title={task.title}
+                    >
+                      {task.title}
+                    </span>
+                  ))}
+                  {hiddenCount > 0 && (
+                    <span className="px-1 text-[10px] font-medium text-muted">
+                      {t.studyPlan.moreTasksLabel(hiddenCount)}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}

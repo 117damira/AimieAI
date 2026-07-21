@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, AlertCircle, Volume2, LogOut } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -58,12 +59,27 @@ function withQuestionIds(questions: GeneratedSpeakingQuestion[]): QueueItem[] {
 }
 
 export default function SpeakingPracticePage() {
+  return (
+    <Suspense fallback={null}>
+      <SpeakingPracticePageContent />
+    </Suspense>
+  );
+}
+
+function SpeakingPracticePageContent() {
   const { profile, recordActivity } = useUserProfile();
   const { t, language } = useLanguage();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const level: DelfLevel = profile ? resolvePracticeLevel(profile.targetLevel) : "A1";
   const levelConfig = DELF_SPEAKING_LEVELS[level];
 
-  const [mode, setMode] = useState<Mode>("select");
+  // Mode is driven by the URL (not local state) so entering a mode pushes a
+  // real browser-history entry: pressing the browser's own Back button while
+  // in "live"/"written" lands back on mode-select within Speaking, instead
+  // of skipping straight past it to whatever page preceded /speaking.
+  const modeParam = searchParams.get("mode");
+  const mode: Mode = modeParam === "live" || modeParam === "written" ? modeParam : "select";
   const [phase, setPhase] = useState<Phase>("asking");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [queue, setQueue] = useState<QueueItem[]>([]);
@@ -286,8 +302,8 @@ export default function SpeakingPracticePage() {
   }
 
   function handleSelectMode(next: "live" | "written") {
-    setMode(next);
     resetSession();
+    router.push(`/speaking?mode=${next}`);
     if (next === "live") {
       setPhase("welcome");
       if (level !== "B2") {
@@ -297,6 +313,13 @@ export default function SpeakingPracticePage() {
       setPhase("asking");
       void loadQuestions();
     }
+  }
+
+  /** Always returns to Speaking's own mode-selection screen — never to
+   * Vocabulary, Dashboard, or any other page. */
+  function handleBackToModeSelect() {
+    resetSession();
+    router.push("/speaking");
   }
 
   /** DELF has no preparation time at A1/A2 — go straight to the question;
@@ -328,7 +351,7 @@ export default function SpeakingPracticePage() {
   }
 
   function handleRestart() {
-    setMode("select");
+    handleBackToModeSelect();
   }
 
   if (!profile) return null;
@@ -338,6 +361,8 @@ export default function SpeakingPracticePage() {
       <PageHeader
         title={t.speaking.pageTitle}
         description={t.speaking.pageDescription}
+        onBack={mode !== "select" ? handleBackToModeSelect : undefined}
+        backLabel={mode !== "select" ? t.common.back : undefined}
         action={
           mode !== "select" && phase !== "report" ? (
             <Button variant="outline" size="sm" onClick={() => setIsExitDialogOpen(true)}>
@@ -348,7 +373,14 @@ export default function SpeakingPracticePage() {
         }
       />
 
-      <SpeakingExitExamDialog open={isExitDialogOpen} onClose={() => setIsExitDialogOpen(false)} />
+      <SpeakingExitExamDialog
+        open={isExitDialogOpen}
+        onClose={() => setIsExitDialogOpen(false)}
+        onConfirm={() => {
+          setIsExitDialogOpen(false);
+          handleBackToModeSelect();
+        }}
+      />
 
       {error && (
         <div className="flex items-center gap-2 rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-600">
