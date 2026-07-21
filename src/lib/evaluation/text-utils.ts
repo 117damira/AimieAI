@@ -86,3 +86,68 @@ export function findContainingSentence(text: string, index: number, matchLength:
   const end = relativeEnd === -1 ? text.length : afterStart + relativeEnd + 1;
   return text.slice(start, end).trim();
 }
+
+/** Irregular conjugations (être/avoir/aller/faire/vouloir/pouvoir/devoir)
+ * plus a few extremely common verbs (s'appeler) that A1/A2 essays lean on
+ * heavily — stored accent-stripped since callers compare against
+ * normalize()'d tokens. Not an exhaustive French verb list; used only as a
+ * conservative "this sentence clearly has a verb" signal. */
+const IRREGULAR_VERB_FORMS = new Set([
+  "suis", "es", "est", "sommes", "etes", "sont", "etais", "etait", "etions", "etiez", "etaient",
+  "ai", "as", "a", "avons", "avez", "ont", "avais", "avait", "avions", "aviez", "avaient",
+  "vais", "vas", "va", "allons", "allez", "vont",
+  "fais", "fait", "faisons", "faites", "font",
+  "veux", "veut", "voulons", "voulez", "veulent",
+  "peux", "peut", "pouvons", "pouvez", "peuvent",
+  "dois", "doit", "devons", "devez", "doivent",
+  "appelle", "appelles", "appelons", "appelez", "appellent",
+]);
+
+/** Stems of common regular -er verbs, combined with regular endings below
+ * to recognize conjugated forms (present, imparfait, and participle) as a
+ * verb signal without needing a full conjugation table. */
+const REGULAR_VERB_STEMS = [
+  "aim", "habit", "parl", "mang", "travaill", "jou", "regard", "ecout", "etudi", "chant",
+  "dans", "visit", "arriv", "rest", "donn", "ador", "detest", "rentr", "pass", "aid",
+  "cherch", "trouv", "achet", "prepar", "invit", "march", "cuisin", "nag", "skii",
+];
+const REGULAR_VERB_ENDINGS = ["e", "es", "ons", "ez", "ent", "e", "es", "ee", "ees", "ais", "ait", "aient", "iez", "ions"];
+
+function buildRegularVerbFormSet(): Set<string> {
+  const set = new Set<string>();
+  for (const stem of REGULAR_VERB_STEMS) {
+    for (const ending of REGULAR_VERB_ENDINGS) set.add(stem + ending);
+  }
+  return set;
+}
+const REGULAR_VERB_FORMS = buildRegularVerbFormSet();
+
+export interface SentenceFragment {
+  sentence: string;
+}
+
+/** Flags sentences that contain no recognizable French verb form at all —
+ * e.g. "Je and ma famille." has a subject and an object but no verb. This
+ * is a conservative, whitelist-based heuristic (real coverage, not a full
+ * parser): it only fires when NONE of a sentence's tokens match a known
+ * verb form, so it can miss real fragments using verbs outside the
+ * whitelist, but it never invents a fragment where a recognized verb is
+ * genuinely present. */
+export function findSentenceFragments(text: string): SentenceFragment[] {
+  const sentences = text
+    .split(/[.!?]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const fragments: SentenceFragment[] = [];
+  for (const sentence of sentences) {
+    const tokens = normalize(sentence)
+      .replace(/[,;:"'’«»()]/g, " ")
+      .split(/\s+/)
+      .filter(Boolean);
+    if (tokens.length < 2) continue;
+    const hasVerb = tokens.some((t) => IRREGULAR_VERB_FORMS.has(t) || REGULAR_VERB_FORMS.has(t));
+    if (!hasVerb) fragments.push({ sentence });
+  }
+  return fragments;
+}

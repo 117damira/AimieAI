@@ -28,11 +28,13 @@ import type {
   FeedbackLanguage,
   GrammarError,
   WritingEvaluation,
+  WritingTopicPrompt,
 } from "@/types/writing-evaluation";
 import { cn } from "@/lib/utils/cn";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { resolvePracticeLevel } from "@/lib/utils/level";
+import { pickNextWritingPrompt } from "@/lib/writing/topicRotation";
 
 const GRAMMAR_CATEGORY_LABELS: Record<GrammarError["category"], Record<FeedbackLanguage, string>> = {
   verb: { en: "verb", ru: "глагол", kz: "етістік" },
@@ -46,14 +48,39 @@ const GRAMMAR_CATEGORY_LABELS: Record<GrammarError["category"], Record<FeedbackL
 };
 
 export default function WritingPracticePage() {
-  const { profile, recordActivity } = useUserProfile();
+  const { profile, recordActivity, recordWritingTopic } = useUserProfile();
   const { t, language: uiLanguage } = useLanguage();
   const [text, setText] = useState("");
   const [evaluation, setEvaluation] = useState<WritingEvaluation | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPrompt, setCurrentPrompt] = useState<WritingTopicPrompt | null>(null);
+  const [pickedForProfileId, setPickedForProfileId] = useState<string | null>(null);
+  const recordedTopicIdRef = useRef<string | null>(null);
   const lastRequestRef = useRef<{ level: string; prompt: string; response: string } | null>(null);
   const prevLanguageRef = useRef(uiLanguage);
+
+  // Picks a rotated topic as soon as the profile becomes available. Setting
+  // state directly in the render body (React's documented pattern for
+  // "adjusting state when a prop/derived value changes") rather than in a
+  // useEffect, so the pick is ready on the same render it becomes possible —
+  // guarded so it only fires once per profile, not on every render.
+  if (profile && pickedForProfileId !== profile.id) {
+    const level = resolvePracticeLevel(profile.targetLevel);
+    const history = profile.writingTopicHistory?.[level] ?? [];
+    setCurrentPrompt(pickNextWritingPrompt(level, history));
+    setPickedForProfileId(profile.id);
+  }
+
+  // Persists the pick into the user's topic history — an external side
+  // effect (mutates profile via context), so it belongs in an effect, not
+  // the render body above. Guarded so each pick is only recorded once.
+  useEffect(() => {
+    if (!profile || !currentPrompt) return;
+    if (recordedTopicIdRef.current === currentPrompt.id) return;
+    recordedTopicIdRef.current = currentPrompt.id;
+    recordWritingTopic(resolvePracticeLevel(profile.targetLevel), currentPrompt.id);
+  }, [profile, currentPrompt, recordWritingTopic]);
 
   const wordCount = useMemo(
     () => text.trim().split(/\s+/).filter(Boolean).length,
@@ -85,19 +112,33 @@ export default function WritingPracticePage() {
     })();
   }, [uiLanguage]);
 
-  if (!profile) return null;
+  if (!profile || !currentPrompt) return null;
   const level = resolvePracticeLevel(profile.targetLevel);
   const levelConfig = DELF_WRITING_LEVELS[level];
   const wordCountInRange =
     wordCount >= levelConfig.minWords && wordCount <= levelConfig.maxWords;
 
+  function startNewTopic() {
+    if (!profile) return;
+    const history = profile.writingTopicHistory?.[level] ?? [];
+    const prompt = pickNextWritingPrompt(level, history);
+    recordedTopicIdRef.current = prompt.id;
+    setCurrentPrompt(prompt);
+    recordWritingTopic(level, prompt.id);
+    setText("");
+    setEvaluation(null);
+    setError(null);
+  }
+
   async function handleSubmit() {
+    const prompt = currentPrompt;
+    if (!prompt) return;
     setIsSubmitting(true);
     setError(null);
     setEvaluation(null);
     const requestBody = {
       level,
-      prompt: levelConfig.samplePrompt.instructions,
+      prompt: prompt.instructions,
       response: text,
     };
     lastRequestRef.current = requestBody;
@@ -131,19 +172,24 @@ export default function WritingPracticePage() {
 
       {/* Prompt */}
       <Card>
-        <CardHeader>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="primary">
-              <PenLine className="h-3.5 w-3.5" />
-              {levelConfig.samplePrompt.delfExercise}
-            </Badge>
-            <Badge variant="neutral">{levelConfig.taskType[uiLanguage]}</Badge>
-            <Badge variant="neutral">
-              {levelConfig.minWords}–{levelConfig.maxWords} {t.writing.wordsUnit}
-            </Badge>
+        <CardHeader className="flex-row items-start justify-between gap-4">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="primary">
+                <PenLine className="h-3.5 w-3.5" />
+                {currentPrompt.delfExercise}
+              </Badge>
+              <Badge variant="neutral">{levelConfig.taskType[uiLanguage]}</Badge>
+              <Badge variant="neutral">
+                {levelConfig.minWords}–{levelConfig.maxWords} {t.writing.wordsUnit}
+              </Badge>
+            </div>
+            <CardTitle className="mt-1">{currentPrompt.title}</CardTitle>
+            <CardDescription>{currentPrompt.instructions}</CardDescription>
           </div>
-          <CardTitle className="mt-1">{levelConfig.samplePrompt.title}</CardTitle>
-          <CardDescription>{levelConfig.samplePrompt.instructions}</CardDescription>
+          <Button variant="secondary" onClick={startNewTopic} disabled={isSubmitting}>
+            {t.writing.newTopic}
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-1.5 rounded-2xl bg-background p-4">
@@ -224,6 +270,34 @@ export default function WritingPracticePage() {
                 />
               </div>
               <p className="text-sm text-muted">{evaluation.taskCompletion.notes}</p>
+              {evaluation.taskCompletion.missingElements.length > 0 && (
+                <div className="flex flex-col gap-1.5 rounded-xl bg-background p-3">
+                  <span className="text-xs font-medium text-muted">{t.writing.missingElements}</span>
+                  <ul className="flex flex-col gap-1 text-sm text-foreground">
+                    {evaluation.taskCompletion.missingElements.map((item, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-warning-500" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-[18px] w-[18px] text-primary-500" />
+                <CardTitle>{t.writing.relevance}</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <div className="flex flex-wrap gap-3">
+                <StatusPill ok={evaluation.relevance.isRelevant} label={t.writing.relevance} />
+              </div>
+              <p className="text-sm text-muted">{evaluation.relevance.notes}</p>
             </CardContent>
           </Card>
 
@@ -251,6 +325,21 @@ export default function WritingPracticePage() {
                 />
               </div>
               <p className="text-sm text-muted">{evaluation.structure.paragraphOrganization}</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <LayoutList className="h-[18px] w-[18px] text-primary-500" />
+                <CardTitle>{t.writing.coherence}</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <div className="flex flex-wrap gap-3">
+                <StatusPill ok={evaluation.coherence.isCoherent} label={t.writing.coherence} />
+              </div>
+              <p className="text-sm text-muted">{evaluation.coherence.notes}</p>
             </CardContent>
           </Card>
 
@@ -348,6 +437,21 @@ export default function WritingPracticePage() {
                   noneNoted={t.writing.noneNoted}
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <PenLine className="h-[18px] w-[18px] text-primary-500" />
+                <CardTitle>{t.writing.improvedVersion}</CardTitle>
+              </div>
+              <CardDescription>{t.writing.improvedVersionDescription}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="whitespace-pre-line rounded-2xl bg-background p-4 text-sm leading-6 text-foreground">
+                {evaluation.improvedVersion}
+              </p>
             </CardContent>
           </Card>
         </>

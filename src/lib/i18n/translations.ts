@@ -298,14 +298,18 @@ export interface Dictionary {
     evaluating: string;
     submitForEvaluation: string;
     evaluationFailed: string;
+    newTopic: string;
     taskCompletion: string;
     addressedPrompt: string;
     respectedFormat: string;
+    missingElements: string;
+    relevance: string;
     structure: string;
     introduction: string;
     mainIdeas: string;
     conclusion: string;
     conclusionNotRequired: string;
+    coherence: string;
     languageAccuracy: string;
     noGrammarMistakes: string;
     vocabularyTitle: string;
@@ -318,6 +322,8 @@ export interface Dictionary {
     weaknesses: string;
     improvementTips: string;
     noneNoted: string;
+    improvedVersion: string;
+    improvedVersionDescription: string;
     aiEvaluationTitle: string;
     aiEvaluationDescription: string;
   };
@@ -846,14 +852,18 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       evaluating: "Evaluating...",
       submitForEvaluation: "Submit for Evaluation",
       evaluationFailed: "Evaluation failed",
+      newTopic: "New topic",
       taskCompletion: "Task Completion",
       addressedPrompt: "Addressed the prompt",
       respectedFormat: "Respected the format",
+      missingElements: "What's missing",
+      relevance: "Relevance",
       structure: "Structure",
       introduction: "Introduction",
       mainIdeas: "Main ideas",
       conclusion: "Conclusion",
       conclusionNotRequired: "Conclusion (not required)",
+      coherence: "Coherence",
       languageAccuracy: "Language Accuracy",
       noGrammarMistakes: "No grammar mistakes found.",
       vocabularyTitle: "Vocabulary",
@@ -866,9 +876,12 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       weaknesses: "Weaknesses",
       improvementTips: "Improvement tips",
       noneNoted: "None noted.",
+      improvedVersion: "Improved Version of Your Answer",
+      improvedVersionDescription:
+        "Your own ideas, with grammar corrected and missing structural parts filled in — nothing invented.",
       aiEvaluationTitle: "AI Evaluation",
       aiEvaluationDescription:
-        "Submit your response to get feedback on task completion, structure, language accuracy, vocabulary, and estimated DELF score.",
+        "Submit your response to get feedback on task completion, relevance, structure, coherence, language accuracy, vocabulary, and estimated DELF score.",
     },
 
     quiz: {
@@ -1414,14 +1427,18 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       evaluating: "Оцениваем...",
       submitForEvaluation: "Отправить на оценку",
       evaluationFailed: "Не удалось выполнить оценку",
+      newTopic: "Новая тема",
       taskCompletion: "Выполнение задания",
       addressedPrompt: "Раскрыта тема задания",
       respectedFormat: "Соблюдён формат",
+      missingElements: "Чего не хватает",
+      relevance: "Соответствие теме",
       structure: "Структура",
       introduction: "Введение",
       mainIdeas: "Основные идеи",
       conclusion: "Заключение",
       conclusionNotRequired: "Заключение (не обязательно)",
+      coherence: "Связность",
       languageAccuracy: "Грамотность",
       noGrammarMistakes: "Грамматических ошибок не найдено.",
       vocabularyTitle: "Словарный запас",
@@ -1434,9 +1451,12 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       weaknesses: "Слабые стороны",
       improvementTips: "Советы по улучшению",
       noneNoted: "Не отмечено.",
+      improvedVersion: "Улучшенная версия вашего ответа",
+      improvedVersionDescription:
+        "Ваши собственные мысли с исправленной грамматикой и добавленными недостающими структурными частями — ничего не придумано.",
       aiEvaluationTitle: "Оценка ИИ",
       aiEvaluationDescription:
-        "Отправьте ответ, чтобы получить отзыв о выполнении задания, структуре, грамотности, словарном запасе и примерной оценке DELF.",
+        "Отправьте ответ, чтобы получить отзыв о выполнении задания, соответствии теме, структуре, связности, грамотности, словарном запасе и примерной оценке DELF.",
     },
 
     quiz: {
@@ -1987,14 +2007,18 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       evaluating: "Бағалануда...",
       submitForEvaluation: "Бағалауға жіберу",
       evaluationFailed: "Бағалау сәтсіз аяқталды",
+      newTopic: "Жаңа тақырып",
       taskCompletion: "Тапсырманы орындау",
       addressedPrompt: "Тапсырма тақырыбы ашылды",
       respectedFormat: "Формат сақталды",
+      missingElements: "Не жетіспейді",
+      relevance: "Тақырыпқа сәйкестік",
       structure: "Құрылым",
       introduction: "Кіріспе",
       mainIdeas: "Негізгі ойлар",
       conclusion: "Қорытынды",
       conclusionNotRequired: "Қорытынды (міндетті емес)",
+      coherence: "Байланыстылық",
       languageAccuracy: "Тіл дұрыстығы",
       noGrammarMistakes: "Грамматикалық қателер табылмады.",
       vocabularyTitle: "Сөздік қоры",
@@ -2007,9 +2031,12 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       weaknesses: "Әлсіз жақтары",
       improvementTips: "Жақсарту кеңестері",
       noneNoted: "Ештеңе белгіленбеген.",
+      improvedVersion: "Жауабыңыздың жақсартылған нұсқасы",
+      improvedVersionDescription:
+        "Сіздің өз ойларыңыз, грамматикасы түзетілген және жетіспейтін құрылымдық бөліктері толықтырылған — ештеңе ойдан шығарылмаған.",
       aiEvaluationTitle: "ЖИ бағалауы",
       aiEvaluationDescription:
-        "Тапсырманы орындау, құрылым, тіл дұрыстығы, сөздік қоры және болжамды DELF бағасы туралы пікір алу үшін жауабыңызды жіберіңіз.",
+        "Тапсырманы орындау, тақырыпқа сәйкестік, құрылым, байланыстылық, тіл дұрыстығы, сөздік қоры және болжамды DELF бағасы туралы пікір алу үшін жауабыңызды жіберіңіз.",
     },
 
     quiz: {

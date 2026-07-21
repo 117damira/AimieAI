@@ -1,5 +1,6 @@
 import type { ExamId } from "./exam";
 import type { VocabularyEntry } from "./vocabulary";
+import type { DelfLevel } from "./writing-evaluation";
 
 /** Self-reported proficiency level collected during onboarding. Only
  * "A1"-"B2" have real DELF content — see resolvePracticeLevel() in
@@ -55,4 +56,8 @@ export interface User {
    * A word only appears here once the student has actually practiced it
    * (see UserProfileContext.recordVocabularyPractice); never preloaded. */
   vocabularyProgress: VocabularyEntry[];
+  /** Writing prompt ids used recently, per DELF level (most recent last,
+   * capped) — lets topic rotation avoid repeating the last-seen prompt.
+   * Starts empty for every new account; never preloaded. */
+  writingTopicHistory: Partial<Record<DelfLevel, string[]>>;
 }

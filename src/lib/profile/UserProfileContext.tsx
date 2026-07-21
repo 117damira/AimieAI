@@ -11,8 +11,9 @@ import {
 import type { ExamId } from "@/types/exam";
 import type { OnboardingLevel, User, UserStats } from "@/types/user";
 import type { VocabularyEntry } from "@/types/vocabulary";
-import type { FeedbackLanguage } from "@/types/writing-evaluation";
+import type { DelfLevel, FeedbackLanguage } from "@/types/writing-evaluation";
 import * as accountStore from "@/lib/auth/accountStore";
+import { recordWritingTopicHistory } from "@/lib/writing/topicRotation";
 
 const STORAGE_KEY = "aimieai.user.v2";
 
@@ -54,6 +55,10 @@ interface UserProfileContextValue {
     definition: Record<FeedbackLanguage, string>,
     wasCorrect: boolean
   ) => void;
+  /** Records that a writing prompt was shown for a level, so the next
+   * session's topic rotation (lib/writing/topicRotation.ts) knows what to
+   * avoid repeating. */
+  recordWritingTopic: (level: DelfLevel, promptId: string) => void;
   clearProfile: () => void;
 }
 
@@ -84,6 +89,7 @@ function migrateUser(user: User): User {
   return {
     ...user,
     vocabularyProgress: user.vocabularyProgress ?? [],
+    writingTopicHistory: user.writingTopicHistory ?? {},
   };
 }
 
@@ -159,6 +165,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
           lastLoginAt: null,
           stats: createInitialStats(),
           vocabularyProgress: [],
+          writingTopicHistory: {},
         };
         await accountStore.createAccount({ user: newUser, password });
         setProfile(newUser);
@@ -180,6 +187,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
           lastLoginAt: prev?.lastLoginAt ?? null,
           stats: prev?.stats ?? createInitialStats(),
           vocabularyProgress: prev?.vocabularyProgress ?? [],
+          writingTopicHistory: prev?.writingTopicHistory ?? {},
           ...answers,
         }));
       },
@@ -260,6 +268,17 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
           const wordsLearned = vocabularyProgress.filter((entry) => entry.mastery === "mastered").length;
 
           return { ...prev, vocabularyProgress, stats: { ...prev.stats, wordsLearned } };
+        });
+      },
+      recordWritingTopic: (level, promptId) => {
+        setProfile((prev) => {
+          if (!prev) return prev;
+          const currentHistory = prev.writingTopicHistory ?? {};
+          const nextForLevel = recordWritingTopicHistory(currentHistory[level] ?? [], promptId);
+          return {
+            ...prev,
+            writingTopicHistory: { ...currentHistory, [level]: nextForLevel },
+          };
         });
       },
       clearProfile: () => setProfile(null),

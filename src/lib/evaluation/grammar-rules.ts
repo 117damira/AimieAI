@@ -58,6 +58,17 @@ const FEMININE_NOUNS = [
 ];
 const PLURAL_NOUNS = ["voiture", "maison", "table", "chaise", "idée", "ville", "livre", "ami", "amie"];
 
+// English connector words that sometimes slip into a French sentence
+// (e.g. a direct word-for-word translation). Kept to unambiguous cases
+// with no legitimate French reading, so this never false-positives on a
+// genuine French word.
+const ENGLISH_CONNECTOR_TO_FRENCH: Record<string, string> = {
+  and: "et",
+  but: "mais",
+  because: "parce que",
+  with: "avec",
+};
+
 // Common beginner mistake: after avoir in the passé composé, a bare noun/stem
 // is written instead of the actual past participle (e.g. "j'ai travail"
 // instead of "j'ai travaillé" — "travail" is itself a real word, the noun
@@ -313,6 +324,18 @@ export const GRAMMAR_RULES: GrammarRule[] = [
       kz: "Passé composé-де «avoir»-дан кейін етістік өткен шақ есімшесі түрінде болуы керек, бұл жіктелмеген түрде емес.",
     },
     betterExample: "Nous avons travaillé beaucoup ce week-end.",
+  },
+  {
+    id: "english-word-in-french-sentence",
+    category: "other",
+    regex: new RegExp(`\\b(${Object.keys(ENGLISH_CONNECTOR_TO_FRENCH).join("|")})\\b`, "i"),
+    correction: (m) => ENGLISH_CONNECTOR_TO_FRENCH[m.toLowerCase()] ?? m,
+    explanation: {
+      en: "This is an English word — French text should use the French equivalent instead.",
+      ru: "Это английское слово — во французском тексте нужно использовать французский эквивалент.",
+      kz: "Бұл ағылшын сөзі — француз мәтінінде оның француз баламасын қолдану керек.",
+    },
+    betterExample: "Je suis fatigué mais content d'être avec ma famille.",
   },
 ];
 

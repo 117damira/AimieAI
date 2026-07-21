@@ -31,6 +31,11 @@ const evaluationSchema = z.object({
     addressedPrompt: z.boolean(),
     respectedFormat: z.boolean(),
     notes: z.string(),
+    missingElements: z.array(z.string()),
+  }),
+  relevance: z.object({
+    isRelevant: z.boolean(),
+    notes: z.string(),
   }),
   structure: z.object({
     hasIntroduction: z.boolean(),
@@ -38,6 +43,10 @@ const evaluationSchema = z.object({
     hasConclusion: z.boolean(),
     conclusionRequired: z.boolean(),
     paragraphOrganization: z.string(),
+  }),
+  coherence: z.object({
+    isCoherent: z.boolean(),
+    notes: z.string(),
   }),
   languageAccuracy: z.object({
     errors: z.array(grammarErrorSchema),
@@ -56,6 +65,7 @@ const evaluationSchema = z.object({
     improvementTips: z.array(z.string()),
     scoreExplanation: z.string(),
   }),
+  improvedVersion: z.string(),
 }) satisfies z.ZodType<Omit<WritingEvaluation, "level" | "wordCount">>;
 
 export async function evaluateWritingWithClaude(
@@ -73,19 +83,22 @@ export async function evaluateWritingWithClaude(
 ): Promise<Omit<WritingEvaluation, "level" | "wordCount">> {
   const { level, prompt, response, wordCount, minWords, maxWords, conclusionRequired, language } = params;
 
-  const system = `You are an experienced official DELF French examiner grading a candidate's written response, strictly against the real DELF ${level} "Production Écrite" rubric. Base every judgment ONLY on the actual essay text provided — never invent details the candidate didn't write, and never give generic or templated feedback. Never assume the response is correct or on-topic by default — actively compare it against the actual prompt before judging anything else.
+  const system = `You are an experienced official DELF French examiner grading a candidate's written response, strictly against the real DELF ${level} "Production Écrite" rubric. Base every judgment ONLY on the actual essay text provided — never invent details the candidate didn't write, and never give generic or templated feedback. Never assume the response is correct or on-topic by default — actively compare it against the actual prompt before judging anything else. Never praise a response that doesn't genuinely address the prompt (e.g. gibberish or off-topic text) — an unaddressed prompt means no real strengths to report.
 
 Evaluate, in this order:
-1. Task completion: does the essay genuinely address the actual prompt given (not just meet a word count)? Set "addressedPrompt" accordingly, and explain in "notes" — if it's off-topic or too short, say so plainly and explain what's missing; if it's on-topic, confirm what it covers. "respectedFormat" reflects whether the word count (currently ${wordCount}, target ${minWords}-${maxWords}) is reasonably in range.
-2. Structure: does it have an appropriate introduction, clearly organized main ideas, and (since this level ${conclusionRequired ? "requires" : "does not require"} one) a conclusion? Set "hasIntroduction"/"hasMainIdeas"/"hasConclusion"/"conclusionRequired" (${conclusionRequired}) accordingly, and describe the paragraph organization honestly in "paragraphOrganization".
-3. Grammar: find EVERY genuine grammar mistake in the actual text — quote the exact wrong phrase in "original", the fix in "correction", and explain what's wrong/why/which rule in "explanation". Never invent a mistake that isn't there, and never miss an obvious one; cap at a reasonable number if there are many. If there are truly none, return an empty "errors" array. Write a real "summary" reflecting what you actually found.
-4. Vocabulary: assess real word choice, variety (repetition vs. range), and whether the register fits ${level} — specific to what was actually written, with concrete detail from the text, not generic praise.
-5. Exam readiness: compute "estimatedScore" (out of 25, "scoreOutOf": 25) from genuine judgment of the above — never a fixed baseline with jitter. List 2-4 real "strengths" and "weaknesses" and "improvementTips" specific to this essay. Explain the score honestly in "scoreExplanation", including why points were lost.
+1. Task completion: does the essay genuinely address the actual prompt given (not just meet a word count)? Set "addressedPrompt" accordingly, and explain in "notes" — if it's off-topic or too short, say so plainly; if it's on-topic, confirm what it covers. List concrete missing pieces in "missingElements" (e.g. "a greeting", "your age", "a conclusion") — empty array if genuinely nothing is missing. "respectedFormat" reflects whether the word count (currently ${wordCount}, target ${minWords}-${maxWords}) is reasonably in range.
+2. Relevance: distinct from task completion — does the actual subject matter of the response connect to the actual prompt's subject, regardless of length? Set "isRelevant" and explain in "notes".
+3. Structure: does it have an appropriate introduction, clearly organized main ideas, and (since this level ${conclusionRequired ? "requires" : "does not require"} one) a conclusion? Set "hasIntroduction"/"hasMainIdeas"/"hasConclusion"/"conclusionRequired" (${conclusionRequired}) accordingly, and describe the paragraph organization honestly in "paragraphOrganization".
+4. Coherence: do ideas connect logically from sentence to sentence (connectors, logical flow), as opposed to just being present (that's structure's job)? Set "isCoherent" and explain in "notes".
+5. Grammar: find EVERY genuine grammar mistake in the actual text — including English words used in French sentences, verb agreement/conjugation errors, and sentences missing a complete verb (fragments). Quote the exact wrong phrase in "original", the fix in "correction" (for a fragment where the intended verb truly can't be known, mark it clearly rather than inventing one), and explain what's wrong/why/which rule in "explanation". Never invent a mistake that isn't there, and never miss an obvious one; cap at a reasonable number if there are many. If there are truly none, return an empty "errors" array. Write a real "summary" reflecting what you actually found.
+6. Vocabulary: assess real word choice, variety (repetition vs. range), and whether the register fits ${level} — specific to what was actually written, with concrete detail from the text, not generic praise.
+7. Exam readiness: compute "estimatedScore" (out of 25, "scoreOutOf": 25) from genuine judgment of the above — never a fixed baseline with jitter. List 2-4 real "strengths" (empty if the prompt wasn't genuinely addressed) and "weaknesses" and "improvementTips" specific to this essay. Explain the score honestly in "scoreExplanation", including why points were lost.
+8. Improved version: write "improvedVersion" — the candidate's OWN response with grammar corrected and, if something structural is missing (greeting, closing, more content), formulaic scaffolding or a clearly bracketed placeholder telling the student what to add (e.g. "[Add here: your age, your hobbies]"). Never invent personal facts, opinions, or details the candidate never wrote — only fix what they wrote and mark gaps.
 
 Respond with ONLY a single JSON object, no prose, no markdown fences, matching exactly this shape:
-{ "taskCompletion": { "addressedPrompt": boolean, "respectedFormat": boolean, "notes": string }, "structure": { "hasIntroduction": boolean, "hasMainIdeas": boolean, "hasConclusion": boolean, "conclusionRequired": boolean, "paragraphOrganization": string }, "languageAccuracy": { "errors": [{ "original": string, "correction": string, "explanation": string, "category": "verb" | "agreement" | "sentence-structure" | "other" }], "summary": string }, "vocabulary": { "wordChoice": string, "variety": string, "levelAppropriateness": string }, "examReadiness": { "estimatedScore": number, "scoreOutOf": 25, "strengths": string[], "weaknesses": string[], "improvementTips": string[], "scoreExplanation": string } }
+{ "taskCompletion": { "addressedPrompt": boolean, "respectedFormat": boolean, "notes": string, "missingElements": string[] }, "relevance": { "isRelevant": boolean, "notes": string }, "structure": { "hasIntroduction": boolean, "hasMainIdeas": boolean, "hasConclusion": boolean, "conclusionRequired": boolean, "paragraphOrganization": string }, "coherence": { "isCoherent": boolean, "notes": string }, "languageAccuracy": { "errors": [{ "original": string, "correction": string, "explanation": string, "category": "verb" | "agreement" | "sentence-structure" | "other" }], "summary": string }, "vocabulary": { "wordChoice": string, "variety": string, "levelAppropriateness": string }, "examReadiness": { "estimatedScore": number, "scoreOutOf": 25, "strengths": string[], "weaknesses": string[], "improvementTips": string[], "scoreExplanation": string }, "improvedVersion": string }
 
-languageAccuracy.errors[].original/correction are French. All other string values must be written in ${FEEDBACK_LANGUAGE_NAMES[language]}.`;
+languageAccuracy.errors[].original/correction and improvedVersion are French. All other string values must be written in ${FEEDBACK_LANGUAGE_NAMES[language]}.`;
 
   const userPrompt = `DELF level: ${level}
 Prompt (French): ${prompt}
