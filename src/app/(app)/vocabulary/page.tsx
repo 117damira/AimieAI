@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { CheckCircle2, XCircle, Quote, Sparkles, Loader2, AlertCircle } from "lucide-react";
 import {
   Card,
@@ -30,6 +31,7 @@ export default function VocabularyPage() {
   const [feedback, setFeedback] = useState<VocabularySentenceFeedback | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const shouldReduceMotion = useReducedMotion();
 
   if (!profile) return null;
   const wordOfTheDay = getWordOfTheDay(profile.targetLevel);
@@ -76,7 +78,7 @@ export default function VocabularyPage() {
       {/* Word card */}
       <Card>
         <CardContent className="flex flex-col gap-6 sm:flex-row sm:items-start">
-          <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-3xl bg-primary-50 text-4xl">
+          <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-3xl bg-primary-50 text-4xl shadow-inner shadow-primary-900/[0.03]">
             {wordOfTheDay.icon}
           </span>
           <div className="flex flex-1 flex-col gap-2">
@@ -106,9 +108,12 @@ export default function VocabularyPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <ul className="flex flex-col gap-3">
+            <ul className="flex flex-col gap-2">
               {wordOfTheDay.goodContexts[language].map((context) => (
-                <li key={context} className="flex items-start gap-2 text-sm text-foreground">
+                <li
+                  key={context}
+                  className="flex items-start gap-2 rounded-xl bg-success-50/60 px-3 py-2 text-sm text-foreground"
+                >
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success-600" />
                   {context}
                 </li>
@@ -125,9 +130,12 @@ export default function VocabularyPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <ul className="flex flex-col gap-3">
+            <ul className="flex flex-col gap-2">
               {wordOfTheDay.badContexts[language].map((context) => (
-                <li key={context} className="flex items-start gap-2 text-sm text-foreground">
+                <li
+                  key={context}
+                  className="flex items-start gap-2 rounded-xl bg-danger-50/60 px-3 py-2 text-sm text-foreground"
+                >
                   <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-danger-600" />
                   {context}
                 </li>
@@ -170,10 +178,10 @@ export default function VocabularyPage() {
               value={sentence}
               onChange={(e) => setSentence(e.target.value)}
               placeholder={t.vocabulary.sentencePlaceholder(wordOfTheDay.word)}
-              className="w-full resize-none rounded-xl border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400"
+              className="w-full resize-none rounded-xl border border-border bg-surface px-4 py-3 text-sm leading-6 text-foreground placeholder:text-muted transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-primary-400/50 focus:border-primary-400"
             />
             {error && (
-              <div className="flex items-center gap-2 text-sm text-danger-600">
+              <div className="flex items-center gap-2 rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-600">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 {error}
               </div>
@@ -207,17 +215,25 @@ export default function VocabularyPage() {
           </CardHeader>
           <CardContent>
             {feedback ? (
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col gap-1">
+              <motion.div
+                className="flex flex-col gap-4"
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <div className="flex flex-col gap-1.5 rounded-2xl bg-background p-4">
                   <span className="text-xs font-semibold text-foreground">
                     {t.vocabulary.correctedSentenceLabel}
                   </span>
                   {feedback.correctedSentence ? (
-                    <p className="rounded-xl bg-background p-3 text-sm italic text-foreground">
+                    <p className="text-sm italic leading-6 text-foreground">
                       &ldquo;{feedback.correctedSentence}&rdquo;
                     </p>
                   ) : (
-                    <p className="text-sm text-success-600">{t.vocabulary.noCorrectionsNeeded}</p>
+                    <p className="flex items-center gap-1.5 text-sm text-success-600">
+                      <CheckCircle2 className="h-4 w-4 shrink-0" />
+                      {t.vocabulary.noCorrectionsNeeded}
+                    </p>
                   )}
                 </div>
                 {feedback.mistakes.length > 0 && (
@@ -226,9 +242,10 @@ export default function VocabularyPage() {
                     {feedback.mistakes.map((mistake, i) => (
                       <div
                         key={i}
-                        className="flex flex-col gap-1 rounded-xl border border-border bg-background p-3"
+                        className="flex flex-col gap-1.5 rounded-xl border border-border bg-background p-3"
                       >
                         <div className="flex flex-wrap items-center gap-2 text-sm">
+                          <XCircle className="h-3.5 w-3.5 shrink-0 text-danger-500" />
                           <span className="text-foreground line-through decoration-danger-500">
                             {mistake.original}
                           </span>
@@ -243,21 +260,22 @@ export default function VocabularyPage() {
                   </div>
                 )}
                 {feedback.naturalSuggestion && (
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-1.5 rounded-2xl bg-background p-4">
                     <span className="text-xs font-semibold text-foreground">
                       {t.vocabulary.naturalSuggestionLabel}
                     </span>
                     <p className="text-sm text-muted">{feedback.naturalSuggestion}</p>
                   </div>
                 )}
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5 rounded-2xl bg-background p-4">
                   <span className="text-xs font-semibold text-foreground">{t.vocabulary.explanationLabel}</span>
                   <p className="text-sm text-muted">{feedback.explanation}</p>
                 </div>
                 <p className="text-sm font-medium text-primary-600">{feedback.encouragement}</p>
-              </div>
+              </motion.div>
             ) : (
-              <div className="flex h-32 items-center justify-center rounded-2xl border border-dashed border-border bg-background text-center text-sm text-muted">
+              <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-background text-center text-sm text-muted">
+                <Sparkles className="h-5 w-5 text-primary-300" />
                 {t.vocabulary.aiFeedbackEmptyState}
               </div>
             )}

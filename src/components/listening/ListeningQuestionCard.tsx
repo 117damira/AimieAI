@@ -38,7 +38,7 @@ export function ListeningQuestionCard({
         </div>
         <CardTitle className="mt-1 text-base">{question.prompt}</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-2">
+      <CardContent className="flex flex-col gap-2.5">
         {question.options.map((option) => {
           const isSelected = selectedOptionIds.includes(option.id);
           const isCorrectOption = question.correctOptionIds.includes(option.id);
@@ -49,7 +49,7 @@ export function ListeningQuestionCard({
               onClick={() => onToggle(option.id)}
               disabled={showResult}
               className={cn(
-                "flex items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-colors",
+                "flex items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-all duration-200 ease-out",
                 showResult
                   ? isCorrectOption
                     ? "border-success-500/40 bg-success-50 text-success-700"
@@ -57,8 +57,8 @@ export function ListeningQuestionCard({
                       ? "border-danger-500/40 bg-danger-50 text-danger-700"
                       : "border-border bg-background text-foreground opacity-70"
                   : isSelected
-                    ? "border-primary-400 bg-primary-50 text-foreground"
-                    : "border-border bg-background text-foreground hover:border-primary-300 hover:bg-primary-50/50",
+                    ? "border-primary-400 bg-primary-50 text-foreground shadow-sm"
+                    : "border-border bg-background text-foreground hover:border-primary-300 hover:bg-primary-50/50 hover:-translate-y-0.5",
                 showResult ? "cursor-not-allowed" : "cursor-pointer"
               )}
             >

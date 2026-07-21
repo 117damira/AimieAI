@@ -50,7 +50,7 @@ export function SpeakingModeSelect({
       </Card>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <Card>
+        <Card className="flex h-full flex-col justify-between transition-transform duration-300 transition-smooth hover:-translate-y-0.5 hover:shadow-card-hover">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Sparkles className="h-[18px] w-[18px] text-primary-500" />
@@ -67,7 +67,7 @@ export function SpeakingModeSelect({
             </Button>
           </CardFooter>
         </Card>
-        <Card>
+        <Card className="flex h-full flex-col justify-between transition-transform duration-300 transition-smooth hover:-translate-y-0.5 hover:shadow-card-hover">
           <CardHeader>
             <div className="flex items-center gap-2">
               <PenLine className="h-[18px] w-[18px] text-primary-500" />

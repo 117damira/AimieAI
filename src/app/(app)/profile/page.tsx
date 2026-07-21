@@ -59,8 +59,8 @@ export default function ProfilePage() {
       />
 
       <Card>
-        <CardContent className="flex flex-col items-center gap-4 py-8 text-center sm:flex-row sm:text-left">
-          <div className="flex flex-col items-center gap-3">
+        <CardContent className="flex flex-col items-center gap-6 px-6 py-10 text-center sm:flex-row sm:gap-8 sm:text-left">
+          <div className="flex flex-col items-center gap-3.5">
             <Avatar
               firstName={profile.firstName}
               lastName={profile.lastName}
@@ -103,12 +103,12 @@ export default function ProfilePage() {
               </Button>
             </div>
           </div>
-          <div className="flex flex-col gap-2">
-            <span className="font-display text-xl font-semibold text-foreground">
+          <div className="flex flex-col gap-2 sm:border-l sm:border-border sm:pl-8">
+            <span className="font-display text-2xl font-semibold tracking-tight text-foreground">
               {profile.firstName} {profile.lastName}
             </span>
             <span className="text-sm text-muted">{profile.email}</span>
-            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+            <div className="mt-1 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
               <Badge variant="primary">{t.profile.track(exam.name)}</Badge>
               <Badge variant="neutral">{t.profile.targetLevel(profile.targetLevel)}</Badge>
             </div>
@@ -123,7 +123,7 @@ export default function ProfilePage() {
             {t.profile.personalInformationDescription}
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <CardContent className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-5">
           <Input
             label={t.profile.firstName}
             value={firstName}
@@ -142,14 +142,17 @@ export default function ProfilePage() {
             className="sm:col-span-2"
           />
           {error && (
-            <p className="text-sm text-danger-600 sm:col-span-2" role="alert">
+            <p
+              className="rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-600 sm:col-span-2"
+              role="alert"
+            >
               {error}
             </p>
           )}
         </CardContent>
         <CardFooter className="justify-end gap-3">
           {saved && (
-            <span className="text-sm text-success-600">{t.profile.changesSaved}</span>
+            <span className="text-sm font-medium text-success-600">{t.profile.changesSaved}</span>
           )}
           <Button onClick={handleSave}>{t.profile.saveChanges}</Button>
         </CardFooter>

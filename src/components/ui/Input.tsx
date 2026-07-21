@@ -35,7 +35,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             type={isPassword ? (revealed ? "text" : "password") : type}
             className={cn(
-              "h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm text-foreground placeholder:text-muted transition duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 disabled:cursor-not-allowed disabled:bg-background disabled:opacity-60",
+              "h-11 w-full rounded-xl border border-border bg-surface px-4 text-sm text-foreground placeholder:text-muted/70 transition-all duration-200 ease-out hover:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 disabled:cursor-not-allowed disabled:bg-background disabled:opacity-60 disabled:hover:border-border",
               isPassword && "pr-11",
               error && "border-danger-500 focus:ring-danger-500 focus:border-danger-500",
               className

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { CheckCircle2, XCircle, ChevronDown, ChevronUp, Info, MapPin, KeyRound, BookText, AlertTriangle, Sparkles, Compass } from "lucide-react";
 import { Card, CardHeader, CardTitle, Badge, CardContent } from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
@@ -21,6 +22,7 @@ export function ListeningQuestionReview({
   const { t } = useLanguage();
   const r = t.listening.review;
   const [expanded, setExpanded] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
 
   const selectedOptions = question.options.filter((o) => selectedOptionIds.includes(o.id));
   const correctOptions = question.options.filter((o) => question.correctOptionIds.includes(o.id));
@@ -44,7 +46,12 @@ export function ListeningQuestionReview({
         <CardTitle className="mt-1 text-base">{question.prompt}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1.5 text-sm">
+        <div
+          className={cn(
+            "flex flex-col gap-1.5 rounded-2xl p-4 text-sm",
+            isCorrect ? "bg-success-50" : "bg-danger-50"
+          )}
+        >
           <span className="text-muted">
             {r.correctAnswer}:{" "}
             <span className="font-medium text-success-700">
@@ -62,7 +69,7 @@ export function ListeningQuestionReview({
         <button
           type="button"
           onClick={() => setExpanded((e) => !e)}
-          className="flex items-center justify-between gap-2 rounded-xl border border-border bg-background px-4 py-3 text-left text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
+          className="flex items-center justify-between gap-2 rounded-xl border border-border bg-background px-4 py-3 text-left text-sm font-medium text-primary-700 transition-colors duration-200 hover:bg-primary-50"
         >
           <span className="flex items-center gap-2">
             <Info className="h-4 w-4 shrink-0" />
@@ -71,53 +78,64 @@ export function ListeningQuestionReview({
           {expanded ? <ChevronUp className="h-4 w-4 shrink-0" /> : <ChevronDown className="h-4 w-4 shrink-0" />}
         </button>
 
-        {expanded && (
-          <div className="flex flex-col gap-4 rounded-xl bg-background p-4">
-            <ExplanationSection icon={MapPin} label={r.whereInRecording} text={question.explanation.whereInRecording} />
-            <ExplanationSection icon={KeyRound} label={r.keywords} text={question.explanation.keywords} />
-            <ExplanationSection icon={CheckCircle2} label={r.whyCorrect} text={question.explanation.whyCorrect} tone="success" />
+        <AnimatePresence initial={false}>
+          {expanded && (
+            <motion.div
+              key="explanation"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: shouldReduceMotion ? 0 : 0.25, ease: [0.16, 1, 0.3, 1] }}
+              style={{ overflow: "hidden" }}
+            >
+              <div className="flex flex-col gap-4 rounded-xl bg-background p-4">
+                <ExplanationSection icon={MapPin} label={r.whereInRecording} text={question.explanation.whereInRecording} />
+                <ExplanationSection icon={KeyRound} label={r.keywords} text={question.explanation.keywords} />
+                <ExplanationSection icon={CheckCircle2} label={r.whyCorrect} text={question.explanation.whyCorrect} tone="success" />
 
-            <div className="flex flex-col gap-1.5">
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                <AlertTriangle className="h-3.5 w-3.5 text-danger-600" />
-                {r.whyIncorrect}
-              </span>
-              <ul className="flex flex-col gap-1.5">
-                {wrongOptions.map((option) => {
-                  const explanation = question.explanation.whyIncorrect.find((w) => w.optionId === option.id);
-                  return (
-                    <li key={option.id} className="rounded-lg border border-border bg-surface p-2.5 text-xs">
-                      <span className="font-medium text-foreground">{option.text}</span>
-                      {explanation && <p className="mt-0.5 text-muted">{explanation.reason}</p>}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                    <AlertTriangle className="h-3.5 w-3.5 text-danger-600" />
+                    {r.whyIncorrect}
+                  </span>
+                  <ul className="flex flex-col gap-1.5">
+                    {wrongOptions.map((option) => {
+                      const explanation = question.explanation.whyIncorrect.find((w) => w.optionId === option.id);
+                      return (
+                        <li key={option.id} className="rounded-lg border border-border bg-surface p-2.5 text-xs">
+                          <span className="font-medium text-foreground">{option.text}</span>
+                          {explanation && <p className="mt-0.5 text-muted">{explanation.reason}</p>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
 
-            {question.explanation.vocabulary.length > 0 && (
-              <div className="flex flex-col gap-1.5">
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                  <BookText className="h-3.5 w-3.5 text-primary-600" />
-                  {r.vocabulary}
-                </span>
-                <ul className="flex flex-wrap gap-2">
-                  {question.explanation.vocabulary.map((v) => (
-                    <li
-                      key={v.term}
-                      className="rounded-lg border border-primary-200 bg-primary-50 px-2.5 py-1 text-xs text-primary-700"
-                    >
-                      <span className="font-medium">{v.term}</span> — {v.translation}
-                    </li>
-                  ))}
-                </ul>
+                {question.explanation.vocabulary.length > 0 && (
+                  <div className="flex flex-col gap-1.5">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                      <BookText className="h-3.5 w-3.5 text-primary-600" />
+                      {r.vocabulary}
+                    </span>
+                    <ul className="flex flex-wrap gap-2">
+                      {question.explanation.vocabulary.map((v) => (
+                        <li
+                          key={v.term}
+                          className="rounded-lg border border-primary-200 bg-primary-50 px-2.5 py-1 text-xs text-primary-700"
+                        >
+                          <span className="font-medium">{v.term}</span> — {v.translation}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <ExplanationSection icon={Sparkles} label={r.grammarPattern} text={question.explanation.grammarPattern} />
+                <ExplanationSection icon={Compass} label={r.strategy} text={question.explanation.strategy} />
               </div>
-            )}
-
-            <ExplanationSection icon={Sparkles} label={r.grammarPattern} text={question.explanation.grammarPattern} />
-            <ExplanationSection icon={Compass} label={r.strategy} text={question.explanation.strategy} />
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </CardContent>
     </Card>
   );

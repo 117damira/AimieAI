@@ -33,7 +33,7 @@ export function Avatar({
         src={photoUrl}
         alt={`${firstName} ${lastName}`.trim()}
         className={cn(
-          "shrink-0 rounded-full object-cover",
+          "shrink-0 rounded-full object-cover ring-2 ring-surface",
           SIZE_CLASSES[size],
           className
         )}
@@ -44,7 +44,7 @@ export function Avatar({
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-400 to-primary-600 font-display font-semibold text-white",
+        "flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-400 to-primary-600 font-display font-semibold text-white ring-2 ring-surface",
         SIZE_CLASSES[size],
         className
       )}

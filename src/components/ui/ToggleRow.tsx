@@ -15,13 +15,13 @@ export function ToggleRow({ title, description, enabled }: ToggleRowProps) {
       </div>
       <span
         className={cn(
-          "flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors",
+          "flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors duration-200",
           enabled ? "bg-primary-500" : "bg-border"
         )}
       >
         <span
           className={cn(
-            "h-5 w-5 rounded-full bg-white shadow transition-transform",
+            "h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-200 ease-out",
             enabled && "translate-x-5"
           )}
         />

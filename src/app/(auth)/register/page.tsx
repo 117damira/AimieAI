@@ -147,7 +147,7 @@ export default function RegisterPage() {
       </CardHeader>
       <CardContent>
         {step === "email" && (
-          <form className="flex flex-col gap-4" onSubmit={handleEmailSubmit}>
+          <form className="flex flex-col gap-5" onSubmit={handleEmailSubmit}>
             <Input
               label={t.auth.register.email}
               type="email"
@@ -162,16 +162,16 @@ export default function RegisterPage() {
                 {error}
               </p>
             )}
-            <Button type="submit" className="mt-2 w-full" disabled={isSubmitting}>
+            <Button type="submit" className="mt-1 w-full" disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t.auth.register.continueButton}
             </Button>
           </form>
         )}
 
         {step === "verify" && (
-          <form className="flex flex-col gap-4" onSubmit={handleVerifySubmit}>
+          <form className="flex flex-col gap-5" onSubmit={handleVerifySubmit}>
             {devCode && (
-              <div className="rounded-xl bg-warning-50 p-3 text-sm text-warning-600">
+              <div className="rounded-2xl border border-warning-500/20 bg-warning-50 p-3.5 text-sm leading-relaxed text-warning-600">
                 {t.auth.register.devModeCodeNotice(devCode)}
               </div>
             )}
@@ -196,7 +196,7 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={handleResend}
-              className="self-center text-sm font-medium text-primary-600 hover:underline"
+              className="self-center text-sm font-medium text-primary-600 transition-colors duration-200 hover:text-primary-700 hover:underline"
             >
               {t.auth.register.resendCode}
             </button>
@@ -204,7 +204,7 @@ export default function RegisterPage() {
         )}
 
         {step === "details" && (
-          <form className="flex flex-col gap-4" onSubmit={handleDetailsSubmit}>
+          <form className="flex flex-col gap-5" onSubmit={handleDetailsSubmit}>
             <div className="grid grid-cols-2 gap-4">
               <Input
                 label={t.auth.register.firstName}
@@ -233,7 +233,7 @@ export default function RegisterPage() {
                 required
               />
               {password.length > 0 && (
-                <p className={cn("text-xs", passwordValid ? "text-success-600" : "text-danger-600")}>
+                <p className={cn("text-xs transition-colors duration-200", passwordValid ? "text-success-600" : "text-danger-600")}>
                   {t.auth.register.passwordRequirement}
                 </p>
               )}
@@ -256,11 +256,11 @@ export default function RegisterPage() {
               />
               <span>
                 {t.auth.register.termsPrefix}{" "}
-                <Link href="/terms" target="_blank" className="text-primary-600 hover:underline">
+                <Link href="/terms" target="_blank" className="text-primary-600 transition-colors duration-200 hover:text-primary-700 hover:underline">
                   {t.auth.register.termsAndConditions}
                 </Link>{" "}
                 {t.auth.register.termsMiddle}{" "}
-                <Link href="/privacy" target="_blank" className="text-primary-600 hover:underline">
+                <Link href="/privacy" target="_blank" className="text-primary-600 transition-colors duration-200 hover:text-primary-700 hover:underline">
                   {t.auth.register.privacyPolicy}
                 </Link>
                 .
@@ -271,7 +271,7 @@ export default function RegisterPage() {
                 {error}
               </p>
             )}
-            <Button type="submit" className="mt-2 w-full" disabled={isSubmitting}>
+            <Button type="submit" className="mt-1 w-full" disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t.auth.register.submit}
             </Button>
           </form>
@@ -279,7 +279,7 @@ export default function RegisterPage() {
 
         <p className="mt-6 text-center text-sm text-muted">
           {t.auth.register.haveAccount}{" "}
-          <Link href="/login" className="font-medium text-primary-600 hover:underline">
+          <Link href="/login" className="font-medium text-primary-600 transition-colors duration-200 hover:text-primary-700 hover:underline">
             {t.auth.register.logIn}
           </Link>
         </p>

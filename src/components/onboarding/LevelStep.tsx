@@ -25,10 +25,10 @@ export function LevelStep({
             onClick={() => onChange(level)}
             aria-pressed={selected}
             className={cn(
-              "flex flex-col items-start gap-1 rounded-2xl border px-4 py-3 text-left transition-colors",
+              "flex flex-col items-start gap-1 rounded-2xl border px-4 py-3 text-left transition-all duration-300 transition-smooth",
               selected
-                ? "border-primary-400 bg-primary-50"
-                : "border-border bg-background hover:border-primary-200"
+                ? "border-primary-400 bg-primary-50 shadow-card-hover"
+                : "border-border bg-background hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-card-hover"
             )}
           >
             <span className="font-display text-base font-semibold text-foreground">

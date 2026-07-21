@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -25,6 +26,7 @@ export function StudyPlanCalendar({
   plan: StudyPlanDay[];
 }) {
   const { t } = useLanguage();
+  const shouldReduceMotion = useReducedMotion();
   const initialMonth = examDate ? new Date(examDate) : new Date();
   const [visibleMonth, setVisibleMonth] = useState(
     new Date(initialMonth.getFullYear(), initialMonth.getMonth(), 1)
@@ -48,34 +50,40 @@ export function StudyPlanCalendar({
   const monthLabel = visibleMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
         <button
           type="button"
           onClick={() => setVisibleMonth(new Date(year, month - 1, 1))}
           aria-label="Previous month"
-          className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-background hover:text-foreground"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors duration-200 hover:bg-primary-50 hover:text-primary-600"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <span className="font-display text-base font-semibold text-foreground capitalize">{monthLabel}</span>
+        <span className="font-display text-lg font-semibold text-foreground capitalize">{monthLabel}</span>
         <button
           type="button"
           onClick={() => setVisibleMonth(new Date(year, month + 1, 1))}
           aria-label="Next month"
-          className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-background hover:text-foreground"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors duration-200 hover:bg-primary-50 hover:text-primary-600"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted">
+      <div className="grid grid-cols-7 gap-1.5 text-center text-xs font-semibold uppercase tracking-wide text-muted">
         {WEEKDAY_LABELS.map((label) => (
           <span key={label}>{label}</span>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
+      <motion.div
+        key={`${year}-${month}`}
+        initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+        className="grid grid-cols-7 gap-1.5"
+      >
         {cells.map((date, i) => {
           if (!date) return <div key={`blank-${i}`} />;
           const iso = toIso(date);
@@ -90,24 +98,37 @@ export function StudyPlanCalendar({
             <div
               key={iso}
               className={cn(
-                "flex min-h-[92px] flex-col gap-1 rounded-xl p-1.5 text-sm sm:min-h-[104px]",
+                "flex min-h-[96px] flex-col gap-1 rounded-xl border p-2 text-sm transition-colors duration-200 sm:min-h-[108px]",
                 isExamDay
-                  ? "bg-danger-500 text-white shadow-sm"
+                  ? "border-danger-500 bg-danger-500 text-white shadow-card"
                   : isToday
-                    ? "border border-primary-400"
-                    : "border border-transparent hover:bg-background"
+                    ? "border-primary-300 bg-primary-50/70"
+                    : "border-border/60 hover:border-border hover:bg-background"
               )}
             >
-              <span className={cn("px-0.5 font-medium", isExamDay && "font-semibold")}>{date.getDate()}</span>
+              <span
+                className={cn(
+                  "inline-flex items-center justify-center font-medium leading-none",
+                  isExamDay
+                    ? "px-0.5 font-semibold"
+                    : isToday
+                      ? "h-5 w-5 rounded-full bg-primary-500 text-[11px] font-semibold text-white"
+                      : "px-0.5 text-foreground"
+                )}
+              >
+                {date.getDate()}
+              </span>
               {isExamDay ? (
-                <span className="px-0.5 text-[9px] font-bold uppercase leading-none">{t.studyPlan.testDay}</span>
+                <span className="px-0.5 text-[9px] font-bold uppercase tracking-wide leading-none text-white/90">
+                  {t.studyPlan.testDay}
+                </span>
               ) : (
                 <div className="flex flex-col gap-0.5">
                   {visibleTasks.map((task, taskIndex) => (
                     <span
                       key={`${iso}-${task.skill}-${taskIndex}`}
                       className={cn(
-                        "truncate rounded px-1 py-0.5 text-[10px] font-medium leading-tight",
+                        "truncate rounded-md px-1.5 py-0.5 text-[10px] font-medium leading-tight",
                         STUDY_PLAN_SKILL_CLASSES[task.skill]
                       )}
                       title={task.title}
@@ -116,7 +137,7 @@ export function StudyPlanCalendar({
                     </span>
                   ))}
                   {hiddenCount > 0 && (
-                    <span className="px-1 text-[10px] font-medium text-muted">
+                    <span className="px-1.5 pt-0.5 text-[10px] font-medium text-muted">
                       {t.studyPlan.moreTasksLabel(hiddenCount)}
                     </span>
                   )}
@@ -125,7 +146,7 @@ export function StudyPlanCalendar({
             </div>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -7,7 +7,7 @@ export default function PrivacyPage() {
   return (
     <div className="mx-auto flex min-h-full max-w-2xl flex-col gap-6 px-6 py-16">
       <div>
-        <Link href="/register" className="text-sm font-medium text-primary-600 hover:underline">
+        <Link href="/register" className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 transition-colors duration-200 hover:text-primary-700 hover:underline">
           ← Back
         </Link>
       </div>

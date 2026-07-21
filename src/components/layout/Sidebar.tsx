@@ -29,13 +29,18 @@ function NavLink({
       href={href}
       onClick={onNavigate}
       className={cn(
-        "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors",
+        "group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200",
         active
-          ? "bg-primary-600 text-white shadow-sm shadow-primary-600/20"
-          : "text-muted hover:bg-primary-50 hover:text-primary-700"
+          ? "bg-primary-600 text-white shadow-sm shadow-primary-600/25"
+          : "text-muted hover:bg-primary-50 hover:text-primary-700 hover:translate-x-0.5"
       )}
     >
-      <Icon className="h-[18px] w-[18px]" />
+      <Icon
+        className={cn(
+          "h-[18px] w-[18px] shrink-0 transition-transform duration-200",
+          !active && "group-hover:scale-110"
+        )}
+      />
       {label}
     </Link>
   );
@@ -49,7 +54,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
       <Link href="/dashboard" className="flex items-center gap-2 px-2">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-sm shadow-primary-600/30">
           <GraduationCap className="h-5 w-5" />
         </span>
         <div className="flex flex-col leading-tight">
@@ -87,7 +92,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <button
           type="button"
           onClick={() => setLogoutDialogOpen(true)}
-          className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-danger-50 hover:text-danger-600 cursor-pointer"
+          className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted transition-colors duration-200 hover:bg-danger-50 hover:text-danger-600 cursor-pointer"
         >
           <LogOut className="h-[18px] w-[18px]" />
           {t.sidebar.logOut}
@@ -104,7 +109,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export function Sidebar() {
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface px-4 py-6 lg:flex">
+    <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface px-4 py-6 lg:flex lg:sticky lg:top-0 lg:h-screen">
       <SidebarContent />
     </aside>
   );

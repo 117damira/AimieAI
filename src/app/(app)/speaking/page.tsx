@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { motion, useReducedMotion } from "framer-motion";
 import { Loader2, AlertCircle, Volume2, LogOut } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -95,6 +96,16 @@ function SpeakingPracticePageContent() {
   const prevLanguageRef = useRef(language);
   const lastSpokenQuestionIdRef = useRef<string | null>(null);
   const currentItem = queue[currentIndex];
+
+  // Purely presentational: a subtle fade/slide applied to each step's
+  // content as it mounts. Never keyed on phase/mode, so it never forces a
+  // remount of stateful children (e.g. mid-recording SpeakingResponseInput).
+  const shouldReduceMotion = useReducedMotion();
+  const stepTransitionProps = {
+    initial: shouldReduceMotion ? false : { opacity: 0, y: 8 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: shouldReduceMotion ? 0 : 0.3, ease: [0.16, 1, 0.3, 1] as const },
+  };
 
   async function fetchSessionQuestions(
     lvl: DelfLevel,
@@ -390,31 +401,37 @@ function SpeakingPracticePageContent() {
       )}
 
       {mode === "select" && (
-        <SpeakingModeSelect levelConfig={levelConfig} onSelectMode={handleSelectMode} />
+        <motion.div {...stepTransitionProps}>
+          <SpeakingModeSelect levelConfig={levelConfig} onSelectMode={handleSelectMode} />
+        </motion.div>
       )}
 
       {mode === "live" && phase === "welcome" && (
-        <SpeakingWelcomeScreen levelConfig={levelConfig} onStart={handleStartExam} />
+        <motion.div {...stepTransitionProps}>
+          <SpeakingWelcomeScreen levelConfig={levelConfig} onStart={handleStartExam} />
+        </motion.div>
       )}
 
       {mode === "live" && phase === "topic-choice" && (
-        isLoadingTopics ? (
-          <Card className="border-dashed">
-            <CardContent className="flex items-center justify-center gap-3 py-12 text-sm text-muted">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {t.speaking.generatingQuestions}
-            </CardContent>
-          </Card>
-        ) : (
-          <SpeakingTopicChoice topics={topicChoices} onSelect={handleSelectTopic} />
-        )
+        <motion.div {...stepTransitionProps}>
+          {isLoadingTopics ? (
+            <Card className="border-dashed">
+              <CardContent className="flex items-center justify-center gap-3 py-12 text-sm text-muted">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {t.speaking.generatingQuestions}
+              </CardContent>
+            </Card>
+          ) : (
+            <SpeakingTopicChoice topics={topicChoices} onSelect={handleSelectTopic} />
+          )}
+        </motion.div>
       )}
 
       {mode !== "select" &&
         phase !== "welcome" &&
         phase !== "topic-choice" &&
         phase !== "report" && (
-          <div className="flex flex-col gap-6">
+          <motion.div className="flex flex-col gap-6" {...stepTransitionProps}>
             {currentItem && (
               <SpeakingProgressStepper
                 currentIndex={currentIndex}
@@ -433,7 +450,7 @@ function SpeakingPracticePageContent() {
             )}
 
             {currentItem && phase === "preparing" && (
-              <>
+              <motion.div className="flex flex-col gap-6" {...stepTransitionProps}>
                 <SpeakingQuestionCard
                   partLabel={currentItem.partLabel}
                   prompt={currentItem.prompt}
@@ -449,11 +466,11 @@ function SpeakingPracticePageContent() {
                   onSkip={handlePreparationDone}
                   onComplete={handlePreparationDone}
                 />
-              </>
+              </motion.div>
             )}
 
             {currentItem && (phase === "asking" || phase === "evaluating-turn") && (
-              <>
+              <motion.div className="flex flex-col gap-6" {...stepTransitionProps}>
                 <SpeakingQuestionCard
                   partLabel={currentItem.partLabel}
                   prompt={currentItem.prompt}
@@ -470,20 +487,22 @@ function SpeakingPracticePageContent() {
                   onSubmit={handleSubmitTurn}
                   isSubmitting={phase === "evaluating-turn"}
                 />
-              </>
+              </motion.div>
             )}
 
             {phase === "turn-feedback" && currentFeedback && (
-              <SpeakingTurnFeedback
-                feedback={currentFeedback}
-                onContinue={handleContinue}
-                continueLabel={
-                  currentIndex + 1 < queue.length
-                    ? t.speaking.nextQuestion
-                    : t.speaking.finishSeeReport
-                }
-                showPronunciationWords={mode === "live"}
-              />
+              <motion.div {...stepTransitionProps}>
+                <SpeakingTurnFeedback
+                  feedback={currentFeedback}
+                  onContinue={handleContinue}
+                  continueLabel={
+                    currentIndex + 1 < queue.length
+                      ? t.speaking.nextQuestion
+                      : t.speaking.finishSeeReport
+                  }
+                  showPronunciationWords={mode === "live"}
+                />
+              </motion.div>
             )}
 
             {phase === "compiling-report" && (
@@ -494,11 +513,11 @@ function SpeakingPracticePageContent() {
                 </CardContent>
               </Card>
             )}
-          </div>
+          </motion.div>
         )}
 
       {phase === "report" && report && (
-        <div className="flex flex-col gap-6">
+        <motion.div className="flex flex-col gap-6" {...stepTransitionProps}>
           <Card>
             <CardHeader>
               <CardTitle>{t.speaking.examinerReport}</CardTitle>
@@ -513,7 +532,7 @@ function SpeakingPracticePageContent() {
               {t.speaking.practiceAgain}
             </Button>
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   );

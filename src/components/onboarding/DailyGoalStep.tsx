@@ -25,10 +25,10 @@ export function DailyGoalStep({
               onClick={() => onChange(minutes)}
               aria-pressed={selected}
               className={cn(
-                "flex flex-col items-center gap-0.5 rounded-2xl border px-2 py-3 text-center transition-colors",
+                "flex flex-col items-center gap-0.5 rounded-2xl border px-2 py-3 text-center transition-all duration-300 transition-smooth",
                 selected
-                  ? "border-primary-400 bg-primary-50"
-                  : "border-border bg-background hover:border-primary-200"
+                  ? "border-primary-400 bg-primary-50 shadow-card-hover"
+                  : "border-border bg-background hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-card-hover"
               )}
             >
               <span className="font-display text-base font-semibold text-foreground">

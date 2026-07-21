@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   PenLine,
   Sparkles,
@@ -21,6 +22,7 @@ import {
   CardContent,
   Badge,
   Button,
+  ProgressBar,
 } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DELF_WRITING_LEVELS } from "@/config/delf-writing";
@@ -59,6 +61,7 @@ export default function WritingPracticePage() {
   const recordedTopicIdRef = useRef<string | null>(null);
   const lastRequestRef = useRef<{ level: string; prompt: string; response: string } | null>(null);
   const prevLanguageRef = useRef(uiLanguage);
+  const shouldReduceMotion = useReducedMotion();
 
   // Picks a rotated topic as soon as the profile becomes available. Setting
   // state directly in the render body (React's documented pattern for
@@ -218,7 +221,7 @@ export default function WritingPracticePage() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={t.writing.responsePlaceholder}
-            className="w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-sm leading-6 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400"
+            className="w-full resize-none rounded-2xl border border-border bg-surface px-5 py-4 text-[15px] leading-7 text-foreground placeholder:text-muted transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-primary-400/50 focus:border-primary-400"
           />
           <div className="flex items-center justify-between">
             <span
@@ -250,7 +253,12 @@ export default function WritingPracticePage() {
       </Card>
 
       {evaluation ? (
-        <>
+        <motion.div
+          className="flex flex-col gap-6"
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        >
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -406,15 +414,31 @@ export default function WritingPracticePage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-3">
                 <div className="flex items-baseline gap-2">
-                  <span className="font-display text-3xl font-semibold text-foreground">
+                  <span
+                    className={cn(
+                      "font-display text-4xl font-bold tabular-nums",
+                      scoreToneClass(
+                        evaluation.examReadiness.estimatedScore,
+                        evaluation.examReadiness.scoreOutOf
+                      )
+                    )}
+                  >
                     {evaluation.examReadiness.estimatedScore}
                   </span>
                   <span className="text-sm text-muted">
                     / {evaluation.examReadiness.scoreOutOf}
                   </span>
                 </div>
+                <ProgressBar
+                  value={evaluation.examReadiness.estimatedScore}
+                  max={evaluation.examReadiness.scoreOutOf}
+                  colorClassName={scoreToneBarClass(
+                    evaluation.examReadiness.estimatedScore,
+                    evaluation.examReadiness.scoreOutOf
+                  )}
+                />
                 <p className="text-sm text-muted">{evaluation.examReadiness.scoreExplanation}</p>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -454,29 +478,45 @@ export default function WritingPracticePage() {
               </p>
             </CardContent>
           </Card>
-        </>
+        </motion.div>
       ) : (
         <Card className="border-dashed">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-[18px] w-[18px] text-primary-500" />
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50">
+              <Sparkles className="h-5 w-5 text-primary-500" />
+            </span>
+            <div className="flex flex-col gap-1">
               <CardTitle>{t.writing.aiEvaluationTitle}</CardTitle>
+              <CardDescription>
+                {t.writing.aiEvaluationDescription}
+              </CardDescription>
             </div>
-            <CardDescription>
-              {t.writing.aiEvaluationDescription}
-            </CardDescription>
-          </CardHeader>
+          </CardContent>
         </Card>
       )}
     </div>
   );
 }
 
+function scoreToneClass(score: number, outOf: number): string {
+  const ratio = outOf > 0 ? score / outOf : 0;
+  if (ratio >= 0.8) return "text-success-600";
+  if (ratio >= 0.6) return "text-warning-600";
+  return "text-danger-600";
+}
+
+function scoreToneBarClass(score: number, outOf: number): string {
+  const ratio = outOf > 0 ? score / outOf : 0;
+  if (ratio >= 0.8) return "bg-success-500";
+  if (ratio >= 0.6) return "bg-warning-500";
+  return "bg-danger-500";
+}
+
 function StatusPill({ ok, label }: { ok: boolean; label: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium",
+        "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors duration-200",
         ok ? "bg-success-50 text-success-600" : "bg-danger-50 text-danger-600"
       )}
     >

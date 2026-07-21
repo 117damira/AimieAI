@@ -14,7 +14,7 @@ export default function SettingsPage() {
   if (!profile) return null;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 sm:gap-7">
       <PageHeader
         title={t.settings.pageTitle}
         description={t.settings.pageDescription}
@@ -25,7 +25,7 @@ export default function SettingsPage() {
           <CardTitle>{t.settings.account}</CardTitle>
           <CardDescription>{t.settings.accountDescription(APP_NAME)}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="max-w-sm">
           <Input label={t.settings.email} type="email" defaultValue={profile.email} disabled />
         </CardContent>
       </Card>
@@ -59,10 +59,10 @@ export default function SettingsPage() {
             <div
               key={exam.id}
               className={cn(
-                "flex min-w-[140px] flex-col items-center gap-2 rounded-2xl border px-5 py-4",
+                "flex min-w-[140px] flex-col items-center gap-2.5 rounded-2xl border px-5 py-5 transition-all duration-200 ease-out",
                 exam.id === profile.examId
-                  ? "border-primary-300 bg-primary-50"
-                  : "border-border bg-background opacity-60"
+                  ? "border-primary-300 bg-primary-50 shadow-sm"
+                  : "border-border bg-background opacity-60 hover:opacity-80"
               )}
             >
               <span className="font-display font-semibold text-foreground">

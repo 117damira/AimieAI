@@ -26,7 +26,7 @@ export function LanguageSwitcher() {
           onClick={() => setLanguage(option.code)}
           aria-pressed={language === option.code}
           className={cn(
-            "rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer",
+            "rounded-lg px-2.5 py-1 text-xs font-semibold transition-all duration-200 cursor-pointer",
             language === option.code
               ? "bg-primary-600 text-white shadow-sm shadow-primary-600/20"
               : "text-muted hover:bg-primary-50 hover:text-primary-700"

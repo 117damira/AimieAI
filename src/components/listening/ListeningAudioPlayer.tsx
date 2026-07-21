@@ -213,12 +213,12 @@ export function ListeningAudioPlayer({ transcript }: { transcript: string }) {
 
   return (
     <Card>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-5">
         {status === "unsupported" ? (
           <p className="text-sm text-danger-600">{t.listening.player.unsupported}</p>
         ) : (
           <>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-2">
               <input
                 type="range"
                 min={0}
@@ -226,7 +226,7 @@ export function ListeningAudioPlayer({ transcript }: { transcript: string }) {
                 step={0.1}
                 value={currentTime}
                 onChange={(e) => seekTo(Number(e.target.value))}
-                className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-primary-50 accent-primary-600"
+                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-primary-50 accent-primary-600 transition-colors duration-200"
                 style={{
                   background: `linear-gradient(to right, var(--color-primary-500) ${progressPercent}%, var(--color-primary-50) ${progressPercent}%)`,
                 }}
@@ -238,12 +238,12 @@ export function ListeningAudioPlayer({ transcript }: { transcript: string }) {
               </div>
             </div>
 
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-4">
               <button
                 type="button"
                 onClick={skipBack}
                 disabled={!voiceReady}
-                className="flex h-10 w-14 flex-col items-center justify-center gap-0.5 rounded-full text-muted transition-colors hover:bg-background hover:text-foreground disabled:opacity-40"
+                className="flex h-11 w-14 flex-col items-center justify-center gap-0.5 rounded-full text-muted transition-all duration-200 ease-out hover:bg-background hover:text-foreground hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-40 disabled:translate-y-0"
                 aria-label={t.listening.player.skipBack}
                 title={t.listening.player.skipBack}
               >
@@ -255,17 +255,17 @@ export function ListeningAudioPlayer({ transcript }: { transcript: string }) {
                 type="button"
                 onClick={isPlaying ? pause : status === "paused" ? resume : play}
                 disabled={!voiceReady}
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-600 text-white shadow-sm shadow-primary-600/20 transition hover:bg-primary-700 disabled:opacity-40"
+                className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-card transition-all duration-200 ease-out hover:bg-primary-700 hover:shadow-card-hover hover:scale-105 disabled:pointer-events-none disabled:opacity-40 disabled:scale-100"
                 aria-label={isPlaying ? t.listening.player.pause : t.listening.player.play}
               >
-                {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="ml-0.5 h-5 w-5" />}
+                {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="ml-0.5 h-6 w-6" />}
               </button>
 
               <button
                 type="button"
                 onClick={skipForward}
                 disabled={!voiceReady}
-                className="flex h-10 w-14 flex-col items-center justify-center gap-0.5 rounded-full text-muted transition-colors hover:bg-background hover:text-foreground disabled:opacity-40"
+                className="flex h-11 w-14 flex-col items-center justify-center gap-0.5 rounded-full text-muted transition-all duration-200 ease-out hover:bg-background hover:text-foreground hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-40 disabled:translate-y-0"
                 aria-label={t.listening.player.skipForward}
                 title={t.listening.player.skipForward}
               >
@@ -277,7 +277,7 @@ export function ListeningAudioPlayer({ transcript }: { transcript: string }) {
                 type="button"
                 onClick={replay}
                 disabled={!voiceReady}
-                className="flex h-10 w-10 items-center justify-center rounded-full text-muted transition-colors hover:bg-background hover:text-foreground disabled:opacity-40"
+                className="flex h-11 w-11 items-center justify-center rounded-full text-muted transition-all duration-200 ease-out hover:bg-background hover:text-foreground hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-40 disabled:translate-y-0"
                 aria-label={t.listening.player.replay}
                 title={t.listening.player.replay}
               >

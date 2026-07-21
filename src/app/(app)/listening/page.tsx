@@ -128,7 +128,7 @@ export default function ListeningPracticePage() {
       />
 
       {error && (
-        <div className="flex items-center gap-2 rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-600">
+        <div className="flex items-center gap-2 rounded-xl border border-danger-500/20 bg-danger-50 px-4 py-3 text-sm text-danger-600">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {error}
         </div>
@@ -153,7 +153,7 @@ export default function ListeningPracticePage() {
 
       {phase === "practice" && set && currentRecording && (
         <div className="flex flex-col gap-6">
-          <div className="flex items-center justify-between text-sm text-muted">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-muted">
             <span>{t.listening.session.recordingLabel(currentRecordingIndex + 1, set.recordings.length)}</span>
             <span className="font-medium text-foreground">
               {currentRecording.partLabel} — {currentRecording.topic}

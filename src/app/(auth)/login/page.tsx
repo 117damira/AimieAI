@@ -65,11 +65,11 @@ function LoginPageContent() {
       </CardHeader>
       <CardContent>
         {showDuplicateNotice && (
-          <div className="mb-4 rounded-xl bg-warning-50 p-3 text-sm text-warning-600">
+          <div className="mb-5 rounded-2xl border border-warning-500/20 bg-warning-50 p-3.5 text-sm leading-relaxed text-warning-600">
             {t.auth.login.duplicateEmailNotice}
           </div>
         )}
-        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+        <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
           <Input
             label={t.auth.login.email}
             type="email"
@@ -90,7 +90,7 @@ function LoginPageContent() {
             />
             <Link
               href="/forgot-password"
-              className="self-end text-sm font-medium text-primary-600 hover:underline"
+              className="self-end text-sm font-medium text-primary-600 transition-colors duration-200 hover:text-primary-700 hover:underline"
             >
               {t.auth.login.forgotPasswordLink}
             </Link>
@@ -100,7 +100,7 @@ function LoginPageContent() {
               {error}
             </p>
           )}
-          <Button type="submit" className="mt-2 w-full" disabled={isSubmitting}>
+          <Button type="submit" className="mt-1 w-full" disabled={isSubmitting}>
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t.auth.login.submit}
           </Button>
         </form>
@@ -109,7 +109,7 @@ function LoginPageContent() {
           {t.auth.login.noAccount}{" "}
           <Link
             href="/register"
-            className="font-medium text-primary-600 hover:underline"
+            className="font-medium text-primary-600 transition-colors duration-200 hover:text-primary-700 hover:underline"
           >
             {t.auth.login.createOne}
           </Link>

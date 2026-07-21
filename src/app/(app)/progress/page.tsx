@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, useReducedMotion } from "framer-motion";
 import {
   BookOpenText,
   ListChecks,
@@ -39,6 +40,7 @@ function average(values: number[]): number | null {
 export default function ProgressPage() {
   const { profile } = useUserProfile();
   const { t } = useLanguage();
+  const shouldReduceMotion = useReducedMotion();
   if (!profile) return null;
 
   const { stats } = profile;
@@ -83,23 +85,30 @@ export default function ProgressPage() {
       />
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {STATS.map(({ label, value, icon: Icon }) => (
-          <Card key={label}>
-            <CardContent className="flex flex-col gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
-                <Icon className="h-5 w-5" />
-              </span>
-              <span className="font-display text-2xl font-semibold text-foreground">
-                {value}
-              </span>
-              <span className="text-sm text-muted">{label}</span>
-            </CardContent>
-          </Card>
+        {STATS.map(({ label, value, icon: Icon }, index) => (
+          <motion.div
+            key={label}
+            initial={shouldReduceMotion ? undefined : { opacity: 0, y: 8 }}
+            animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: index * 0.05, ease: "easeOut" }}
+          >
+            <Card className="group h-full transition-transform duration-300 transition-smooth hover:-translate-y-0.5 hover:shadow-card-hover">
+              <CardContent className="flex flex-col gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600 transition-transform duration-300 transition-smooth group-hover:scale-110">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <span className="font-display text-2xl font-semibold text-foreground">
+                  {value}
+                </span>
+                <span className="text-sm text-muted">{label}</span>
+              </CardContent>
+            </Card>
+          </motion.div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
+        <Card className="transition-transform duration-300 transition-smooth hover:-translate-y-0.5 hover:shadow-card-hover">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Flame className="h-[18px] w-[18px] text-warning-500" />
@@ -117,7 +126,7 @@ export default function ProgressPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="transition-transform duration-300 transition-smooth hover:-translate-y-0.5 hover:shadow-card-hover">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Award className="h-[18px] w-[18px] text-warning-600" />

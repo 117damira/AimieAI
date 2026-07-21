@@ -16,7 +16,9 @@
       "Skill(dataviz)",
       "Bash(node scripts/validate_palette.js \"#7c5cf5,#38bdf8\" --mode light)",
       "Bash(npm run *)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/ --max-time 5)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/ --max-time 5)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   }
 }

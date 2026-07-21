@@ -35,20 +35,21 @@ export function WeeklyActivityChart({
         </span>
       </div>
 
-      <div className="flex items-end justify-between gap-2 sm:gap-4">
+      <div className="flex items-end justify-between gap-2 rounded-2xl border border-border bg-background/50 p-4 sm:gap-4">
         {days.map((day) => (
           <div key={day.label} className="flex flex-1 flex-col items-center gap-2">
-            <div className="flex items-end gap-1">
+            <div className="flex items-end gap-1.5">
               <div className="flex w-3.5 flex-col items-center sm:w-4">
                 <span className="mb-1 h-3.5 text-[10px] font-medium leading-none text-muted">
                   {day.writing > 0 ? day.writing : ""}
                 </span>
                 <div
-                  className="flex w-full items-end"
+                  className="flex w-full items-end rounded-t-[4px] bg-surface"
                   style={{ height: TRACK_HEIGHT_PX }}
+                  title={`${writingLabel}: ${day.writing}`}
                 >
                   <div
-                    className="w-full rounded-t-[4px] bg-primary-500"
+                    className="w-full rounded-t-[4px] bg-primary-500 transition-[height] duration-500 transition-smooth"
                     style={{ height: `${barHeightPercent(day.writing, max)}%` }}
                   />
                 </div>
@@ -58,17 +59,18 @@ export function WeeklyActivityChart({
                   {day.speaking > 0 ? day.speaking : ""}
                 </span>
                 <div
-                  className="flex w-full items-end"
+                  className="flex w-full items-end rounded-t-[4px] bg-surface"
                   style={{ height: TRACK_HEIGHT_PX }}
+                  title={`${speakingLabel}: ${day.speaking}`}
                 >
                   <div
-                    className="w-full rounded-t-[4px] bg-info-500"
+                    className="w-full rounded-t-[4px] bg-info-500 transition-[height] duration-500 transition-smooth"
                     style={{ height: `${barHeightPercent(day.speaking, max)}%` }}
                   />
                 </div>
               </div>
             </div>
-            <span className="text-xs text-muted">{day.label}</span>
+            <span className="text-xs font-medium text-muted">{day.label}</span>
           </div>
         ))}
       </div>

@@ -36,11 +36,11 @@ export function ExamCountdown({ examDate }: { examDate: string }) {
   const label = days > 0 ? t.studyPlan.daysUntilExam(days) : days === 0 ? t.studyPlan.examTodayLabel : t.studyPlan.examPastLabel;
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-primary-900/90 px-5 py-4 text-white shadow-sm">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10">
+    <div className="flex items-center gap-4 rounded-2xl bg-gradient-to-br from-primary-900 to-primary-800 px-6 py-5 text-white shadow-card">
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-inset ring-white/15">
         <CalendarDays className="h-5 w-5" />
       </span>
-      <span className="font-display text-base font-semibold sm:text-lg">{label}</span>
+      <span className="font-display text-lg font-semibold tracking-tight sm:text-xl">{label}</span>
     </div>
   );
 }

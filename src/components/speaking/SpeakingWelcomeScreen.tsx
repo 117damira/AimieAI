@@ -29,7 +29,7 @@ export function SpeakingWelcomeScreen({
         </div>
         <CardDescription>{levelConfig.structureDescription[language]}</CardDescription>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <WelcomeStat icon={Timer} label={t.speaking.prepTimeLabel} value={prepTimeLabel} />
         <WelcomeStat icon={Clock} label={t.speaking.estimatedDurationLabel} value={durationLabel} />
         <WelcomeStat icon={ListChecks} label={t.speaking.numberOfPartsLabel} value={String(levelConfig.parts.length)} />
@@ -53,8 +53,10 @@ function WelcomeStat({
   value: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1.5 rounded-2xl bg-background p-4 text-center">
-      <Icon className="h-5 w-5 text-primary-500" />
+    <div className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-background p-4 text-center">
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+        <Icon className="h-[18px] w-[18px]" />
+      </span>
       <span className="font-display text-lg font-semibold text-foreground">{value}</span>
       <span className="text-xs text-muted">{label}</span>
     </div>

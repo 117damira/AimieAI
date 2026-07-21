@@ -12,7 +12,7 @@ export function ExamDateStep({
 }) {
   const { t } = useLanguage();
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <Input
         type="date"
         label={t.onboarding.examDateLabel}
@@ -23,7 +23,7 @@ export function ExamDateStep({
         type="button"
         variant="ghost"
         size="sm"
-        className="self-start"
+        className="self-start -mt-1"
         onClick={() => onChange(null)}
       >
         {t.onboarding.notSureYet}

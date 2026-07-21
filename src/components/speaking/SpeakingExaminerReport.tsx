@@ -17,6 +17,13 @@ import type { SpeakingExaminerReport as ReportData } from "@/types/speaking-eval
 export function SpeakingExaminerReport({ report }: { report: ReportData }) {
   const { t } = useLanguage();
   const r = t.speaking.report;
+  const scoreRatio = report.scoreOutOf > 0 ? report.estimatedScore / report.scoreOutOf : 0;
+  const scoreTone = scoreRatio >= 0.7 ? "success" : scoreRatio >= 0.5 ? "warning" : "danger";
+  const scoreToneClasses = {
+    success: "bg-success-50 text-success-600",
+    warning: "bg-warning-50 text-warning-600",
+    danger: "bg-danger-50 text-danger-600",
+  }[scoreTone];
 
   return (
     <div className="flex flex-col gap-6">
@@ -54,7 +61,7 @@ export function SpeakingExaminerReport({ report }: { report: ReportData }) {
             report.grammar.commonErrors.map((err, i) => (
               <div
                 key={i}
-                className="flex flex-col gap-2 rounded-xl border border-border bg-background p-3"
+                className="flex flex-col gap-2 rounded-xl border border-border bg-background p-4"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm text-foreground line-through decoration-danger-500">
@@ -179,12 +186,12 @@ export function SpeakingExaminerReport({ report }: { report: ReportData }) {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-baseline gap-2">
-              <span className="font-display text-3xl font-semibold text-foreground">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className={cn("flex shrink-0 items-baseline gap-1.5 rounded-2xl px-4 py-3", scoreToneClasses)}>
+              <span className="font-display text-3xl font-semibold">
                 {report.estimatedScore}
               </span>
-              <span className="text-sm text-muted">/ {report.scoreOutOf}</span>
+              <span className="text-sm opacity-80">/ {report.scoreOutOf}</span>
             </div>
             <p className="text-sm text-muted">{report.scoreExplanation}</p>
           </div>

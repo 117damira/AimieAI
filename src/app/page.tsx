@@ -51,9 +51,11 @@ export default function HomePage() {
             <Sparkles className="h-3.5 w-3.5" />
             Currently focused on {ACTIVE_EXAM.name}
           </Badge>
-          <h1 className="font-display max-w-3xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-            Prepare for {ACTIVE_EXAM.name} with feedback that feels like a
-            real examiner
+          <h1 className="font-display max-w-3xl text-4xl font-semibold tracking-tight text-balance text-foreground sm:text-5xl">
+            Prepare for {ACTIVE_EXAM.name} with feedback that feels like a{" "}
+            <span className="bg-gradient-to-r from-primary-600 to-primary-400 bg-clip-text text-transparent">
+              real examiner
+            </span>
           </h1>
           <p className="max-w-2xl text-lg leading-8 text-muted">
             {APP_NAME} gives students professional, structured feedback on
@@ -85,9 +87,12 @@ export default function HomePage() {
         <section className="mx-auto w-full max-w-6xl px-6 pb-20">
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {VALUE_PROPS.map(({ icon: Icon, title, description }) => (
-              <Card key={title} className="h-full">
+              <Card
+                key={title}
+                className="h-full transition-transform duration-300 transition-smooth hover:shadow-card-hover hover:-translate-y-0.5"
+              >
                 <CardContent className="flex h-full flex-col gap-3">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 text-primary-600">
                     <Icon className="h-5 w-5" />
                   </span>
                   <h3 className="font-display font-semibold text-foreground">
@@ -117,7 +122,7 @@ export default function HomePage() {
                 {Object.values(EXAMS).map((exam) => (
                   <div
                     key={exam.id}
-                    className="flex min-w-[140px] flex-col items-center gap-2 rounded-2xl border border-border bg-background px-5 py-4"
+                    className="flex min-w-[140px] flex-col items-center gap-2 rounded-2xl border border-border bg-background px-5 py-4 transition-colors duration-200 hover:border-primary-200"
                   >
                     <span className="font-display font-semibold text-foreground">
                       {exam.name}

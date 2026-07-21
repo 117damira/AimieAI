@@ -92,7 +92,7 @@ function ActionRow({
   );
 
   const className =
-    "flex w-full items-center justify-between gap-4 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-background cursor-pointer";
+    "flex w-full items-center justify-between gap-4 rounded-xl px-2 py-2.5 text-left transition-colors duration-200 hover:bg-background cursor-pointer";
 
   if (href) {
     return (

@@ -11,13 +11,13 @@ export type ButtonSize = "sm" | "md" | "lg";
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    "bg-primary-600 text-white hover:bg-primary-700 shadow-sm shadow-primary-600/20",
+    "bg-primary-600 text-white hover:bg-primary-700 shadow-sm shadow-primary-600/20 hover:shadow-md hover:shadow-primary-600/25",
   secondary:
     "bg-primary-50 text-primary-700 hover:bg-primary-100 border border-primary-100",
   outline:
-    "bg-transparent text-foreground border border-border hover:bg-surface hover:border-primary-200",
+    "bg-transparent text-foreground border border-border hover:bg-surface hover:border-primary-200 hover:shadow-sm",
   ghost: "bg-transparent text-foreground hover:bg-primary-50",
-  danger: "bg-danger-500 text-white hover:bg-danger-600",
+  danger: "bg-danger-500 text-white hover:bg-danger-600 shadow-sm shadow-danger-500/20 hover:shadow-md hover:shadow-danger-500/25",
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
@@ -33,7 +33,7 @@ export function buttonVariants(opts?: {
 }) {
   const { variant = "primary", size = "md", className } = opts ?? {};
   return cn(
-    "inline-flex items-center justify-center rounded-xl font-medium transition duration-150 ease-out active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background cursor-pointer",
+    "inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 ease-out active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 disabled:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background cursor-pointer",
     VARIANT_CLASSES[variant],
     SIZE_CLASSES[size],
     className

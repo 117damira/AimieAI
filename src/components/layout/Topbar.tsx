@@ -18,12 +18,12 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   if (!profile) return null;
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-background/80 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 sm:px-6">
       <button
         type="button"
         onClick={onMenuClick}
         aria-label={t.topbar.ariaOpenMenu}
-        className="flex h-10 w-10 items-center justify-center rounded-xl text-foreground hover:bg-primary-50 lg:hidden"
+        className="flex h-10 w-10 items-center justify-center rounded-xl text-foreground transition-colors duration-200 hover:bg-primary-50 lg:hidden"
       >
         <Menu className="h-5 w-5" />
       </button>
@@ -40,7 +40,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
         >
           <Badge
             variant="warning"
-            className="transition-transform hover:scale-105"
+            className="transition-transform duration-200 hover:scale-105 hover:shadow-sm"
           >
             <Flame className="h-3.5 w-3.5" />
             {t.topbar.streak(profile.stats.currentStreakDays)}
@@ -50,7 +50,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
           type="button"
           onClick={() => setProfileModalOpen(true)}
           aria-label={t.topbar.ariaOpenProfile}
-          className="cursor-pointer rounded-full transition-transform hover:scale-105"
+          className="cursor-pointer rounded-full transition-transform duration-200 hover:scale-105"
         >
           <Avatar
             firstName={profile.firstName}

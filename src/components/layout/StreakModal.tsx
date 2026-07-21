@@ -128,9 +128,9 @@ export function StreakModal({ open, onClose }: StreakModalProps) {
                 <span className="text-xs font-medium text-muted">{day.label}</span>
                 <span
                   className={cn(
-                    "flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium ring-offset-2 ring-offset-surface",
+                    "flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium ring-offset-2 ring-offset-surface transition-transform duration-200 hover:scale-105",
                     day.active
-                      ? "bg-warning-500 text-white"
+                      ? "bg-warning-500 text-white shadow-sm shadow-warning-500/30"
                       : "bg-background text-muted",
                     day.isToday && "ring-2 ring-primary-400"
                   )}

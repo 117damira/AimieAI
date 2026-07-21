@@ -76,7 +76,7 @@ function ResetPasswordForm() {
   }
 
   return (
-    <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+    <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
       <div className="flex flex-col gap-1.5">
         <Input
           label={t.auth.resetPassword.newPassword}
@@ -91,7 +91,7 @@ function ResetPasswordForm() {
         {password.length > 0 && (
           <p
             className={cn(
-              "text-xs",
+              "text-xs transition-colors duration-200",
               isValidPassword(password) ? "text-success-600" : "text-danger-600"
             )}
           >
@@ -112,7 +112,7 @@ function ResetPasswordForm() {
           {error}
         </p>
       )}
-      <Button type="submit" className="mt-2 w-full" disabled={isSubmitting}>
+      <Button type="submit" className="mt-1 w-full" disabled={isSubmitting}>
         {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t.auth.resetPassword.submit}
       </Button>
     </form>
@@ -133,7 +133,7 @@ export default function ResetPasswordPage() {
           <ResetPasswordForm />
         </Suspense>
         <p className="mt-6 text-center text-sm text-muted">
-          <Link href="/login" className="font-medium text-primary-600 hover:underline">
+          <Link href="/login" className="font-medium text-primary-600 transition-colors duration-200 hover:text-primary-700 hover:underline">
             {t.auth.resetPassword.goToLogin}
           </Link>
         </p>

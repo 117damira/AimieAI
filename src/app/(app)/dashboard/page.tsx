@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   Mic,
   PenLine,
@@ -31,6 +32,7 @@ import { useUserProfile } from "@/lib/profile/UserProfileContext";
 export default function DashboardPage() {
   const { t, language } = useLanguage();
   const { profile, updateProfile } = useUserProfile();
+  const shouldReduceMotion = useReducedMotion();
   const d = t.dashboard;
 
   // Captured once on mount, before the effect below stamps lastLoginAt — so
@@ -55,7 +57,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="relative overflow-hidden rounded-3xl border border-primary-800/20 bg-primary-900/90 px-6 py-8 shadow-lg shadow-primary-900/20 sm:px-8 sm:py-10">
+      <div className="relative overflow-hidden rounded-3xl border border-primary-800/20 bg-primary-900/90 px-6 py-8 shadow-elevated sm:px-8 sm:py-10">
         <div className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-primary-400/25 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-primary-500/15 blur-3xl" />
         <div className="relative flex flex-col gap-1.5">
@@ -70,7 +72,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Word of the Day */}
-        <Card className="lg:col-span-2">
+        <Card className="group lg:col-span-2 transition-transform duration-300 transition-smooth hover:-translate-y-0.5 hover:shadow-card-hover">
           <CardHeader className="flex-row items-start justify-between gap-4">
             <div className="flex flex-col gap-1.5">
               <CardTitle>{d.wordOfDay.title}</CardTitle>
@@ -79,7 +81,7 @@ export default function DashboardPage() {
             <Badge variant="primary">{d.wordOfDay.badge}</Badge>
           </CardHeader>
           <CardContent className="flex items-center gap-4">
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-2xl">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-2xl transition-transform duration-300 transition-smooth group-hover:scale-110">
               {wordOfTheDay.icon}
             </span>
             <div className="flex flex-col gap-1">
@@ -131,10 +133,10 @@ export default function DashboardPage() {
         </Card>
 
         {/* Speaking Practice */}
-        <Card>
+        <Card className="group transition-transform duration-300 transition-smooth hover:-translate-y-0.5 hover:shadow-card-hover">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-info-50 text-info-600">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-info-50 text-info-600 transition-transform duration-300 transition-smooth group-hover:scale-110">
                 <Mic className="h-[18px] w-[18px]" />
               </span>
               <CardTitle>{d.speaking.title}</CardTitle>
@@ -153,10 +155,10 @@ export default function DashboardPage() {
         </Card>
 
         {/* Writing Practice */}
-        <Card>
+        <Card className="group transition-transform duration-300 transition-smooth hover:-translate-y-0.5 hover:shadow-card-hover">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-600 transition-transform duration-300 transition-smooth group-hover:scale-110">
                 <PenLine className="h-[18px] w-[18px]" />
               </span>
               <CardTitle>{d.writing.title}</CardTitle>
@@ -175,10 +177,10 @@ export default function DashboardPage() {
         </Card>
 
         {/* Listening */}
-        <Card>
+        <Card className="group transition-transform duration-300 transition-smooth hover:-translate-y-0.5 hover:shadow-card-hover">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50 text-purple-600 transition-transform duration-300 transition-smooth group-hover:scale-110">
                 <Headphones className="h-[18px] w-[18px]" />
               </span>
               <CardTitle>{d.listening.title}</CardTitle>
@@ -197,10 +199,10 @@ export default function DashboardPage() {
         </Card>
 
         {/* Weekly Quiz */}
-        <Card>
+        <Card className="group transition-transform duration-300 transition-smooth hover:-translate-y-0.5 hover:shadow-card-hover">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-warning-50 text-warning-600">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-warning-50 text-warning-600 transition-transform duration-300 transition-smooth group-hover:scale-110">
                 <ListChecks className="h-[18px] w-[18px]" />
               </span>
               <CardTitle>{d.quiz.title}</CardTitle>
@@ -219,10 +221,10 @@ export default function DashboardPage() {
         </Card>
 
         {/* Progress Summary */}
-        <Card className="lg:col-span-2">
+        <Card className="group lg:col-span-2 transition-transform duration-300 transition-smooth hover:-translate-y-0.5 hover:shadow-card-hover">
           <CardHeader className="flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-600 transition-transform duration-300 transition-smooth group-hover:scale-110">
                 <TrendingUp className="h-[18px] w-[18px]" />
               </span>
               <CardTitle>{d.progress.title}</CardTitle>
@@ -242,16 +244,19 @@ export default function DashboardPage() {
               { label: d.progress.speakingSessions, value: stats.speakingSessions },
               { label: d.progress.writingSessions, value: stats.writingSessions },
               { label: d.progress.listeningSessions, value: stats.listeningSessions },
-            ].map((stat) => (
-              <div
+            ].map((stat, index) => (
+              <motion.div
                 key={stat.label}
-                className="flex flex-col gap-1 rounded-2xl bg-background p-4"
+                initial={shouldReduceMotion ? undefined : { opacity: 0, y: 8 }}
+                animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: index * 0.05, ease: "easeOut" }}
+                className="flex flex-col gap-1 rounded-2xl bg-background p-4 transition-transform duration-300 transition-smooth hover:-translate-y-0.5"
               >
                 <span className="font-display text-2xl font-semibold text-foreground">
                   {stat.value}
                 </span>
                 <span className="text-xs text-muted">{stat.label}</span>
-              </div>
+              </motion.div>
             ))}
           </CardContent>
         </Card>

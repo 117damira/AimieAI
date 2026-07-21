@@ -97,6 +97,8 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .font-display {
@@ -105,4 +107,53 @@ body {
 
 * {
   border-color: var(--border);
+}
+
+@layer utilities {
+  .shadow-card {
+    box-shadow:
+      0 1px 2px 0 rgba(30, 34, 51, 0.04),
+      0 8px 20px -10px rgba(30, 34, 51, 0.10);
+  }
+
+  .shadow-card-hover {
+    box-shadow:
+      0 2px 4px 0 rgba(30, 34, 51, 0.05),
+      0 16px 32px -12px rgba(104, 69, 232, 0.16);
+  }
+
+  .shadow-elevated {
+    box-shadow:
+      0 4px 8px -2px rgba(30, 34, 51, 0.06),
+      0 24px 48px -16px rgba(30, 34, 51, 0.18);
+  }
+
+  .transition-smooth {
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+::selection {
+  background: var(--primary-200);
+  color: var(--primary-900);
+}
+
+/* Slim, unobtrusive scrollbars that still respect the palette */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-200) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--primary-200);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
 }

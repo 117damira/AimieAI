@@ -25,9 +25,11 @@ export default function StudyPlanPage() {
       {profile.examDate ? (
         <ExamCountdown examDate={profile.examDate} />
       ) : (
-        <div className="flex items-center justify-between gap-4 rounded-2xl bg-primary-50 px-4 py-3">
-          <div className="flex items-center gap-2 text-sm text-primary-700">
-            <Info className="h-4 w-4 shrink-0" />
+        <div className="flex items-center justify-between gap-4 rounded-2xl border border-primary-100 bg-primary-50 px-5 py-4">
+          <div className="flex items-center gap-3 text-sm text-primary-700">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-100">
+              <Info className="h-4 w-4 text-primary-600" />
+            </span>
             <div className="flex flex-col">
               <span className="font-medium">{t.studyPlan.noExamDateTitle}</span>
               <span className="text-primary-600">{t.studyPlan.noExamDateDescription}</span>

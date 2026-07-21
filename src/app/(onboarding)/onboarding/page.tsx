@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Card,
   CardHeader,
@@ -35,6 +36,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const { completeOnboarding } = useUserProfile();
   const { t } = useLanguage();
+  const shouldReduceMotion = useReducedMotion();
   const [step, setStep] = useState(1);
   const [draft, setDraft] = useState<Draft>({
     examId: null,
@@ -74,33 +76,43 @@ export default function OnboardingPage() {
         <CardDescription>{copy.description}</CardDescription>
       </CardHeader>
       <CardContent>
-        {step === 1 && (
-          <ExamStep
-            value={draft.examId}
-            onChange={(examId) => setDraft((d) => ({ ...d, examId }))}
-          />
-        )}
-        {step === 2 && (
-          <LevelStep
-            value={draft.targetLevel}
-            onChange={(targetLevel) => setDraft((d) => ({ ...d, targetLevel }))}
-          />
-        )}
-        {step === 3 && (
-          <ExamDateStep
-            value={draft.examDate}
-            onChange={(examDate) => setDraft((d) => ({ ...d, examDate }))}
-          />
-        )}
-        {step === 4 && (
-          <DailyGoalStep
-            value={draft.dailyGoalMinutes}
-            onChange={(dailyGoalMinutes) => setDraft((d) => ({ ...d, dailyGoalMinutes }))}
-          />
-        )}
-        {step === 5 && <ReviewStep draft={draft} />}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={step}
+            initial={shouldReduceMotion ? false : { opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={shouldReduceMotion ? undefined : { opacity: 0, x: -12 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+          >
+            {step === 1 && (
+              <ExamStep
+                value={draft.examId}
+                onChange={(examId) => setDraft((d) => ({ ...d, examId }))}
+              />
+            )}
+            {step === 2 && (
+              <LevelStep
+                value={draft.targetLevel}
+                onChange={(targetLevel) => setDraft((d) => ({ ...d, targetLevel }))}
+              />
+            )}
+            {step === 3 && (
+              <ExamDateStep
+                value={draft.examDate}
+                onChange={(examDate) => setDraft((d) => ({ ...d, examDate }))}
+              />
+            )}
+            {step === 4 && (
+              <DailyGoalStep
+                value={draft.dailyGoalMinutes}
+                onChange={(dailyGoalMinutes) => setDraft((d) => ({ ...d, dailyGoalMinutes }))}
+              />
+            )}
+            {step === 5 && <ReviewStep draft={draft} />}
+          </motion.div>
+        </AnimatePresence>
       </CardContent>
-      <CardFooter className="justify-between">
+      <CardFooter className="justify-between border-t border-border pt-6">
         <Button variant="ghost" onClick={handleBack} disabled={step === 1}>
           {t.onboarding.back}
         </Button>

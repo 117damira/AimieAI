@@ -20,7 +20,11 @@ export function ListeningResultsSummary({ result }: { result: ListeningResult })
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        <div
+          className={`flex flex-wrap items-end justify-between gap-4 rounded-2xl p-4 ${
+            result.passed ? "bg-success-50" : isOfficialExam ? "bg-danger-50" : "bg-warning-50"
+          }`}
+        >
           <div className="flex flex-col gap-1">
             <span className="font-display text-4xl font-semibold text-foreground">
               {result.score}
@@ -49,7 +53,7 @@ export function ListeningResultsSummary({ result }: { result: ListeningResult })
 function Stat({ icon: Icon, label, value }: { icon: typeof Clock; label: string; value: string }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-background p-4">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary-50 to-primary-100 text-primary-600">
         <Icon className="h-[18px] w-[18px]" />
       </span>
       <div className="flex flex-col">

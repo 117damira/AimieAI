@@ -33,16 +33,19 @@ export function SpeakingTurnFeedback({
           <CardTitle>{t.speaking.examinerFeedback}</CardTitle>
         </div>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex items-center gap-2 text-sm">
-          {feedback.relevance ? (
-            <CheckCircle2 className="h-4 w-4 text-success-600" />
-          ) : (
-            <XCircle className="h-4 w-4 text-danger-600" />
+      <CardContent className="flex flex-col gap-5">
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium",
+            feedback.relevance ? "bg-success-50 text-success-600" : "bg-danger-50 text-danger-600"
           )}
-          <span className={cn(feedback.relevance ? "text-success-600" : "text-danger-600")}>
-            {feedback.relevance ? t.speaking.answeredQuestion : t.speaking.needsMoreDevelopment}
-          </span>
+        >
+          {feedback.relevance ? (
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+          ) : (
+            <XCircle className="h-4 w-4 shrink-0" />
+          )}
+          {feedback.relevance ? t.speaking.answeredQuestion : t.speaking.needsMoreDevelopment}
         </div>
 
         <FeedbackRow label={f.taskCompletionLabel} value={feedback.taskCompletionNote} />
@@ -53,7 +56,7 @@ export function SpeakingTurnFeedback({
             {feedback.grammarErrors.map((err, i) => (
               <div
                 key={i}
-                className="flex flex-col gap-2 rounded-xl border border-border bg-background p-3"
+                className="flex flex-col gap-2 rounded-xl border border-border bg-background p-4"
               >
                 <HighlightedMistakeSentence sentence={err.sentence} original={err.original} correction={err.correction} />
                 <MistakeDetail label={f.whyWrong} value={err.whyWrong} />
@@ -73,7 +76,7 @@ export function SpeakingTurnFeedback({
         <FeedbackRow label={f.pronunciationLabel} value={feedback.pronunciationNote} />
 
         {showPronunciationWords && feedback.mispronuncedWords.length > 0 && (
-          <div className="flex flex-col gap-2 rounded-xl border border-border bg-background p-3">
+          <div className="flex flex-col gap-2.5 rounded-xl border border-border bg-background p-4">
             <span className="text-xs font-medium text-foreground">{f.mispronuncedWordsTitle}</span>
             {feedback.mispronuncedWords.map((mw, i) => (
               <div key={i} className="flex items-center gap-2">
@@ -81,7 +84,7 @@ export function SpeakingTurnFeedback({
                   type="button"
                   onClick={() => handlePlayWord(mw.word)}
                   aria-label={f.playPronunciation}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-600 transition-colors hover:bg-primary-100"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-600 transition-colors duration-200 hover:bg-primary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   <Volume2 className="h-3.5 w-3.5" />
                 </button>
@@ -96,7 +99,7 @@ export function SpeakingTurnFeedback({
         <FeedbackRow label={f.naturalnessLabel} value={feedback.naturalnessNote} />
         <FeedbackRow label={f.answerStructureLabel} value={feedback.structureNote} />
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <FeedbackList title={f.strengthsTitle} items={feedback.strengths} tone="success" />
           <FeedbackList title={f.areasForImprovementTitle} items={feedback.areasForImprovement} tone="danger" />
           <FeedbackList title={f.suggestionsTitle} items={feedback.suggestions} tone="primary" />
@@ -104,15 +107,17 @@ export function SpeakingTurnFeedback({
 
         <div className="flex flex-col gap-1.5 rounded-xl bg-primary-50 p-4">
           <span className="text-xs font-semibold text-primary-700">{f.improvedAnswerTitle}</span>
-          <p className="text-sm italic text-foreground">&ldquo;{feedback.improvedAnswer}&rdquo;</p>
+          <p className="text-sm italic leading-6 text-foreground">&ldquo;{feedback.improvedAnswer}&rdquo;</p>
         </div>
 
         <div className="flex flex-col gap-1.5 rounded-xl bg-warning-50 p-4">
           <span className="text-xs font-semibold text-warning-600">{f.coachingTipTitle}</span>
-          <p className="text-sm text-foreground">{feedback.coachingTip}</p>
+          <p className="text-sm leading-6 text-foreground">{feedback.coachingTip}</p>
         </div>
 
-        <p className="text-sm font-medium text-foreground">{feedback.encouragement}</p>
+        <p className="rounded-xl bg-background px-3.5 py-2.5 text-sm font-medium text-foreground">
+          {feedback.encouragement}
+        </p>
 
         <div className="flex justify-end">
           <Button onClick={onContinue}>{continueLabel}</Button>
@@ -203,9 +208,9 @@ function FeedbackList({
     primary: "text-primary-600",
   }[tone];
   return (
-    <div className="flex flex-col gap-1.5 rounded-2xl bg-background p-3">
+    <div className="flex flex-col gap-2 rounded-2xl bg-background p-4">
       <span className={cn("text-xs font-semibold", toneClass)}>{title}</span>
-      <ul className="flex flex-col gap-1 text-xs text-foreground">
+      <ul className="flex flex-col gap-1.5 text-xs text-foreground">
         {items.map((item, i) => (
           <li key={i} className="flex items-start gap-1.5">
             <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-current opacity-60" />

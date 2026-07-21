@@ -21,7 +21,7 @@ export function ReviewStep({ draft }: { draft: ReviewDraft }) {
     : null;
 
   return (
-    <div className="flex flex-col divide-y divide-border rounded-2xl border border-border">
+    <div className="flex flex-col divide-y divide-border overflow-hidden rounded-2xl border border-border shadow-card">
       <ReviewRow label={t.onboarding.reviewExam} value={exam?.name ?? "—"} />
       <ReviewRow
         label={t.onboarding.reviewLevel}
@@ -38,9 +38,9 @@ export function ReviewStep({ draft }: { draft: ReviewDraft }) {
 
 function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 px-4 py-3">
-      <span className="text-sm text-muted">{label}</span>
-      <span className="text-sm font-medium text-foreground">{value}</span>
+    <div className="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors duration-200 hover:bg-background/60">
+      <span className="text-sm font-medium text-muted">{label}</span>
+      <span className="text-sm font-semibold text-foreground">{value}</span>
     </div>
   );
 }

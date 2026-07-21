@@ -26,10 +26,10 @@ export function ExamStep({
             onClick={() => onChange(exam.id)}
             aria-pressed={selected}
             className={cn(
-              "flex flex-col items-center gap-2 rounded-2xl border px-4 py-5 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+              "flex flex-col items-center gap-2 rounded-2xl border px-4 py-5 text-center transition-all duration-300 transition-smooth disabled:cursor-not-allowed disabled:opacity-60",
               selected
-                ? "border-primary-400 bg-primary-50"
-                : "border-border bg-background hover:border-primary-200"
+                ? "border-primary-400 bg-primary-50 shadow-card-hover"
+                : "border-border bg-background hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-card-hover"
             )}
           >
             <span className="font-display text-base font-semibold text-foreground">

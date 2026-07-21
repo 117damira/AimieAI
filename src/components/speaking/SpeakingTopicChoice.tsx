@@ -19,7 +19,10 @@ export function SpeakingTopicChoice({
       <p className="text-sm font-medium text-foreground">{t.speaking.chooseTopic}</p>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {topics.map((topic, i) => (
-          <Card key={i}>
+          <Card
+            key={i}
+            className="flex h-full flex-col justify-between transition-transform duration-300 transition-smooth hover:-translate-y-0.5 hover:shadow-card-hover"
+          >
             <CardHeader>
               <div className="flex items-center gap-2">
                 <MessageSquareText className="h-[18px] w-[18px] text-primary-500" />

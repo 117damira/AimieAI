@@ -61,7 +61,7 @@ export function SpeakingResponseInput({
         <CardTitle>{t.speaking.yourAnswer}</CardTitle>
         <CardDescription>{t.speaking.speakYourAnswer}</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-5">
         <div className="flex flex-col items-center gap-3">
           <button
             type="button"
@@ -69,8 +69,8 @@ export function SpeakingResponseInput({
             disabled={isSubmitting || !isSupported}
             aria-label={isListening ? t.speaking.stopRecording : t.speaking.tapToSpeak}
             className={cn(
-              "relative flex h-14 w-14 items-center justify-center rounded-full text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-              isListening ? "bg-danger-600" : "bg-primary-600"
+              "relative flex h-16 w-16 items-center justify-center rounded-full text-white shadow-sm transition-all duration-200 ease-out hover:shadow-md active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              isListening ? "bg-danger-600 shadow-danger-600/20" : "bg-primary-600 shadow-primary-600/20"
             )}
           >
             {isListening && (

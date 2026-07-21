@@ -57,7 +57,7 @@ export function LogoutConfirmDialog({ open, onClose }: LogoutConfirmDialogProps)
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           placeholder={t.logoutModal.reasonPlaceholder}
-          className="w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-sm leading-6 text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400"
+          className="w-full resize-none rounded-2xl border border-border bg-surface px-4 py-3 text-sm leading-6 text-foreground placeholder:text-muted/70 transition-all duration-200 hover:border-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400"
         />
       </label>
     </Modal>

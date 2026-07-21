@@ -32,18 +32,20 @@ export function SpeakingQuestionCard({
             {t.speaking.minutesUnit(Math.max(1, Math.round(suggestedDurationSeconds / 60)))}
           </Badge>
         </div>
-        <CardTitle className="mt-1">{prompt}</CardTitle>
+        <CardTitle className="mt-1 leading-snug">{prompt}</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-2">
+      <CardContent className="flex flex-col gap-3">
         <button
           type="button"
           onClick={() => setShowTranslation((prev) => !prev)}
-          className="inline-flex w-fit items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-foreground"
+          className="inline-flex w-fit items-center gap-1.5 rounded-lg text-xs font-medium text-muted transition-colors duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <Languages className="h-3.5 w-3.5" />
           {showTranslation ? t.speaking.hideTranslation : t.speaking.showTranslation}
         </button>
-        {showTranslation && <p className="text-sm text-muted">{translation}</p>}
+        {showTranslation && (
+          <p className="rounded-xl bg-background px-3 py-2 text-sm leading-6 text-muted">{translation}</p>
+        )}
       </CardContent>
     </Card>
   );
