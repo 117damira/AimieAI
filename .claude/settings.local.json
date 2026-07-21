@@ -38,7 +38,8 @@
       "Bash(rm -f src/lib/utils/phone.ts src/lib/sms/twilio.ts)",
       "Bash(rmdir src/lib/sms)",
       "Bash(git check-ignore *)",
-      "Bash(echo \"exit:$?\")"
+      "Bash(echo \"exit:$?\")",
+      "Bash(xargs -I{} echo {})"
     ]
   }
 }

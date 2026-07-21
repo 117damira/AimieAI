@@ -11,11 +11,17 @@ import {
 import type { User, UserStats } from "@/types/user";
 import type { VocabularyEntry } from "@/types/vocabulary";
 import type { DelfLevel, FeedbackLanguage } from "@/types/writing-evaluation";
+import type { ReadingSessionRecord } from "@/types/reading";
 import * as accountStore from "@/lib/auth/accountStore";
 import { recordWritingTopicHistory } from "@/lib/writing/topicRotation";
 import { recordListeningHistory } from "@/lib/listening/rotation";
+import { recordReadingHistory } from "@/lib/reading/rotation";
 import { DEFAULT_STUDY_DAYS } from "@/config/onboarding";
 import type { OnboardingAnswers } from "@/lib/onboarding/draftStore";
+
+/** How many sessions of readingSessionHistory to retain — enough for
+ * meaningful Personal Best / progress comparison without growing unbounded. */
+const READING_SESSION_HISTORY_LIMIT = 30;
 
 const STORAGE_KEY = "aimieai.user.v2";
 
@@ -25,7 +31,7 @@ interface IdentitySeed {
   email: string;
 }
 
-export type PracticeActivity = "writing" | "speaking" | "listening";
+export type PracticeActivity = "writing" | "speaking" | "listening" | "reading";
 
 export type RegisterResult =
   | { ok: true }
@@ -69,6 +75,19 @@ interface UserProfileContextValue {
    * content rotation (lib/listening/rotation.ts) knows what to avoid
    * repeating. */
   recordListeningCompletion: (level: DelfLevel, recordingIds: string[]) => void;
+  /** Records that a Reading set was completed: appends to the passage-id
+   * rotation history (lib/reading/rotation.ts) and to
+   * stats.readingSessionHistory (used for Personal Best/Progress
+   * Comparison, see lib/reading/stats.ts), and increments
+   * stats.readingSessions. Never called for anything other than an actual
+   * submitted-and-scored Reading session. */
+  recordReadingCompletion: (level: DelfLevel, passageIds: string[], session: ReadingSessionRecord) => void;
+  /** Saves a word extracted from a Reading passage straight into the
+   * Vocabulary module (the "Save to Vocabulary" button) — deduped by word
+   * (case-insensitive) against existing vocabularyProgress, starting at
+   * mastery "new". Distinct from recordVocabularyPractice, which grades an
+   * actual submitted sentence; this just adds the word to track. */
+  addVocabularyWord: (word: string, definition: Record<FeedbackLanguage, string>) => void;
   clearProfile: () => void;
 }
 
@@ -83,10 +102,12 @@ function createInitialStats(): UserStats {
     speakingSessions: 0,
     writingSessions: 0,
     listeningSessions: 0,
+    readingSessions: 0,
     currentStreakDays: 0,
     longestStreakDays: 0,
     lastPracticeDate: null,
     history: [],
+    readingSessionHistory: [],
   };
 }
 
@@ -103,9 +124,12 @@ function migrateUser(user: User): User {
     vocabularyProgress: user.vocabularyProgress ?? [],
     writingTopicHistory: user.writingTopicHistory ?? {},
     listeningHistory: user.listeningHistory ?? {},
+    readingHistory: user.readingHistory ?? {},
     stats: {
       ...user.stats,
       listeningSessions: user.stats.listeningSessions ?? 0,
+      readingSessions: user.stats.readingSessions ?? 0,
+      readingSessionHistory: user.stats.readingSessionHistory ?? [],
     },
   };
 }
@@ -185,6 +209,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
           vocabularyProgress: [],
           writingTopicHistory: {},
           listeningHistory: {},
+          readingHistory: {},
         };
         await accountStore.createAccount({ user: newUser, password });
         setProfile(newUser);
@@ -227,6 +252,8 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
                 stats.writingSessions + (activity === "writing" ? 1 : 0),
               listeningSessions:
                 stats.listeningSessions + (activity === "listening" ? 1 : 0),
+              readingSessions:
+                stats.readingSessions + (activity === "reading" ? 1 : 0),
               currentStreakDays,
               longestStreakDays: Math.max(
                 stats.longestStreakDays,
@@ -303,6 +330,43 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
             ...prev,
             listeningHistory: { ...currentHistory, [level]: nextForLevel },
           };
+        });
+      },
+      recordReadingCompletion: (level, passageIds, session) => {
+        setProfile((prev) => {
+          if (!prev) return prev;
+          const currentHistory = prev.readingHistory ?? {};
+          const nextForLevel = recordReadingHistory(currentHistory[level] ?? [], passageIds);
+          const readingSessionHistory = [...(prev.stats.readingSessionHistory ?? []), session].slice(
+            -READING_SESSION_HISTORY_LIMIT
+          );
+          return {
+            ...prev,
+            readingHistory: { ...currentHistory, [level]: nextForLevel },
+            stats: { ...prev.stats, readingSessionHistory },
+          };
+        });
+      },
+      addVocabularyWord: (word, definition) => {
+        setProfile((prev) => {
+          if (!prev) return prev;
+          const today = todayIso();
+          const currentProgress = prev.vocabularyProgress ?? [];
+          const alreadySaved = currentProgress.some(
+            (entry) => entry.word.toLowerCase() === word.toLowerCase()
+          );
+          if (alreadySaved) return prev;
+
+          const newEntry: VocabularyEntry = {
+            id: `vocab_${Date.now()}`,
+            word,
+            definition,
+            learnedOn: today,
+            mastery: "new",
+            timesPracticed: 0,
+            timesCorrect: 0,
+          };
+          return { ...prev, vocabularyProgress: [newEntry, ...currentProgress] };
         });
       },
       clearProfile: () => setProfile(null),

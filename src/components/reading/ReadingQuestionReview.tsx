@@ -1,0 +1,241 @@
+"use client";
+
+import { useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import {
+  CheckCircle2,
+  XCircle,
+  ChevronDown,
+  ChevronUp,
+  Info,
+  MapPin,
+  KeyRound,
+  BookText,
+  AlertTriangle,
+  Sparkles,
+  Compass,
+  Highlighter,
+} from "lucide-react";
+import { Card, CardHeader, CardTitle, Badge, CardContent } from "@/components/ui";
+import { cn } from "@/lib/utils/cn";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { highlightEvidence } from "@/lib/reading/highlight";
+import type { ReadingPassage, ReadingQuestion } from "@/types/reading";
+
+const DIFFICULTY_EMOJI = { easy: "🟢", medium: "🟡", hard: "🔴" } as const;
+
+/**
+ * Mirrors ListeningQuestionReview's structure and adds: a difficulty badge,
+ * points earned, and the "Highlight Evidence" feature — a separate,
+ * independently-collapsible toggle that shows the real passage text with
+ * the exact supporting sentence(s) wrapped in <mark>, never just revealing
+ * the answer outright.
+ */
+export function ReadingQuestionReview({
+  question,
+  questionNumber,
+  selectedOptionIds,
+  isCorrect,
+  pointsEarned,
+  pointsPossible,
+  passage,
+}: {
+  question: ReadingQuestion;
+  questionNumber: number;
+  selectedOptionIds: string[];
+  isCorrect: boolean;
+  pointsEarned: number;
+  pointsPossible: number;
+  passage: ReadingPassage | undefined;
+}) {
+  const { t } = useLanguage();
+  const r = t.reading.review;
+  const s = t.reading.session;
+  const [explanationOpen, setExplanationOpen] = useState(false);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
+
+  const selectedOptions = question.options.filter((o) => selectedOptionIds.includes(o.id));
+  const correctOptions = question.options.filter((o) => question.correctOptionIds.includes(o.id));
+  const wrongOptions = question.options.filter((o) => !question.correctOptionIds.includes(o.id));
+  const difficultyLabel = {
+    easy: s.difficultyEasy,
+    medium: s.difficultyMedium,
+    hard: s.difficultyHard,
+  }[question.difficulty];
+
+  const evidenceSegments = passage ? highlightEvidence(passage.body, question.evidenceQuote) : [];
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="neutral">{s.questionBadge(questionNumber)}</Badge>
+          <Badge variant="neutral">
+            {DIFFICULTY_EMOJI[question.difficulty]} {difficultyLabel}
+          </Badge>
+          <Badge variant={isCorrect ? "success" : "danger"}>
+            {isCorrect ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+            {pointsEarned} / {pointsPossible}
+          </Badge>
+        </div>
+        <CardTitle className="mt-1 text-base">{question.prompt}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <div
+          className={cn(
+            "flex flex-col gap-1.5 rounded-2xl p-4 text-sm",
+            isCorrect ? "bg-success-50" : "bg-danger-50"
+          )}
+        >
+          <span className="text-muted">
+            {r.correctAnswer}:{" "}
+            <span className="font-medium text-success-700">{correctOptions.map((o) => o.text).join(", ")}</span>
+          </span>
+          <span className="text-muted">
+            {r.yourAnswer}:{" "}
+            <span className={cn("font-medium", isCorrect ? "text-success-700" : "text-danger-700")}>
+              {selectedOptions.length > 0 ? selectedOptions.map((o) => o.text).join(", ") : "—"}
+            </span>
+          </span>
+        </div>
+
+        {passage && (
+          <button
+            type="button"
+            onClick={() => setEvidenceOpen((e) => !e)}
+            className="flex items-center justify-between gap-2 rounded-xl border border-border bg-background px-4 py-3 text-left text-sm font-medium text-info-700 transition-colors duration-200 hover:bg-info-50"
+          >
+            <span className="flex items-center gap-2">
+              <Highlighter className="h-4 w-4 shrink-0" />
+              {evidenceOpen ? r.hideEvidence : r.showEvidence}
+            </span>
+            {evidenceOpen ? <ChevronUp className="h-4 w-4 shrink-0" /> : <ChevronDown className="h-4 w-4 shrink-0" />}
+          </button>
+        )}
+        <AnimatePresence initial={false}>
+          {evidenceOpen && passage && (
+            <motion.div
+              key="evidence"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: shouldReduceMotion ? 0 : 0.25, ease: [0.16, 1, 0.3, 1] }}
+              style={{ overflow: "hidden" }}
+            >
+              <div className="whitespace-pre-line rounded-xl bg-background p-4 text-sm leading-7 text-foreground">
+                {evidenceSegments.map((segment, i) =>
+                  segment.isMatch ? (
+                    <mark key={i} className="rounded bg-warning-200/70 px-0.5 text-foreground">
+                      {segment.text}
+                    </mark>
+                  ) : (
+                    <span key={i}>{segment.text}</span>
+                  )
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <button
+          type="button"
+          onClick={() => setExplanationOpen((e) => !e)}
+          className="flex items-center justify-between gap-2 rounded-xl border border-border bg-background px-4 py-3 text-left text-sm font-medium text-primary-700 transition-colors duration-200 hover:bg-primary-50"
+        >
+          <span className="flex items-center gap-2">
+            <Info className="h-4 w-4 shrink-0" />
+            {r.whyCorrectQuestion}
+          </span>
+          {explanationOpen ? <ChevronUp className="h-4 w-4 shrink-0" /> : <ChevronDown className="h-4 w-4 shrink-0" />}
+        </button>
+
+        <AnimatePresence initial={false}>
+          {explanationOpen && (
+            <motion.div
+              key="explanation"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: shouldReduceMotion ? 0 : 0.25, ease: [0.16, 1, 0.3, 1] }}
+              style={{ overflow: "hidden" }}
+            >
+              <div className="flex flex-col gap-4 rounded-xl bg-background p-4">
+                <ExplanationSection icon={MapPin} label={r.whereInText} text={question.explanation.whereInText} />
+                <ExplanationSection icon={KeyRound} label={r.keywords} text={question.explanation.keywords} />
+                <ExplanationSection icon={CheckCircle2} label={r.whyCorrect} text={question.explanation.whyCorrect} tone="success" />
+
+                <div className="flex flex-col gap-1.5">
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                    <AlertTriangle className="h-3.5 w-3.5 text-danger-600" />
+                    {r.whyIncorrect}
+                  </span>
+                  <ul className="flex flex-col gap-1.5">
+                    {wrongOptions.map((option) => {
+                      const explanation = question.explanation.whyIncorrect.find((w) => w.optionId === option.id);
+                      return (
+                        <li key={option.id} className="rounded-lg border border-border bg-surface p-2.5 text-xs">
+                          <span className="font-medium text-foreground">{option.text}</span>
+                          {explanation && <p className="mt-0.5 text-muted">{explanation.reason}</p>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+
+                {question.explanation.vocabulary.length > 0 && (
+                  <div className="flex flex-col gap-1.5">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                      <BookText className="h-3.5 w-3.5 text-primary-600" />
+                      {r.vocabulary}
+                    </span>
+                    <ul className="flex flex-wrap gap-2">
+                      {question.explanation.vocabulary.map((v) => (
+                        <li
+                          key={v.term}
+                          className="rounded-lg border border-primary-200 bg-primary-50 px-2.5 py-1 text-xs text-primary-700"
+                        >
+                          <span className="font-medium">{v.term}</span> — {v.translation}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <ExplanationSection icon={Sparkles} label={r.grammarPattern} text={question.explanation.grammarPattern} />
+                <ExplanationSection icon={Compass} label={r.strategy} text={question.explanation.strategy} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ExplanationSection({
+  icon: Icon,
+  label,
+  text,
+  tone = "default",
+}: {
+  icon: typeof Info;
+  label: string;
+  text: string;
+  tone?: "default" | "success";
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span
+        className={cn(
+          "flex items-center gap-1.5 text-xs font-semibold",
+          tone === "success" ? "text-success-700" : "text-foreground"
+        )}
+      >
+        <Icon className={cn("h-3.5 w-3.5", tone === "success" ? "text-success-600" : "text-primary-600")} />
+        {label}
+      </span>
+      <p className="text-sm text-muted">{text}</p>
+    </div>
+  );
+}

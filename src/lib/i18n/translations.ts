@@ -48,6 +48,7 @@ export interface Dictionary {
   nav: {
     dashboard: string;
     vocabulary: string;
+    reading: string;
     listening: string;
     speakingPractice: string;
     writingPractice: string;
@@ -139,6 +140,11 @@ export interface Dictionary {
       description: string;
       cta: string;
     };
+    reading: {
+      title: string;
+      description: string;
+      cta: string;
+    };
     quiz: {
       title: string;
       description: string;
@@ -152,6 +158,7 @@ export interface Dictionary {
       speakingSessions: string;
       writingSessions: string;
       listeningSessions: string;
+      readingSessions: string;
     };
   };
 
@@ -616,6 +623,133 @@ export interface Dictionary {
     };
   };
 
+  reading: {
+    pageTitle: string;
+    pageDescription: string;
+    personalBest: {
+      title: string;
+      bestScore: string;
+      averageScore: string;
+      streak: string;
+      sessionsCompleted: string;
+      daysUnit: string;
+      noDataYet: string;
+    };
+    home: {
+      currentLevel: string;
+      duration: string;
+      minutesUnit: string;
+      passages: string;
+      passagesUnit: string;
+      maxWordsPerPassage: string;
+      wordsUnit: string;
+      maxScore: string;
+      minPassingScore: string;
+    };
+    modes: {
+      fullExamTitle: string;
+      fullExamDescription: string;
+      startFullExam: string;
+      practiceByTextTitle: string;
+      practiceByTextDescription: string;
+      startPractice: string;
+      dailyChallengeTitle: string;
+      dailyChallengeDescription: string;
+      startDailyChallenge: string;
+      completedTodayBadge: string;
+    };
+    session: {
+      questionBadge: (n: number) => string;
+      submit: string;
+      backToModes: string;
+      generating: string;
+      previous: string;
+      next: string;
+      passageLabel: (n: number, total: number) => string;
+      selectAllThatApply: string;
+      wordCountLabel: (n: number) => string;
+      difficultyEasy: string;
+      difficultyMedium: string;
+      difficultyHard: string;
+      getHint: string;
+      hideHint: string;
+      hintLabel: string;
+    };
+    results: {
+      title: string;
+      practiceScoreLabel: string;
+      practiceGood: string;
+      practiceNeedsWork: string;
+      scoreLabel: string;
+      percentageLabel: string;
+      pass: string;
+      needsImprovement: string;
+      accuracyLabel: string;
+      reviewAnswers: string;
+      hideReview: string;
+      newSession: string;
+      timingTitle: string;
+      readingTimeLabel: string;
+      answeringTimeLabel: string;
+      totalTimeLabel: string;
+      recommendedTimeLabel: string;
+      paceFast: string;
+      paceOnPace: string;
+      paceSlow: string;
+    };
+    skillBreakdown: {
+      title: string;
+      description: string;
+    };
+    strategy: {
+      title: string;
+      description: string;
+      readinessLabel: string;
+    };
+    newVocabulary: {
+      title: string;
+      description: string;
+      saveButton: string;
+      savedBadge: string;
+      translationLabel: string;
+      definitionLabel: string;
+      exampleLabel: string;
+      emptyState: string;
+    };
+    progressComparison: {
+      title: string;
+      description: string;
+      previousScore: string;
+      currentScore: string;
+      scoreChange: string;
+      speedChange: string;
+      accuracyChange: string;
+      vocabularyChange: string;
+      wpmUnit: string;
+      noPreviousSession: string;
+    };
+    review: {
+      title: string;
+      yourAnswer: string;
+      correctAnswer: string;
+      whyCorrectQuestion: string;
+      whereInText: string;
+      keywords: string;
+      whyCorrect: string;
+      whyIncorrect: string;
+      vocabulary: string;
+      grammarPattern: string;
+      strategy: string;
+      showEvidence: string;
+      hideEvidence: string;
+      difficultyLabel: string;
+    };
+    tips: {
+      title: string;
+      items: string[];
+    };
+  };
+
   studyPlan: {
     pageTitle: string;
     pageDescription: string;
@@ -685,6 +819,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
     nav: {
       dashboard: "Dashboard",
       vocabulary: "Vocabulary",
+      reading: "Reading",
       listening: "Listening",
       speakingPractice: "Speaking Practice",
       writingPractice: "Writing Practice",
@@ -788,6 +923,11 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         description: "Practice DELF listening comprehension with original recordings.",
         cta: "Start listening",
       },
+      reading: {
+        title: "Reading",
+        description: "Practice DELF reading comprehension with original AI-generated texts.",
+        cta: "Start reading",
+      },
       quiz: {
         title: "Weekly Quiz",
         description: "Review the vocabulary you've learned so far this week.",
@@ -801,6 +941,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         speakingSessions: "Speaking sessions",
         writingSessions: "Writing sessions",
         listeningSessions: "Listening sessions",
+        readingSessions: "Reading sessions",
       },
     },
 
@@ -1309,6 +1450,141 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         ],
       },
     },
+    reading: {
+      pageTitle: "Reading",
+      pageDescription: "Practice DELF Compréhension des Écrits with original AI-generated texts.",
+      personalBest: {
+        title: "Your Reading Stats",
+        bestScore: "Best Reading Score",
+        averageScore: "Average Reading Score",
+        streak: "Reading Streak",
+        sessionsCompleted: "Reading Sessions Completed",
+        daysUnit: "days",
+        noDataYet: "Complete your first Reading session to see your stats here.",
+      },
+      home: {
+        currentLevel: "Current DELF Level",
+        duration: "Reading duration",
+        minutesUnit: "min",
+        passages: "Texts",
+        passagesUnit: "texts",
+        maxWordsPerPassage: "Max text length",
+        wordsUnit: "words",
+        maxScore: "Maximum score",
+        minPassingScore: "Minimum passing score",
+      },
+      modes: {
+        fullExamTitle: "Full DELF Reading Exam",
+        fullExamDescription: "A complete simulation of the DELF reading section, timed and scored like the real exam.",
+        startFullExam: "Start full exam",
+        practiceByTextTitle: "Practice by Text",
+        practiceByTextDescription: "Practice a single reading passage and its questions at your own pace.",
+        startPractice: "Start practice",
+        dailyChallengeTitle: "Daily Reading Challenge",
+        dailyChallengeDescription: "A fresh challenge every day — every student at your level gets the same one today.",
+        startDailyChallenge: "Start today's challenge",
+        completedTodayBadge: "Completed today",
+      },
+      session: {
+        questionBadge: (n) => `Question ${n}`,
+        submit: "Submit",
+        backToModes: "Back",
+        generating: "Generating your reading exercise...",
+        previous: "Previous",
+        next: "Next",
+        passageLabel: (n, total) => `Text ${n} of ${total}`,
+        selectAllThatApply: "Select all that apply",
+        wordCountLabel: (n) => `${n} words`,
+        difficultyEasy: "Easy",
+        difficultyMedium: "Medium",
+        difficultyHard: "Hard",
+        getHint: "Get a hint",
+        hideHint: "Hide hint",
+        hintLabel: "Hint",
+      },
+      results: {
+        title: "Results",
+        practiceScoreLabel: "Practice score",
+        practiceGood: "Good practice",
+        practiceNeedsWork: "Keep practicing",
+        scoreLabel: "Score",
+        percentageLabel: "Percentage",
+        pass: "Pass",
+        needsImprovement: "Needs improvement",
+        accuracyLabel: "Accuracy",
+        reviewAnswers: "Review answers",
+        hideReview: "Hide review",
+        newSession: "Practice again",
+        timingTitle: "Reading Timer",
+        readingTimeLabel: "Reading time",
+        answeringTimeLabel: "Answering time",
+        totalTimeLabel: "Total session time",
+        recommendedTimeLabel: "Recommended DELF time",
+        paceFast: "Faster than recommended",
+        paceOnPace: "Right on the recommended pace",
+        paceSlow: "Slower than recommended",
+      },
+      skillBreakdown: {
+        title: "Skill Breakdown",
+        description: "Your performance across the six core DELF reading skills.",
+      },
+      strategy: {
+        title: "AI Reading Strategy",
+        description: "Personalized coaching based only on what happened in this session.",
+        readinessLabel: "Estimated DELF readiness",
+      },
+      newVocabulary: {
+        title: "New Vocabulary",
+        description: "Useful words from this text — save them straight to your Vocabulary list.",
+        saveButton: "Save to Vocabulary",
+        savedBadge: "Saved",
+        translationLabel: "Translation",
+        definitionLabel: "Definition",
+        exampleLabel: "Example",
+        emptyState: "No new vocabulary extracted for this session.",
+      },
+      progressComparison: {
+        title: "Progress Comparison",
+        description: "How this session compares to your previous Reading session.",
+        previousScore: "Previous score",
+        currentScore: "Current score",
+        scoreChange: "Score improvement",
+        speedChange: "Reading speed improvement",
+        accuracyChange: "Accuracy improvement",
+        vocabularyChange: "Vocabulary improvement",
+        wpmUnit: "wpm",
+        noPreviousSession: "This is your first Reading session — complete another to see your progress.",
+      },
+      review: {
+        title: "Question Review",
+        yourAnswer: "Your answer",
+        correctAnswer: "Correct answer",
+        whyCorrectQuestion: "Why is this answer correct?",
+        whereInText: "Where in the text",
+        keywords: "Key words and expressions",
+        whyCorrect: "Why this is correct",
+        whyIncorrect: "Why the other options are wrong",
+        vocabulary: "Important vocabulary",
+        grammarPattern: "Grammar pattern",
+        strategy: "Reading strategy",
+        showEvidence: "Show where the answer is in the text",
+        hideEvidence: "Hide evidence",
+        difficultyLabel: "Difficulty",
+      },
+      tips: {
+        title: "Reading Tips",
+        items: [
+          "Read the questions before reading.",
+          "Highlight keywords.",
+          "Identify the main idea first.",
+          "Do not translate every word.",
+          "Pay attention to names, dates and numbers.",
+          "Use context clues.",
+          "Manage your time.",
+          "Practice reading every day.",
+        ],
+      },
+    },
     studyPlan: {
       pageTitle: "Study Plan",
       pageDescription: "Your exam countdown and a personalized day-by-day practice schedule.",
@@ -1377,6 +1653,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
     nav: {
       dashboard: "Главная",
       vocabulary: "Словарь",
+      reading: "Чтение",
       listening: "Аудирование",
       speakingPractice: "Практика говорения",
       writingPractice: "Практика письма",
@@ -1480,6 +1757,11 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         description: "Тренируйте понимание на слух DELF с оригинальными записями.",
         cta: "Начать аудирование",
       },
+      reading: {
+        title: "Чтение",
+        description: "Тренируйте понимание письменного текста DELF с оригинальными текстами от ИИ.",
+        cta: "Начать чтение",
+      },
       quiz: {
         title: "Еженедельный тест",
         description: "Повторите слова, изученные на этой неделе.",
@@ -1493,6 +1775,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         speakingSessions: "Сессий говорения",
         writingSessions: "Сессий письма",
         listeningSessions: "Сессий аудирования",
+        readingSessions: "Сессий чтения",
       },
     },
 
@@ -2007,6 +2290,141 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         ],
       },
     },
+    reading: {
+      pageTitle: "Чтение",
+      pageDescription: "Тренируйте DELF Compréhension des Écrits с оригинальными текстами, созданными ИИ.",
+      personalBest: {
+        title: "Ваша статистика по чтению",
+        bestScore: "Лучший результат по чтению",
+        averageScore: "Средний результат по чтению",
+        streak: "Серия занятий чтением",
+        sessionsCompleted: "Завершено сессий чтения",
+        daysUnit: "дн.",
+        noDataYet: "Завершите первую сессию чтения, чтобы увидеть здесь статистику.",
+      },
+      home: {
+        currentLevel: "Текущий уровень DELF",
+        duration: "Продолжительность чтения",
+        minutesUnit: "мин",
+        passages: "Тексты",
+        passagesUnit: "текстов",
+        maxWordsPerPassage: "Макс. длина текста",
+        wordsUnit: "слов",
+        maxScore: "Максимальный балл",
+        minPassingScore: "Минимальный проходной балл",
+      },
+      modes: {
+        fullExamTitle: "Полный экзамен по чтению DELF",
+        fullExamDescription: "Полная симуляция раздела чтения DELF, с таймером и оценкой, как на настоящем экзамене.",
+        startFullExam: "Начать полный экзамен",
+        practiceByTextTitle: "Практика по тексту",
+        practiceByTextDescription: "Потренируйтесь на одном тексте и его вопросах в своём темпе.",
+        startPractice: "Начать практику",
+        dailyChallengeTitle: "Ежедневное задание по чтению",
+        dailyChallengeDescription: "Новое задание каждый день — все студенты вашего уровня сегодня получают одно и то же.",
+        startDailyChallenge: "Начать сегодняшнее задание",
+        completedTodayBadge: "Выполнено сегодня",
+      },
+      session: {
+        questionBadge: (n) => `Вопрос ${n}`,
+        submit: "Отправить",
+        backToModes: "Назад",
+        generating: "Создаём ваше упражнение на чтение...",
+        previous: "Назад",
+        next: "Далее",
+        passageLabel: (n, total) => `Текст ${n} из ${total}`,
+        selectAllThatApply: "Выберите все подходящие варианты",
+        wordCountLabel: (n) => `${n} слов`,
+        difficultyEasy: "Лёгкий",
+        difficultyMedium: "Средний",
+        difficultyHard: "Сложный",
+        getHint: "Получить подсказку",
+        hideHint: "Скрыть подсказку",
+        hintLabel: "Подсказка",
+      },
+      results: {
+        title: "Результаты",
+        practiceScoreLabel: "Результат практики",
+        practiceGood: "Хорошая практика",
+        practiceNeedsWork: "Продолжайте практиковаться",
+        scoreLabel: "Балл",
+        percentageLabel: "Процент",
+        pass: "Сдано",
+        needsImprovement: "Нужно доработать",
+        accuracyLabel: "Точность",
+        reviewAnswers: "Разбор ответов",
+        hideReview: "Скрыть разбор",
+        newSession: "Практиковаться снова",
+        timingTitle: "Таймер чтения",
+        readingTimeLabel: "Время чтения",
+        answeringTimeLabel: "Время ответов",
+        totalTimeLabel: "Общее время сессии",
+        recommendedTimeLabel: "Рекомендованное время DELF",
+        paceFast: "Быстрее рекомендованного",
+        paceOnPace: "В рекомендованном темпе",
+        paceSlow: "Медленнее рекомендованного",
+      },
+      skillBreakdown: {
+        title: "Разбор навыков",
+        description: "Ваши результаты по шести основным навыкам чтения DELF.",
+      },
+      strategy: {
+        title: "ИИ-стратегия чтения",
+        description: "Персональные советы, основанные только на том, что произошло в этой сессии.",
+        readinessLabel: "Примерная готовность к DELF",
+      },
+      newVocabulary: {
+        title: "Новая лексика",
+        description: "Полезные слова из этого текста — сохраните их прямо в свой список словаря.",
+        saveButton: "Сохранить в словарь",
+        savedBadge: "Сохранено",
+        translationLabel: "Перевод",
+        definitionLabel: "Определение",
+        exampleLabel: "Пример",
+        emptyState: "Для этой сессии новая лексика не выделена.",
+      },
+      progressComparison: {
+        title: "Сравнение прогресса",
+        description: "Как эта сессия сравнивается с вашей предыдущей сессией чтения.",
+        previousScore: "Предыдущий результат",
+        currentScore: "Текущий результат",
+        scoreChange: "Улучшение результата",
+        speedChange: "Улучшение скорости чтения",
+        accuracyChange: "Улучшение точности",
+        vocabularyChange: "Улучшение по лексике",
+        wpmUnit: "слов/мин",
+        noPreviousSession: "Это ваша первая сессия чтения — завершите ещё одну, чтобы увидеть прогресс.",
+      },
+      review: {
+        title: "Разбор вопросов",
+        yourAnswer: "Ваш ответ",
+        correctAnswer: "Правильный ответ",
+        whyCorrectQuestion: "Почему этот ответ правильный?",
+        whereInText: "Где в тексте",
+        keywords: "Ключевые слова и выражения",
+        whyCorrect: "Почему это правильно",
+        whyIncorrect: "Почему остальные варианты неверны",
+        vocabulary: "Важная лексика",
+        grammarPattern: "Грамматическая конструкция",
+        strategy: "Стратегия чтения",
+        showEvidence: "Показать, где в тексте находится ответ",
+        hideEvidence: "Скрыть подтверждение",
+        difficultyLabel: "Сложность",
+      },
+      tips: {
+        title: "Советы по чтению",
+        items: [
+          "Прочитайте вопросы перед чтением текста.",
+          "Выделяйте ключевые слова.",
+          "Сначала определите основную идею.",
+          "Не переводите каждое слово.",
+          "Обращайте внимание на имена, даты и числа.",
+          "Используйте контекстные подсказки.",
+          "Управляйте своим временем.",
+          "Читайте каждый день.",
+        ],
+      },
+    },
     studyPlan: {
       pageTitle: "План учёбы",
       pageDescription: "Обратный отсчёт до экзамена и персональный план занятий по дням.",
@@ -2075,6 +2493,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
     nav: {
       dashboard: "Басты бет",
       vocabulary: "Сөздік",
+      reading: "Оқылым",
       listening: "Тыңдалым",
       speakingPractice: "Сөйлеу жаттығуы",
       writingPractice: "Жазу жаттығуы",
@@ -2177,6 +2596,11 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         description: "Түпнұсқа жазбалармен DELF тыңдалым түсінігін жаттығыңыз.",
         cta: "Тыңдауды бастау",
       },
+      reading: {
+        title: "Оқылым",
+        description: "ЖИ жасаған түпнұсқа мәтіндермен DELF оқылым түсінігін жаттығыңыз.",
+        cta: "Оқуды бастау",
+      },
       quiz: {
         title: "Апталық тест",
         description: "Осы аптада үйренген сөздерді қайталаңыз.",
@@ -2190,6 +2614,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         speakingSessions: "Сөйлеу сессиялары",
         writingSessions: "Жазу сессиялары",
         listeningSessions: "Тыңдалым сессиялары",
+        readingSessions: "Оқылым сессиялары",
       },
     },
 
@@ -2695,6 +3120,141 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
           "Әртүрлі француз акценттерін тыңдауды жаттығыңыз.",
           "Жазба аяқталғанша назарыңызды сақтаңыз.",
           "Күн сайын жаттығыңыз.",
+        ],
+      },
+    },
+    reading: {
+      pageTitle: "Оқылым",
+      pageDescription: "ЖИ жасаған түпнұсқа мәтіндермен DELF Compréhension des Écrits бөлімін жаттығыңыз.",
+      personalBest: {
+        title: "Сіздің оқылым статистикаңыз",
+        bestScore: "Үздік оқылым нәтижесі",
+        averageScore: "Орташа оқылым нәтижесі",
+        streak: "Оқылым сериясы",
+        sessionsCompleted: "Аяқталған оқылым сессиялары",
+        daysUnit: "күн",
+        noDataYet: "Статистиканы осында көру үшін алғашқы оқылым сессиясын аяқтаңыз.",
+      },
+      home: {
+        currentLevel: "Ағымдағы DELF деңгейі",
+        duration: "Оқылым ұзақтығы",
+        minutesUnit: "мин",
+        passages: "Мәтіндер",
+        passagesUnit: "мәтін",
+        maxWordsPerPassage: "Ең үлкен мәтін ұзындығы",
+        wordsUnit: "сөз",
+        maxScore: "Ең жоғары балл",
+        minPassingScore: "Ең төменгі өту балы",
+      },
+      modes: {
+        fullExamTitle: "DELF оқылым бойынша толық емтихан",
+        fullExamDescription: "DELF оқылым бөлімінің толық симуляциясы, нақты емтихандағыдай уақыты мен бағасы бар.",
+        startFullExam: "Толық емтиханды бастау",
+        practiceByTextTitle: "Мәтін бойынша жаттығу",
+        practiceByTextDescription: "Бір мәтін мен оның сұрақтарын өз қарқыныңызбен жаттығыңыз.",
+        startPractice: "Жаттығуды бастау",
+        dailyChallengeTitle: "Күндізгі оқылым тапсырмасы",
+        dailyChallengeDescription: "Күн сайын жаңа тапсырма — сіздің деңгейіңіздегі барлық студенттер бүгін бірдей тапсырма алады.",
+        startDailyChallenge: "Бүгінгі тапсырманы бастау",
+        completedTodayBadge: "Бүгін орындалды",
+      },
+      session: {
+        questionBadge: (n) => `${n}-сұрақ`,
+        submit: "Жіберу",
+        backToModes: "Артқа",
+        generating: "Оқылым жаттығуыңыз жасалуда...",
+        previous: "Артқа",
+        next: "Келесі",
+        passageLabel: (n, total) => `${total}-ден ${n}-мәтін`,
+        selectAllThatApply: "Сәйкес келетіндердің барлығын таңдаңыз",
+        wordCountLabel: (n) => `${n} сөз`,
+        difficultyEasy: "Оңай",
+        difficultyMedium: "Орташа",
+        difficultyHard: "Қиын",
+        getHint: "Кеңес алу",
+        hideHint: "Кеңесті жасыру",
+        hintLabel: "Кеңес",
+      },
+      results: {
+        title: "Нәтижелер",
+        practiceScoreLabel: "Жаттығу нәтижесі",
+        practiceGood: "Жақсы жаттығу",
+        practiceNeedsWork: "Жаттығуды жалғастырыңыз",
+        scoreLabel: "Балл",
+        percentageLabel: "Пайыз",
+        pass: "Өтті",
+        needsImprovement: "Жетілдіру қажет",
+        accuracyLabel: "Дәлдік",
+        reviewAnswers: "Жауаптарды шолу",
+        hideReview: "Шолуды жасыру",
+        newSession: "Қайта жаттығу",
+        timingTitle: "Оқылым таймері",
+        readingTimeLabel: "Оқу уақыты",
+        answeringTimeLabel: "Жауап беру уақыты",
+        totalTimeLabel: "Жалпы сессия уақыты",
+        recommendedTimeLabel: "Ұсынылған DELF уақыты",
+        paceFast: "Ұсынылғаннан жылдамырақ",
+        paceOnPace: "Ұсынылған қарқында",
+        paceSlow: "Ұсынылғаннан баяуырақ",
+      },
+      skillBreakdown: {
+        title: "Дағдылар бойынша талдау",
+        description: "DELF оқылымының алты негізгі дағдысы бойынша нәтижеңіз.",
+      },
+      strategy: {
+        title: "ЖИ оқылым стратегиясы",
+        description: "Тек осы сессияда болған нәрсеге негізделген жеке кеңестер.",
+        readinessLabel: "DELF-ке болжамды дайындық",
+      },
+      newVocabulary: {
+        title: "Жаңа сөздік",
+        description: "Осы мәтіннен пайдалы сөздер — оларды тікелей Сөздік тізіміңізге сақтаңыз.",
+        saveButton: "Сөздікке сақтау",
+        savedBadge: "Сақталды",
+        translationLabel: "Аударма",
+        definitionLabel: "Анықтама",
+        exampleLabel: "Мысал",
+        emptyState: "Бұл сессия үшін жаңа сөздік алынбады.",
+      },
+      progressComparison: {
+        title: "Прогресс салыстыруы",
+        description: "Бұл сессия алдыңғы оқылым сессияңызбен қалай салыстырылады.",
+        previousScore: "Алдыңғы нәтиже",
+        currentScore: "Ағымдағы нәтиже",
+        scoreChange: "Нәтиже жақсаруы",
+        speedChange: "Оқу жылдамдығының жақсаруы",
+        accuracyChange: "Дәлдіктің жақсаруы",
+        vocabularyChange: "Сөздіктің жақсаруы",
+        wpmUnit: "сөз/мин",
+        noPreviousSession: "Бұл — сіздің алғашқы оқылым сессияңыз — прогресті көру үшін тағы бірін аяқтаңыз.",
+      },
+      review: {
+        title: "Сұрақтарды шолу",
+        yourAnswer: "Сіздің жауабыңыз",
+        correctAnswer: "Дұрыс жауап",
+        whyCorrectQuestion: "Бұл жауап неге дұрыс?",
+        whereInText: "Мәтіннің қай жерінде",
+        keywords: "Түйінді сөздер мен өрнектер",
+        whyCorrect: "Неге бұл дұрыс",
+        whyIncorrect: "Басқа нұсқалар неге қате",
+        vocabulary: "Маңызды сөздік қор",
+        grammarPattern: "Грамматикалық үлгі",
+        strategy: "Оқылым стратегиясы",
+        showEvidence: "Жауаптың мәтінде қай жерде екенін көрсету",
+        hideEvidence: "Дәлелдемені жасыру",
+        difficultyLabel: "Қиындық деңгейі",
+      },
+      tips: {
+        title: "Оқылым кеңестері",
+        items: [
+          "Оқымас бұрын сұрақтарды оқыңыз.",
+          "Түйінді сөздерді белгілеңіз.",
+          "Алдымен негізгі ойды анықтаңыз.",
+          "Әрбір сөзді аудармаңыз.",
+          "Есімдерге, даталарға және сандарға назар аударыңыз.",
+          "Контекстік белгілерді пайдаланыңыз.",
+          "Уақытыңызды басқарыңыз.",
+          "Күн сайын оқуды жаттығыңыз.",
         ],
       },
     },

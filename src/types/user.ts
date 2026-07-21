@@ -1,6 +1,7 @@
 import type { ExamId } from "./exam";
 import type { VocabularyEntry } from "./vocabulary";
 import type { DelfLevel } from "./writing-evaluation";
+import type { ReadingSessionRecord } from "./reading";
 
 /** Self-reported proficiency level collected during onboarding. Only
  * "A1"-"B2" have real DELF content — see resolvePracticeLevel() in
@@ -16,10 +17,10 @@ export type StudyDay = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
 export interface ActivityLogEntry {
   /** ISO yyyy-mm-dd, the local calendar day the session was completed on. */
   date: string;
-  activity: "writing" | "speaking" | "listening";
+  activity: "writing" | "speaking" | "listening" | "reading";
   /** The session's AI-evaluated exam-readiness score, normalized to 0-100
    * (from WritingEvaluation/SpeakingExaminerReport's estimatedScore/scoreOutOf,
-   * or a Listening result's score/scoreOutOf). */
+   * or a Listening/Reading result's score/scoreOutOf). */
   score: number;
 }
 
@@ -33,11 +34,17 @@ export interface UserStats {
   speakingSessions: number;
   writingSessions: number;
   listeningSessions: number;
+  readingSessions: number;
   currentStreakDays: number;
   longestStreakDays: number;
   /** ISO yyyy-mm-dd of the last completed session, or null if none yet. */
   lastPracticeDate: string | null;
   history: ActivityLogEntry[];
+  /** Real per-session Reading numbers (score, speed, accuracy, vocab count)
+   * — used for Personal Best and Progress Comparison (see
+   * lib/reading/stats.ts). Starts empty for every new account; never
+   * preloaded. Capped in UserProfileContext so it doesn't grow unbounded. */
+  readingSessionHistory: ReadingSessionRecord[];
 }
 
 export interface User {
@@ -72,4 +79,8 @@ export interface User {
    * content rotation avoid repeating the same recording(s). Starts empty
    * for every new account; never preloaded. */
   listeningHistory: Partial<Record<DelfLevel, string[]>>;
+  /** Reading passage ids completed recently, per DELF level — lets content
+   * rotation avoid repeating the same passage(s). Starts empty for every
+   * new account; never preloaded. */
+  readingHistory: Partial<Record<DelfLevel, string[]>>;
 }

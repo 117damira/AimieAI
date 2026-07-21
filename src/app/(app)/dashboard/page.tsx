@@ -7,6 +7,7 @@ import {
   Mic,
   PenLine,
   Headphones,
+  BookOpen,
   ListChecks,
   TrendingUp,
   Target,
@@ -198,6 +199,28 @@ export default function DashboardPage() {
           </CardFooter>
         </Card>
 
+        {/* Reading */}
+        <Card className="group transition-transform duration-300 transition-smooth hover:-translate-y-0.5 hover:shadow-card-hover">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-info-50 text-info-600 transition-transform duration-300 transition-smooth group-hover:scale-110">
+                <BookOpen className="h-[18px] w-[18px]" />
+              </span>
+              <CardTitle>{d.reading.title}</CardTitle>
+            </div>
+            <CardDescription>{d.reading.description}</CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Link
+              href="/reading"
+              className={buttonVariants({ variant: "secondary", size: "sm" })}
+            >
+              {d.reading.cta}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </CardFooter>
+        </Card>
+
         {/* Weekly Quiz */}
         <Card className="group transition-transform duration-300 transition-smooth hover:-translate-y-0.5 hover:shadow-card-hover">
           <CardHeader>
@@ -244,6 +267,7 @@ export default function DashboardPage() {
               { label: d.progress.speakingSessions, value: stats.speakingSessions },
               { label: d.progress.writingSessions, value: stats.writingSessions },
               { label: d.progress.listeningSessions, value: stats.listeningSessions },
+              { label: d.progress.readingSessions, value: stats.readingSessions },
             ].map((stat, index) => (
               <motion.div
                 key={stat.label}
