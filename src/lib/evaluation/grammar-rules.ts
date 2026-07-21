@@ -58,6 +58,25 @@ const FEMININE_NOUNS = [
 ];
 const PLURAL_NOUNS = ["voiture", "maison", "table", "chaise", "idée", "ville", "livre", "ami", "amie"];
 
+// Common beginner mistake: after avoir in the passé composé, a bare noun/stem
+// is written instead of the actual past participle (e.g. "j'ai travail"
+// instead of "j'ai travaillé" — "travail" is itself a real word, the noun
+// "work", so this can't be derived by simply appending "é" to a verb stem).
+const AVOIR_BARE_FORM_TO_PARTICIPLE: Record<string, string> = {
+  travail: "travaillé",
+  mange: "mangé",
+  parle: "parlé",
+  joue: "joué",
+  regarde: "regardé",
+  ecoute: "écouté",
+  aime: "aimé",
+  habite: "habité",
+  etudie: "étudié",
+  chante: "chanté",
+  danse: "dansé",
+  visite: "visité",
+};
+
 export const GRAMMAR_RULES: GrammarRule[] = [
   {
     id: "etre-age",
@@ -273,6 +292,27 @@ export const GRAMMAR_RULES: GrammarRule[] = [
       kz: "Бұл зат есім әйел тегінде, сондықтан оны сипаттайтын сын есім де әйелдік түрде болуы керек.",
     },
     betterExample: "J'habite dans une grande maison blanche avec un joli jardin.",
+  },
+  {
+    id: "avoir-bare-form-not-participle",
+    category: "verb",
+    regex: new RegExp(
+      `\\b(ai|as|a|avons|avez|ont)\\s+(${Object.keys(AVOIR_BARE_FORM_TO_PARTICIPLE).join("|")})(?![a-zà-ÿ])`,
+      "i"
+    ),
+    correction: (m) => {
+      const match = m.match(/^(\S+)\s+(\S+)$/);
+      if (!match) return m;
+      const [, aux, form] = match;
+      const participle = AVOIR_BARE_FORM_TO_PARTICIPLE[form.toLowerCase()] ?? form;
+      return `${aux} ${participle}`;
+    },
+    explanation: {
+      en: "After \"avoir\" in the passé composé, the verb must be the past participle, not this bare/uninflected form.",
+      ru: "После «avoir» в passé composé глагол должен стоять в форме причастия прошедшего времени, а не в этой неспрягаемой форме.",
+      kz: "Passé composé-де «avoir»-дан кейін етістік өткен шақ есімшесі түрінде болуы керек, бұл жіктелмеген түрде емес.",
+    },
+    betterExample: "Nous avons travaillé beaucoup ce week-end.",
   },
 ];
 
