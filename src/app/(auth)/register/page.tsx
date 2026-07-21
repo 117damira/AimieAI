@@ -121,7 +121,10 @@ export default function RegisterPage() {
     try {
       const result = await register({ firstName, lastName, email }, password);
       if (!result.ok) {
-        setError(t.common.duplicateEmailError);
+        // An account with this email already exists — send the user to
+        // Sign In with the email prefilled rather than letting them retry
+        // registration here, so a duplicate account can never be created.
+        router.push(`/login?email=${encodeURIComponent(email)}&reason=duplicate`);
         return;
       }
       router.push("/onboarding");

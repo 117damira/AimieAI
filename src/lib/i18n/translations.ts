@@ -415,6 +415,7 @@ export interface Dictionary {
       noAccount: string;
       createOne: string;
       forgotPasswordLink: string;
+      duplicateEmailNotice: string;
     };
     register: {
       title: string;
@@ -972,6 +973,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         noAccount: "Don't have an account?",
         createOne: "Create one",
         forgotPasswordLink: "Forgot password?",
+        duplicateEmailNotice: "That email is already registered — sign in below instead.",
       },
       register: {
         title: "Create your account",
@@ -1553,6 +1555,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         noAccount: "Нет аккаунта?",
         createOne: "Создать",
         forgotPasswordLink: "Забыли пароль?",
+        duplicateEmailNotice: "Этот email уже зарегистрирован — войдите в систему ниже.",
       },
       register: {
         title: "Создайте аккаунт",
@@ -2127,6 +2130,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         noAccount: "Аккаунтыңыз жоқ па?",
         createOne: "Жасау",
         forgotPasswordLink: "Құпия сөзді ұмыттыңыз ба?",
+        duplicateEmailNotice: "Бұл email бұрын тіркелген — төменде жүйеге кіріңіз.",
       },
       register: {
         title: "Аккаунт жасаңыз",

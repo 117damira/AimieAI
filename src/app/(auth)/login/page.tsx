@@ -1,8 +1,8 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import {
   Card,
@@ -17,11 +17,23 @@ import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useUserProfile();
   const { t } = useLanguage();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const prefillEmail = searchParams.get("email") ?? "";
+  const showDuplicateNotice = searchParams.get("reason") === "duplicate";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -52,11 +64,17 @@ export default function LoginPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {showDuplicateNotice && (
+          <div className="mb-4 rounded-xl bg-warning-50 p-3 text-sm text-warning-600">
+            {t.auth.login.duplicateEmailNotice}
+          </div>
+        )}
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           <Input
             label={t.auth.login.email}
             type="email"
             name="email"
+            defaultValue={prefillEmail}
             placeholder={t.auth.login.emailPlaceholder}
             autoComplete="email"
             required
