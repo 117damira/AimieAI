@@ -1,16 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Play, Pause, RotateCcw, Rewind, FastForward, Volume2, VolumeX } from "lucide-react";
+import { Play, Pause, RotateCcw, Rewind, FastForward } from "lucide-react";
 import { Card, CardContent } from "@/components/ui";
-import { cn } from "@/lib/utils/cn";
 import { pickVoice } from "@/lib/utils/voice";
 import { segmentTranscript, totalDuration, segmentIndexAtTime, formatTime } from "@/lib/utils/ttsPlayer";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 
-type PlayerStatus = "idle" | "playing" | "paused" | "ended" | "unsupported";
+type PlayerStatus = "idle" | "playing" | "paused" | "unsupported";
 
-const SKIP_SECONDS = 10;
+const SKIP_SECONDS = 5;
 
 function speechSynthesisSupported(): boolean {
   return typeof window !== "undefined" && !!window.speechSynthesis;
@@ -26,6 +25,10 @@ function speechSynthesisSupported(): boolean {
  * granularity, not sample-accurate, but every control genuinely functions
  * and the audio is always real, audible synthesized French speech.
  *
+ * No volume control — mobile OSes already provide one, and it isn't a
+ * meaningful control on desktop either for a single embedded player.
+ * Volume is always full; system/device volume governs loudness.
+ *
  * Internal playback functions are plain (non-memoized) closures redefined
  * each render — they're only ever called from this component's own event
  * handlers, never passed to memoized children, so referential stability
@@ -40,7 +43,6 @@ export function ListeningAudioPlayer({ transcript }: { transcript: string }) {
 
   const [status, setStatus] = useState<PlayerStatus>(() => (speechSynthesisSupported() ? "idle" : "unsupported"));
   const [currentTime, setCurrentTime] = useState(0);
-  const [volume, setVolumeState] = useState(1);
   const [voiceReady, setVoiceReady] = useState(false);
 
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
@@ -94,12 +96,25 @@ export function ListeningAudioPlayer({ transcript }: { transcript: string }) {
     tickIntervalRef.current = setInterval(() => setCurrentTime(computeCurrentTime()), 200);
   }
 
+  /** Stops playback and snaps the playhead back to the very start — used
+   * both when a recording finishes naturally and as the shared reset step
+   * for Replay, so neither ever leaves the position sitting at the end. */
+  function resetToStart() {
+    window.speechSynthesis.cancel();
+    stopTicking();
+    segmentIndexRef.current = 0;
+    accumulatedElapsedRef.current = 0;
+    hasPendingNativePauseRef.current = false;
+    setCurrentTime(0);
+    setStatus("idle");
+  }
+
   function speakFromCurrentSegment() {
     const synth = window.speechSynthesis;
     synth.cancel();
     const segment = segments[segmentIndexRef.current];
     if (!segment) {
-      setStatus("ended");
+      resetToStart();
       return;
     }
     const utterance = new SpeechSynthesisUtterance(segment.text);
@@ -109,7 +124,7 @@ export function ListeningAudioPlayer({ transcript }: { transcript: string }) {
     } else {
       utterance.lang = "fr-FR";
     }
-    utterance.volume = volume;
+    utterance.volume = 1;
     utterance.rate = 1;
     segmentStartWallClockRef.current = performance.now();
     hasPendingNativePauseRef.current = false;
@@ -117,9 +132,9 @@ export function ListeningAudioPlayer({ transcript }: { transcript: string }) {
       if (statusRef.current !== "playing") return;
       const nextIndex = segmentIndexRef.current + 1;
       if (nextIndex >= segments.length) {
-        setStatus("ended");
-        setCurrentTime(duration);
-        stopTicking();
+        // Recording finished: stop and snap back to 00:00 rather than
+        // leaving the playhead sitting at the end.
+        resetToStart();
         return;
       }
       segmentIndexRef.current = nextIndex;
@@ -127,8 +142,7 @@ export function ListeningAudioPlayer({ transcript }: { transcript: string }) {
       speakFromCurrentSegment();
     };
     utterance.onerror = () => {
-      setStatus("ended");
-      stopTicking();
+      resetToStart();
     };
     synth.speak(utterance);
     setStatus("playing");
@@ -166,7 +180,6 @@ export function ListeningAudioPlayer({ transcript }: { transcript: string }) {
   function seekTo(seconds: number) {
     const clamped = Math.max(0, Math.min(duration, seconds));
     const wasPlaying = statusRef.current === "playing";
-    const wasEnded = statusRef.current === "ended";
     window.speechSynthesis.cancel();
     stopTicking();
     const index = segmentIndexAtTime(segments, clamped);
@@ -174,16 +187,16 @@ export function ListeningAudioPlayer({ transcript }: { transcript: string }) {
     accumulatedElapsedRef.current = clamped - segments[index].startSeconds;
     hasPendingNativePauseRef.current = false;
     setCurrentTime(clamped);
-    if (wasPlaying || wasEnded) {
+    if (wasPlaying) {
       speakFromCurrentSegment();
     } else {
       setStatus("paused");
     }
   }
 
+  /** Always restarts from the very beginning, regardless of current status. */
   function replay() {
-    segmentIndexRef.current = 0;
-    accumulatedElapsedRef.current = 0;
+    resetToStart();
     play();
   }
 
@@ -230,11 +243,12 @@ export function ListeningAudioPlayer({ transcript }: { transcript: string }) {
                 type="button"
                 onClick={skipBack}
                 disabled={!voiceReady}
-                className="flex h-10 w-10 items-center justify-center rounded-full text-muted transition-colors hover:bg-background hover:text-foreground disabled:opacity-40"
+                className="flex h-10 w-14 flex-col items-center justify-center gap-0.5 rounded-full text-muted transition-colors hover:bg-background hover:text-foreground disabled:opacity-40"
                 aria-label={t.listening.player.skipBack}
                 title={t.listening.player.skipBack}
               >
                 <Rewind className="h-5 w-5" />
+                <span className="text-[10px] font-medium leading-none">{SKIP_SECONDS}s</span>
               </button>
 
               <button
@@ -251,11 +265,12 @@ export function ListeningAudioPlayer({ transcript }: { transcript: string }) {
                 type="button"
                 onClick={skipForward}
                 disabled={!voiceReady}
-                className="flex h-10 w-10 items-center justify-center rounded-full text-muted transition-colors hover:bg-background hover:text-foreground disabled:opacity-40"
+                className="flex h-10 w-14 flex-col items-center justify-center gap-0.5 rounded-full text-muted transition-colors hover:bg-background hover:text-foreground disabled:opacity-40"
                 aria-label={t.listening.player.skipForward}
                 title={t.listening.player.skipForward}
               >
                 <FastForward className="h-5 w-5" />
+                <span className="text-[10px] font-medium leading-none">{SKIP_SECONDS}s</span>
               </button>
 
               <button
@@ -268,24 +283,6 @@ export function ListeningAudioPlayer({ transcript }: { transcript: string }) {
               >
                 <RotateCcw className="h-5 w-5" />
               </button>
-            </div>
-
-            <div className="flex items-center gap-2 self-center">
-              {volume === 0 ? (
-                <VolumeX className="h-4 w-4 text-muted" />
-              ) : (
-                <Volume2 className="h-4 w-4 text-muted" />
-              )}
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                value={volume}
-                onChange={(e) => setVolumeState(Number(e.target.value))}
-                className={cn("h-1.5 w-28 cursor-pointer appearance-none rounded-full bg-primary-50 accent-primary-600")}
-                aria-label={t.listening.player.volumeLabel}
-              />
             </div>
 
             {!voiceReady && <p className="text-center text-xs text-muted">{t.listening.player.loadingVoice}</p>}

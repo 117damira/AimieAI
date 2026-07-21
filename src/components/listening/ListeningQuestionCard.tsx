@@ -1,43 +1,52 @@
 "use client";
 
-import { CheckCircle2, XCircle, Circle } from "lucide-react";
+import { CheckCircle2, XCircle, Circle, Square, CheckSquare } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, Badge } from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { ListeningQuestion } from "@/types/listening";
 
+/**
+ * Selecting an option only ever marks it as selected (a filled checkmark) —
+ * correctness is NEVER revealed here. Real DELF exam behavior: nothing is
+ * graded until the whole set is submitted (see the page's "results" phase,
+ * which is the only place `showResult` is ever passed as true — this card
+ * is used unselected/ungraded throughout the entire practice phase).
+ */
 export function ListeningQuestionCard({
   question,
   questionNumber,
-  selectedOptionId,
-  onSelect,
+  selectedOptionIds,
+  onToggle,
   showResult = false,
 }: {
   question: ListeningQuestion;
   questionNumber: number;
-  selectedOptionId: string | null;
-  onSelect: (optionId: string) => void;
+  selectedOptionIds: string[];
+  onToggle: (optionId: string) => void;
   showResult?: boolean;
 }) {
   const { t } = useLanguage();
+  const isMultiSelect = question.type === "multi-select";
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge variant="neutral">{t.listening.session.questionBadge(questionNumber)}</Badge>
+          {isMultiSelect && <Badge variant="primary">{t.listening.session.selectAllThatApply}</Badge>}
         </div>
         <CardTitle className="mt-1 text-base">{question.prompt}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
         {question.options.map((option) => {
-          const isSelected = selectedOptionId === option.id;
-          const isCorrectOption = option.id === question.correctOptionId;
+          const isSelected = selectedOptionIds.includes(option.id);
+          const isCorrectOption = question.correctOptionIds.includes(option.id);
           return (
             <button
               key={option.id}
               type="button"
-              onClick={() => onSelect(option.id)}
+              onClick={() => onToggle(option.id)}
               disabled={showResult}
               className={cn(
                 "flex items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-colors",
@@ -61,8 +70,16 @@ export function ListeningQuestionCard({
                 ) : (
                   <Circle className="h-4 w-4 shrink-0 text-muted" />
                 )
+              ) : isMultiSelect ? (
+                isSelected ? (
+                  <CheckSquare className="h-4 w-4 shrink-0 text-primary-600" />
+                ) : (
+                  <Square className="h-4 w-4 shrink-0 text-muted" />
+                )
+              ) : isSelected ? (
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-primary-600" />
               ) : (
-                <Circle className={cn("h-4 w-4 shrink-0", isSelected ? "text-primary-500" : "text-muted")} />
+                <Circle className="h-4 w-4 shrink-0 text-muted" />
               )}
               {option.text}
             </button>

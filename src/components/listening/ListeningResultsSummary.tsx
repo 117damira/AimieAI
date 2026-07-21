@@ -9,6 +9,7 @@ import type { ListeningFeedback, ListeningResult } from "@/types/listening";
 export function ListeningResultsSummary({ result }: { result: ListeningResult }) {
   const { t } = useLanguage();
   const r = t.listening.results;
+  const isOfficialExam = result.mode === "full-exam";
 
   return (
     <Card>
@@ -25,9 +26,15 @@ export function ListeningResultsSummary({ result }: { result: ListeningResult })
               {result.score}
               <span className="ml-1 text-base font-normal text-muted">/ {result.scoreOutOf}</span>
             </span>
-            <span className="text-sm text-muted">{r.scoreLabel}</span>
+            <span className="text-sm text-muted">{isOfficialExam ? r.scoreLabel : r.practiceScoreLabel}</span>
           </div>
-          <Badge variant={result.passed ? "success" : "danger"}>{result.passed ? r.pass : r.needsImprovement}</Badge>
+          {isOfficialExam ? (
+            <Badge variant={result.passed ? "success" : "danger"}>{result.passed ? r.pass : r.needsImprovement}</Badge>
+          ) : (
+            <Badge variant={result.passed ? "success" : "warning"}>
+              {result.passed ? r.practiceGood : r.practiceNeedsWork}
+            </Badge>
+          )}
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Stat icon={TrendingUp} label={r.percentageLabel} value={`${result.percentage}%`} />

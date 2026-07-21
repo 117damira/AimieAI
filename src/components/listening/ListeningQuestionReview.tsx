@@ -10,21 +10,21 @@ import type { ListeningQuestion } from "@/types/listening";
 export function ListeningQuestionReview({
   question,
   questionNumber,
-  selectedOptionId,
+  selectedOptionIds,
   isCorrect,
 }: {
   question: ListeningQuestion;
   questionNumber: number;
-  selectedOptionId: string | null;
+  selectedOptionIds: string[];
   isCorrect: boolean;
 }) {
   const { t } = useLanguage();
   const r = t.listening.review;
   const [expanded, setExpanded] = useState(false);
 
-  const selectedOption = question.options.find((o) => o.id === selectedOptionId);
-  const correctOption = question.options.find((o) => o.id === question.correctOptionId);
-  const wrongOptions = question.options.filter((o) => o.id !== question.correctOptionId);
+  const selectedOptions = question.options.filter((o) => selectedOptionIds.includes(o.id));
+  const correctOptions = question.options.filter((o) => question.correctOptionIds.includes(o.id));
+  const wrongOptions = question.options.filter((o) => !question.correctOptionIds.includes(o.id));
 
   return (
     <Card>
@@ -46,12 +46,15 @@ export function ListeningQuestionReview({
       <CardContent className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5 text-sm">
           <span className="text-muted">
-            {r.correctAnswer}: <span className="font-medium text-success-700">{correctOption?.text}</span>
+            {r.correctAnswer}:{" "}
+            <span className="font-medium text-success-700">
+              {correctOptions.map((o) => o.text).join(", ")}
+            </span>
           </span>
           <span className="text-muted">
             {r.yourAnswer}:{" "}
             <span className={cn("font-medium", isCorrect ? "text-success-700" : "text-danger-700")}>
-              {selectedOption?.text ?? "—"}
+              {selectedOptions.length > 0 ? selectedOptions.map((o) => o.text).join(", ") : "—"}
             </span>
           </span>
         </div>

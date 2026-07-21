@@ -8,7 +8,7 @@ import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { resolvePracticeLevel } from "@/lib/utils/level";
 import { DELF_LISTENING_LEVELS } from "@/config/delf-listening";
-import { pickDailyChallengeRecordingId } from "@/lib/listening/rotation";
+import { pickDailyChallengeRecordingIds } from "@/lib/listening/rotation";
 import { scoreListeningSet } from "@/lib/listening/scoring";
 import { synthesizeListeningFeedback } from "@/lib/listening/feedback";
 import { ListeningLevelDashboard } from "@/components/listening/ListeningLevelDashboard";
@@ -29,7 +29,7 @@ export default function ListeningPracticePage() {
   const [phase, setPhase] = useState<Phase>("home");
   const [set, setSet] = useState<ListeningSet | null>(null);
   const [currentRecordingIndex, setCurrentRecordingIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [result, setResult] = useState<ListeningResult | null>(null);
   const [feedback, setFeedback] = useState<ListeningFeedback | null>(null);
   const [showReview, setShowReview] = useState(false);
@@ -39,8 +39,9 @@ export default function ListeningPracticePage() {
   if (!profile) return null;
   const level = resolvePracticeLevel(profile.targetLevel);
   const config = DELF_LISTENING_LEVELS[level];
-  const todaysDailyRecordingId = pickDailyChallengeRecordingId(level);
-  const dailyChallengeCompleted = (profile.listeningHistory[level] ?? []).includes(todaysDailyRecordingId);
+  const todaysDailyRecordingIds = pickDailyChallengeRecordingIds(level);
+  const listeningHistoryForLevel = profile.listeningHistory[level] ?? [];
+  const dailyChallengeCompleted = todaysDailyRecordingIds.every((id) => listeningHistoryForLevel.includes(id));
 
   async function startSession(mode: ListeningMode) {
     setError(null);
@@ -72,14 +73,23 @@ export default function ListeningPracticePage() {
     }
   }
 
-  function handleSelectAnswer(questionId: string, optionId: string) {
-    setAnswers((prev) => ({ ...prev, [questionId]: optionId }));
+  function handleToggleOption(questionId: string, optionId: string, isMultiSelect: boolean) {
+    setAnswers((prev) => {
+      const current = prev[questionId] ?? [];
+      if (isMultiSelect) {
+        const next = current.includes(optionId)
+          ? current.filter((id) => id !== optionId)
+          : [...current, optionId];
+        return { ...prev, [questionId]: next };
+      }
+      return { ...prev, [questionId]: current.includes(optionId) ? [] : [optionId] };
+    });
   }
 
   function handleSubmit() {
     if (!set || sessionStartMs === null) return;
     const timeSpentSeconds = Math.round((Date.now() - sessionStartMs) / 1000);
-    const answerList = set.questions.map((q) => ({ questionId: q.id, selectedOptionId: answers[q.id] ?? null }));
+    const answerList = set.questions.map((q) => ({ questionId: q.id, selectedOptionIds: answers[q.id] ?? [] }));
     const nextResult = scoreListeningSet(set, answerList, timeSpentSeconds);
     const nextFeedback = synthesizeListeningFeedback(set, nextResult, language);
     setResult(nextResult);
@@ -101,12 +111,12 @@ export default function ListeningPracticePage() {
     setPhase("home");
   }
 
-  const allQuestionsAnswered = set ? set.questions.every((q) => answers[q.id]) : false;
+  const allQuestionsAnswered = set ? set.questions.every((q) => (answers[q.id]?.length ?? 0) > 0) : false;
   const currentRecording = set?.recordings[currentRecordingIndex] ?? null;
   const currentRecordingQuestions =
     set && currentRecording ? set.questions.filter((q) => q.recordingId === currentRecording.id) : [];
   const isLastRecording = set ? currentRecordingIndex === set.recordings.length - 1 : false;
-  const answeredInCurrentRecording = currentRecordingQuestions.every((q) => answers[q.id]);
+  const answeredInCurrentRecording = currentRecordingQuestions.every((q) => (answers[q.id]?.length ?? 0) > 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -157,8 +167,8 @@ export default function ListeningPracticePage() {
               key={q.id}
               question={q}
               questionNumber={set.questions.findIndex((sq) => sq.id === q.id) + 1}
-              selectedOptionId={answers[q.id] ?? null}
-              onSelect={(optionId) => handleSelectAnswer(q.id, optionId)}
+              selectedOptionIds={answers[q.id] ?? []}
+              onToggle={(optionId) => handleToggleOption(q.id, optionId, q.type === "multi-select")}
             />
           ))}
 
@@ -210,7 +220,7 @@ export default function ListeningPracticePage() {
                     key={q.id}
                     question={q}
                     questionNumber={i + 1}
-                    selectedOptionId={qResult.selectedOptionId}
+                    selectedOptionIds={qResult.selectedOptionIds}
                     isCorrect={qResult.isCorrect}
                   />
                 );

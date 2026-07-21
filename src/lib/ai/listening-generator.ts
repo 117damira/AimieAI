@@ -36,9 +36,10 @@ const questionSchema = z.object({
   id: z.string(),
   recordingId: z.string(),
   questionNumber: z.number(),
+  type: z.enum(["multiple-choice", "true-false", "multi-select"]),
   prompt: z.string(),
-  options: z.array(optionSchema).min(3).max(5),
-  correctOptionId: z.string(),
+  options: z.array(optionSchema).min(2).max(5),
+  correctOptionIds: z.array(z.string()).min(1),
   difficulty: z.enum(["easy", "medium", "hard"]),
   skillTag: z.enum(["mainIdea", "detail", "number", "name", "date", "vocabulary"]),
   explanation: explanationSchema,
@@ -74,19 +75,23 @@ Generate exactly ${recordingCount} recording(s). For each recording:
 - "transcript": natural spoken French at DELF ${level} difficulty, on a topic drawn from: ${topics}. Keep it under ${config.maxRecordingMinutes} minutes when spoken aloud (~2.3 words/second, so roughly ${Math.round(config.maxRecordingMinutes * 60 * 2.3 * 0.7)}-${Math.round(config.maxRecordingMinutes * 60 * 2.3)} words).
 - "estimatedDurationSeconds": your real estimate for that transcript at ~2.3 words/second.
 
-For each recording, write exactly 2 multiple-choice questions (4 options each, "correctOptionId" matching one option's "id", e.g. "opt-a"/"opt-b"/"opt-c"/"opt-d"). Vary "skillTag" (mainIdea/detail/number/name/date/vocabulary) and "difficulty" (easy/medium/hard) across the set — don't repeat the same skillTag on every question.
+For each recording, write exactly 3 questions, mixing question types for real variety — don't make every question the same type:
+- "multiple-choice": 4 options, "correctOptionIds" is a single-element array with one option's "id" (e.g. "opt-a"/"opt-b"/"opt-c"/"opt-d").
+- "true-false": exactly 2 options (true/false, phrased in the target language), "correctOptionIds" is a single-element array.
+- "multi-select" ("select all that apply"): 4-5 options where more than one can be correct, "correctOptionIds" lists every correct option's id.
+Use at least one "true-false" and, when it genuinely fits the recording's content, one "multi-select" per recording — never force a multi-select where only one answer is actually correct. Vary "skillTag" (mainIdea/detail/number/name/date/vocabulary) and "difficulty" (easy/medium/hard) across the set — don't repeat the same skillTag on every question.
 
 For every question's "explanation", write real, specific, educational content grounded in THAT recording's actual transcript — never generic filler, never interchangeable between questions:
 - "whereInRecording": quote or closely reference the actual transcript sentence(s) revealing the answer.
 - "keywords": the specific French word(s)/expression(s) that signal the answer.
-- "whyCorrect": 2-3 sentences on why the correct option specifically matches the recording.
-- "whyIncorrect": for EVERY wrong option (all 3), a specific reason grounded in what that option claims — never just "incorrect". Vary the trap type across options (wrong number, wrong person, opposite meaning, unmentioned detail, right-detail-wrong-question).
+- "whyCorrect": 2-3 sentences on why the correct option(s) specifically match the recording.
+- "whyIncorrect": for EVERY option that is NOT in "correctOptionIds", a specific reason grounded in what that option claims — never just "incorrect". Vary the trap type across options (wrong number, wrong person, opposite meaning, unmentioned detail, right-detail-wrong-question).
 - "vocabulary": 2-3 real terms actually used in the transcript, each with a translation.
 - "grammarPattern": one real grammar observation tied to a structure actually in the transcript.
 - "strategy": a concrete listening-exam strategy specific to this question (what to listen for next time).
 
 Respond with ONLY a single JSON object, no prose, no markdown fences, matching exactly this shape:
-{ "recordings": [{ "id": string, "partLabel": string, "topic": string, "transcript": string, "estimatedDurationSeconds": number }], "questions": [{ "id": string, "recordingId": string, "questionNumber": number, "prompt": string, "options": [{ "id": string, "text": string }], "correctOptionId": string, "difficulty": "easy"|"medium"|"hard", "skillTag": "mainIdea"|"detail"|"number"|"name"|"date"|"vocabulary", "explanation": { "whereInRecording": string, "keywords": string, "whyCorrect": string, "whyIncorrect": [{ "optionId": string, "reason": string }], "vocabulary": [{ "term": string, "translation": string }], "grammarPattern": string, "strategy": string } }] }
+{ "recordings": [{ "id": string, "partLabel": string, "topic": string, "transcript": string, "estimatedDurationSeconds": number }], "questions": [{ "id": string, "recordingId": string, "questionNumber": number, "type": "multiple-choice"|"true-false"|"multi-select", "prompt": string, "options": [{ "id": string, "text": string }], "correctOptionIds": string[], "difficulty": "easy"|"medium"|"hard", "skillTag": "mainIdea"|"detail"|"number"|"name"|"date"|"vocabulary", "explanation": { "whereInRecording": string, "keywords": string, "whyCorrect": string, "whyIncorrect": [{ "optionId": string, "reason": string }], "vocabulary": [{ "term": string, "translation": string }], "grammarPattern": string, "strategy": string } }] }
 
 transcript, keywords, and vocabulary[].term are French. Every other string value must be written in ${FEEDBACK_LANGUAGE_NAMES[language]}.`;
 

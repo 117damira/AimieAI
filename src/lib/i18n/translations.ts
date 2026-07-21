@@ -561,7 +561,6 @@ export interface Dictionary {
       skipBack: string;
       skipForward: string;
       seekLabel: string;
-      volumeLabel: string;
       loadingVoice: string;
       unsupported: string;
     };
@@ -574,9 +573,13 @@ export interface Dictionary {
       previous: string;
       next: string;
       recordingLabel: (n: number, total: number) => string;
+      selectAllThatApply: string;
     };
     results: {
       title: string;
+      practiceScoreLabel: string;
+      practiceGood: string;
+      practiceNeedsWork: string;
       scoreLabel: string;
       percentageLabel: string;
       pass: string;
@@ -1245,10 +1248,9 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         play: "Play",
         pause: "Pause",
         replay: "Replay",
-        skipBack: "Back 10 seconds",
-        skipForward: "Forward 10 seconds",
+        skipBack: "Back 5 seconds",
+        skipForward: "Forward 5 seconds",
         seekLabel: "Seek",
-        volumeLabel: "Volume",
         loadingVoice: "Loading audio voice...",
         unsupported: "Audio playback isn't supported in this browser.",
       },
@@ -1261,9 +1263,13 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         previous: "Previous",
         next: "Next",
         recordingLabel: (n, total) => `Recording ${n} of ${total}`,
+        selectAllThatApply: "Select all that apply",
       },
       results: {
         title: "Results",
+        practiceScoreLabel: "Practice score",
+        practiceGood: "Good practice",
+        practiceNeedsWork: "Keep practicing",
         scoreLabel: "Score",
         percentageLabel: "Percentage",
         pass: "Pass",
@@ -1945,10 +1951,9 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         play: "Воспроизвести",
         pause: "Пауза",
         replay: "Заново",
-        skipBack: "Назад на 10 секунд",
-        skipForward: "Вперёд на 10 секунд",
+        skipBack: "Назад на 5 секунд",
+        skipForward: "Вперёд на 5 секунд",
         seekLabel: "Перемотка",
-        volumeLabel: "Громкость",
         loadingVoice: "Загрузка голоса...",
         unsupported: "Воспроизведение аудио не поддерживается в этом браузере.",
       },
@@ -1961,9 +1966,13 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         previous: "Назад",
         next: "Далее",
         recordingLabel: (n, total) => `Запись ${n} из ${total}`,
+        selectAllThatApply: "Выберите все подходящие варианты",
       },
       results: {
         title: "Результаты",
+        practiceScoreLabel: "Результат практики",
+        practiceGood: "Хорошая практика",
+        practiceNeedsWork: "Продолжайте практиковаться",
         scoreLabel: "Балл",
         percentageLabel: "Процент",
         pass: "Сдано",
@@ -2638,10 +2647,9 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         play: "Ойнату",
         pause: "Кідірту",
         replay: "Қайта ойнату",
-        skipBack: "10 секунд артқа",
-        skipForward: "10 секунд алға",
+        skipBack: "5 секунд артқа",
+        skipForward: "5 секунд алға",
         seekLabel: "Айналдыру",
-        volumeLabel: "Дыбыс деңгейі",
         loadingVoice: "Дауыс жүктелуде...",
         unsupported: "Бұл браузерде аудио ойнату қолдау көрсетілмейді.",
       },
@@ -2654,9 +2662,13 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         previous: "Артқа",
         next: "Келесі",
         recordingLabel: (n, total) => `${total}-ден ${n}-жазба`,
+        selectAllThatApply: "Сәйкес келетіндердің барлығын таңдаңыз",
       },
       results: {
         title: "Нәтижелер",
+        practiceScoreLabel: "Жаттығу нәтижесі",
+        practiceGood: "Жақсы жаттығу",
+        practiceNeedsWork: "Жаттығуды жалғастырыңыз",
         scoreLabel: "Балл",
         percentageLabel: "Пайыз",
         pass: "Өтті",

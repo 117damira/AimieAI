@@ -3,7 +3,10 @@ import type { DelfLevel, FeedbackLanguage } from "./writing-evaluation";
 export type { DelfLevel, FeedbackLanguage };
 
 /** How a listening set was requested — drives both content generation and
- * rotation/history behavior (see lib/listening/rotation.ts). */
+ * rotation/history behavior (see lib/listening/rotation.ts), and which
+ * scoring system applies (see lib/listening/scoring.ts): "full-exam" uses
+ * the official 25-point DELF scale, the other two modes are practice and
+ * are scored lightly out of their own question count. */
 export type ListeningMode = "full-exam" | "practice-by-part" | "daily-challenge";
 
 export type ListeningSkillTag =
@@ -16,6 +19,11 @@ export type ListeningSkillTag =
 
 export type ListeningDifficulty = "easy" | "medium" | "hard";
 
+/** "true-false" and "multiple-choice" are both single-answer (exactly one
+ * correct option); "multi-select" ("Information Selection") requires
+ * choosing every option that applies — see ListeningQuestion.correctOptionIds. */
+export type ListeningQuestionType = "multiple-choice" | "true-false" | "multi-select";
+
 /** Official DELF Compréhension de l'Oral structure for one CEFR level —
  * the numbers the Listening Home dashboard displays, and what content
  * generation targets (recording count, max length). */
@@ -27,7 +35,7 @@ export interface DelfListeningLevelConfig {
   recordingCountMin: number;
   recordingCountMax: number;
   maxRecordingMinutes: number;
-  scoreOutOf: number; // always 25
+  scoreOutOf: number; // always 25 — the official Full Exam scale
   minPassingScore: number; // always 5
   topics: Record<FeedbackLanguage, string[]>;
 }
@@ -77,9 +85,12 @@ export interface ListeningQuestion {
   id: string;
   recordingId: string;
   questionNumber: number;
+  type: ListeningQuestionType;
   prompt: string; // in the feedback language
   options: ListeningQuestionOption[];
-  correctOptionId: string;
+  /** Every option id that counts as correct. Length 1 for "multiple-choice"
+   * and "true-false"; length >= 1 for "multi-select". */
+  correctOptionIds: string[];
   difficulty: ListeningDifficulty;
   skillTag: ListeningSkillTag;
   explanation: ListeningQuestionExplanation;
@@ -95,21 +106,27 @@ export interface ListeningSet {
 
 export interface ListeningAnswer {
   questionId: string;
-  selectedOptionId: string | null;
+  /** Empty array means unanswered. Single-answer question types are
+   * constrained to at most one id by the UI, not by this shape. */
+  selectedOptionIds: string[];
 }
 
 export interface ListeningQuestionResult {
   questionId: string;
-  selectedOptionId: string | null;
-  correctOptionId: string;
+  selectedOptionIds: string[];
+  correctOptionIds: string[];
   isCorrect: boolean;
 }
 
 /** Computed purely from the student's actual answers — never a random or
- * placeholder score. See lib/listening/scoring.ts. */
+ * placeholder score. See lib/listening/scoring.ts. Full Exam scores out of
+ * the official 25; practice modes (Practice by Part, Daily Challenge) score
+ * out of their own question count and are never presented as the 25-point
+ * DELF scale. */
 export interface ListeningResult {
   setId: string;
   level: DelfLevel;
+  mode: ListeningMode;
   score: number;
   scoreOutOf: number;
   percentage: number;

@@ -1,6 +1,6 @@
 import type { DelfLevel, FeedbackLanguage, ListeningMode, ListeningSet } from "@/types/listening";
 import { LISTENING_CONTENT_BANK, LISTENING_QUESTIONS_BY_RECORDING } from "@/config/delf-listening-content";
-import { pickDailyChallengeRecordingId, pickNextRecordingIds } from "@/lib/listening/rotation";
+import { pickDailyChallengeRecordingIds, pickNextRecordingIds } from "@/lib/listening/rotation";
 
 /**
  * Assembles a ListeningSet from the hand-authored offline content bank —
@@ -37,7 +37,7 @@ export function generateMockListeningSet(
   history: string[]
 ): ListeningSet {
   if (mode === "daily-challenge") {
-    return assembleSet(level, mode, [pickDailyChallengeRecordingId(level)], language);
+    return assembleSet(level, mode, pickDailyChallengeRecordingIds(level), language);
   }
   const recordingIds = pickNextRecordingIds(level, mode, history);
   return assembleSet(level, mode, recordingIds, language);
