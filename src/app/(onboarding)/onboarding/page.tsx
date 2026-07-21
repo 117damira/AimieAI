@@ -12,7 +12,6 @@ import {
   CardFooter,
   Button,
 } from "@/components/ui";
-import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { OnboardingStepper } from "@/components/onboarding/OnboardingStepper";
 import { ExamStep } from "@/components/onboarding/ExamStep";
@@ -22,6 +21,7 @@ import { DailyGoalStep } from "@/components/onboarding/DailyGoalStep";
 import { StudyDaysStep } from "@/components/onboarding/StudyDaysStep";
 import { ReviewStep } from "@/components/onboarding/ReviewStep";
 import { DEFAULT_STUDY_DAYS } from "@/config/onboarding";
+import { saveOnboardingDraft } from "@/lib/onboarding/draftStore";
 import type { ExamId } from "@/types/exam";
 import type { OnboardingLevel, StudyDay } from "@/types/user";
 
@@ -37,7 +37,6 @@ const TOTAL_STEPS = 6;
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { completeOnboarding } = useUserProfile();
   const { t } = useLanguage();
   const shouldReduceMotion = useReducedMotion();
   const [step, setStep] = useState(1);
@@ -57,14 +56,16 @@ export default function OnboardingPage() {
       setStep(step + 1);
       return;
     }
-    completeOnboarding({
+    // No account exists yet — registration happens next, and folds these
+    // answers into the new account it creates. See RegisterPage.
+    saveOnboardingDraft({
       examId: draft.examId!,
       targetLevel: draft.targetLevel!,
       examDate: draft.examDate,
       dailyGoalMinutes: draft.dailyGoalMinutes,
       studyDays: draft.studyDays,
     });
-    router.push("/dashboard");
+    router.push("/register");
   }
 
   function handleBack() {

@@ -107,7 +107,7 @@ export default function HomePage() {
             </p>
             <div className="mt-2 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/register"
+                href="/onboarding"
                 className={buttonVariants({ size: "lg", className: "px-8" })}
               >
                 Start Your Journey

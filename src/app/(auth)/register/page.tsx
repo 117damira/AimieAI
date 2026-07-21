@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -19,6 +19,7 @@ import { isValidPassword } from "@/lib/utils/password";
 import { emailExists, phoneExists } from "@/lib/auth/accountStore";
 import { normalizeKzPhoneDigits, formatKzPhone, isValidKzPhoneDigits, toStoredPhone } from "@/lib/utils/phone";
 import { cn } from "@/lib/utils/cn";
+import { readOnboardingDraft, clearOnboardingDraft, type OnboardingAnswers } from "@/lib/onboarding/draftStore";
 
 type Step = "identity" | "verify" | "password";
 type Method = "email" | "phone";
@@ -27,6 +28,21 @@ export default function RegisterPage() {
   const router = useRouter();
   const { register } = useUserProfile();
   const { t } = useLanguage();
+
+  // Registration only ever happens right after onboarding — without a
+  // draft in hand there's nothing to register with, so send the visitor
+  // back to start that questionnaire instead of showing a broken form.
+  const [draft, setDraft] = useState<OnboardingAnswers | null>(null);
+
+  useEffect(() => {
+    const found = readOnboardingDraft();
+    if (!found) {
+      router.replace("/onboarding");
+      return;
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDraft(found);
+  }, [router]);
 
   const [step, setStep] = useState<Step>("identity");
   const [method, setMethod] = useState<Method>("email");
@@ -144,6 +160,8 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!draft) return; // guarded by the redirect effect above; never reached
+
     setIsSubmitting(true);
     try {
       const result = await register(
@@ -153,7 +171,8 @@ export default function RegisterPage() {
           email: method === "email" ? email.trim() : null,
           phone: method === "phone" ? identifier : null,
         },
-        password
+        password,
+        draft
       );
       if (!result.ok) {
         // An account with this identifier already exists — send the user to
@@ -162,13 +181,16 @@ export default function RegisterPage() {
         router.push(`/login?identifier=${encodeURIComponent(identifier)}&reason=${result.reason}`);
         return;
       }
-      router.push("/onboarding");
+      clearOnboardingDraft();
+      router.push("/dashboard");
     } finally {
       setIsSubmitting(false);
     }
   }
 
   const passwordValid = password.length > 0 && isValidPassword(password);
+
+  if (!draft) return null;
 
   return (
     <Card className="w-full max-w-md">

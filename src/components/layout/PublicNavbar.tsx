@@ -23,7 +23,7 @@ export function PublicNavbar() {
           >
             Log in
           </Link>
-          <Link href="/register" className={buttonVariants({ size: "sm" })}>
+          <Link href="/onboarding" className={buttonVariants({ size: "sm" })}>
             Get started
           </Link>
         </nav>

@@ -8,14 +8,14 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { ExamId } from "@/types/exam";
-import type { OnboardingLevel, StudyDay, User, UserStats } from "@/types/user";
+import type { User, UserStats } from "@/types/user";
 import type { VocabularyEntry } from "@/types/vocabulary";
 import type { DelfLevel, FeedbackLanguage } from "@/types/writing-evaluation";
 import * as accountStore from "@/lib/auth/accountStore";
 import { recordWritingTopicHistory } from "@/lib/writing/topicRotation";
 import { recordListeningHistory } from "@/lib/listening/rotation";
 import { DEFAULT_STUDY_DAYS } from "@/config/onboarding";
+import type { OnboardingAnswers } from "@/lib/onboarding/draftStore";
 
 const STORAGE_KEY = "aimieai.user.v2";
 
@@ -26,14 +26,6 @@ interface IdentitySeed {
    * method — see `register()` below. */
   email: string | null;
   phone: string | null;
-}
-
-interface OnboardingAnswers {
-  examId: ExamId;
-  targetLevel: OnboardingLevel;
-  examDate: string | null;
-  dailyGoalMinutes: number;
-  studyDays: StudyDay[];
 }
 
 export type PracticeActivity = "writing" | "speaking" | "listening";
@@ -48,11 +40,16 @@ export type LoginResult =
 interface UserProfileContextValue {
   profile: User | null;
   isHydrated: boolean;
-  register: (identity: IdentitySeed, password: string) => Promise<RegisterResult>;
+  /** Registration always happens after onboarding — `onboarding` is that
+   * questionnaire's answers, folded into the new account at creation time. */
+  register: (
+    identity: IdentitySeed,
+    password: string,
+    onboarding: OnboardingAnswers
+  ) => Promise<RegisterResult>;
   /** identifier is either an email address or a normalized KZ phone number
    * ("+7XXXXXXXXXX") — accountStore figures out which. */
   login: (identifier: string, password: string) => Promise<LoginResult>;
-  completeOnboarding: (answers: OnboardingAnswers) => void;
   updateProfile: (partial: Partial<User>) => void;
   /** score is the session's exam-readiness estimate normalized to 0-100. */
   recordActivity: (activity: PracticeActivity, score: number) => void;
@@ -174,7 +171,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
     () => ({
       profile,
       isHydrated,
-      register: async (identity, password) => {
+      register: async (identity, password, onboarding) => {
         if (identity.email && accountStore.emailExists(identity.email)) {
           return { ok: false, reason: "duplicate-email" };
         }
@@ -188,11 +185,11 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
           email: identity.email ?? "",
           phone: identity.phone ?? null,
           registrationMethod: identity.phone ? "phone" : "email",
-          examId: "delf",
-          targetLevel: "A1",
-          examDate: null,
-          dailyGoalMinutes: 20,
-          studyDays: DEFAULT_STUDY_DAYS,
+          examId: onboarding.examId,
+          targetLevel: onboarding.targetLevel,
+          examDate: onboarding.examDate,
+          dailyGoalMinutes: onboarding.dailyGoalMinutes,
+          studyDays: onboarding.studyDays,
           avatarPhotoDataUrl: null,
           lastLoginAt: null,
           stats: createInitialStats(),
@@ -209,23 +206,6 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
         if (!result.ok) return result;
         setProfile(migrateUser(result.user));
         return { ok: true };
-      },
-      completeOnboarding: (answers) => {
-        setProfile((prev) => ({
-          id: prev?.id ?? `user_${Date.now()}`,
-          firstName: prev?.firstName ?? "",
-          lastName: prev?.lastName ?? "",
-          email: prev?.email ?? "",
-          phone: prev?.phone ?? null,
-          registrationMethod: prev?.registrationMethod ?? "email",
-          avatarPhotoDataUrl: prev?.avatarPhotoDataUrl ?? null,
-          lastLoginAt: prev?.lastLoginAt ?? null,
-          stats: prev?.stats ?? createInitialStats(),
-          vocabularyProgress: prev?.vocabularyProgress ?? [],
-          writingTopicHistory: prev?.writingTopicHistory ?? {},
-          listeningHistory: prev?.listeningHistory ?? {},
-          ...answers,
-        }));
       },
       updateProfile: (partial) => {
         setProfile((prev) => (prev ? { ...prev, ...partial } : prev));

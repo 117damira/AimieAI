@@ -30,7 +30,11 @@
       "Bash(curl -s -o /tmp/register.html -w \"register: %{http_code}\\\\n\" http://localhost:3000/register)",
       "Bash(curl -s -o /tmp/login.html -w \"login: %{http_code}\\\\n\" http://localhost:3000/login)",
       "Bash(curl -s -o /tmp/profile.html -w \"profile: %{http_code}\\\\n\" http://localhost:3000/profile)",
-      "Bash(curl -s -o /tmp/settings.html -w \"settings: %{http_code}\\\\n\" http://localhost:3000/settings)"
+      "Bash(curl -s -o /tmp/settings.html -w \"settings: %{http_code}\\\\n\" http://localhost:3000/settings)",
+      "Bash(git push *)",
+      "Bash(echo \"TSC_EXIT:$?\")",
+      "Bash(echo \"LINT_EXIT:$?\")",
+      "Bash(curl *)"
     ]
   }
 }
