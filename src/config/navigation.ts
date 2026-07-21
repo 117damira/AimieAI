@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   BookOpenText,
+  Headphones,
   Mic,
   PenLine,
   ListChecks,
@@ -23,6 +24,7 @@ export interface NavItem {
 export const SIDEBAR_NAV: NavItem[] = [
   { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
   { key: "vocabulary", href: "/vocabulary", icon: BookOpenText },
+  { key: "listening", href: "/listening", icon: Headphones },
   { key: "speakingPractice", href: "/speaking", icon: Mic },
   { key: "writingPractice", href: "/writing", icon: PenLine },
   { key: "weeklyQuiz", href: "/quiz", icon: ListChecks },

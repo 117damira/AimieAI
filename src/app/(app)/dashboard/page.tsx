@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import {
   Mic,
   PenLine,
+  Headphones,
   ListChecks,
   TrendingUp,
   Target,
@@ -173,6 +174,28 @@ export default function DashboardPage() {
           </CardFooter>
         </Card>
 
+        {/* Listening */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+                <Headphones className="h-[18px] w-[18px]" />
+              </span>
+              <CardTitle>{d.listening.title}</CardTitle>
+            </div>
+            <CardDescription>{d.listening.description}</CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Link
+              href="/listening"
+              className={buttonVariants({ variant: "secondary", size: "sm" })}
+            >
+              {d.listening.cta}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </CardFooter>
+        </Card>
+
         {/* Weekly Quiz */}
         <Card>
           <CardHeader>
@@ -218,6 +241,7 @@ export default function DashboardPage() {
               { label: d.progress.quizzesDone, value: stats.quizzesCompleted },
               { label: d.progress.speakingSessions, value: stats.speakingSessions },
               { label: d.progress.writingSessions, value: stats.writingSessions },
+              { label: d.progress.listeningSessions, value: stats.listeningSessions },
             ].map((stat) => (
               <div
                 key={stat.label}

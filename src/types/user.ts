@@ -12,9 +12,10 @@ export type OnboardingLevel = "Beginner" | "A1" | "A2" | "B1" | "B2";
 export interface ActivityLogEntry {
   /** ISO yyyy-mm-dd, the local calendar day the session was completed on. */
   date: string;
-  activity: "writing" | "speaking";
+  activity: "writing" | "speaking" | "listening";
   /** The session's AI-evaluated exam-readiness score, normalized to 0-100
-   * (from WritingEvaluation/SpeakingExaminerReport's estimatedScore/scoreOutOf). */
+   * (from WritingEvaluation/SpeakingExaminerReport's estimatedScore/scoreOutOf,
+   * or a Listening result's score/scoreOutOf). */
   score: number;
 }
 
@@ -27,6 +28,7 @@ export interface UserStats {
   quizzesCompleted: number;
   speakingSessions: number;
   writingSessions: number;
+  listeningSessions: number;
   currentStreakDays: number;
   longestStreakDays: number;
   /** ISO yyyy-mm-dd of the last completed session, or null if none yet. */
@@ -60,4 +62,8 @@ export interface User {
    * capped) — lets topic rotation avoid repeating the last-seen prompt.
    * Starts empty for every new account; never preloaded. */
   writingTopicHistory: Partial<Record<DelfLevel, string[]>>;
+  /** Listening recording ids completed recently, per DELF level — lets
+   * content rotation avoid repeating the same recording(s). Starts empty
+   * for every new account; never preloaded. */
+  listeningHistory: Partial<Record<DelfLevel, string[]>>;
 }

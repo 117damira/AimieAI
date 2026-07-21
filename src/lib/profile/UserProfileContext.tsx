@@ -14,6 +14,7 @@ import type { VocabularyEntry } from "@/types/vocabulary";
 import type { DelfLevel, FeedbackLanguage } from "@/types/writing-evaluation";
 import * as accountStore from "@/lib/auth/accountStore";
 import { recordWritingTopicHistory } from "@/lib/writing/topicRotation";
+import { recordListeningHistory } from "@/lib/listening/rotation";
 
 const STORAGE_KEY = "aimieai.user.v2";
 
@@ -30,7 +31,7 @@ interface OnboardingAnswers {
   dailyGoalMinutes: number;
 }
 
-export type PracticeActivity = "writing" | "speaking";
+export type PracticeActivity = "writing" | "speaking" | "listening";
 
 export type RegisterResult = { ok: true } | { ok: false; reason: "duplicate-email" };
 export type LoginResult =
@@ -62,6 +63,10 @@ interface UserProfileContextValue {
   /** Increments quizzesCompleted after a real Weekly Quiz submission —
    * never called for anything other than an actual graded attempt. */
   recordQuizCompletion: () => void;
+  /** Records that a Listening set was completed, so the next session's
+   * content rotation (lib/listening/rotation.ts) knows what to avoid
+   * repeating. */
+  recordListeningCompletion: (level: DelfLevel, recordingIds: string[]) => void;
   clearProfile: () => void;
 }
 
@@ -75,6 +80,7 @@ function createInitialStats(): UserStats {
     quizzesCompleted: 0,
     speakingSessions: 0,
     writingSessions: 0,
+    listeningSessions: 0,
     currentStreakDays: 0,
     longestStreakDays: 0,
     lastPracticeDate: null,
@@ -93,6 +99,11 @@ function migrateUser(user: User): User {
     ...user,
     vocabularyProgress: user.vocabularyProgress ?? [],
     writingTopicHistory: user.writingTopicHistory ?? {},
+    listeningHistory: user.listeningHistory ?? {},
+    stats: {
+      ...user.stats,
+      listeningSessions: user.stats.listeningSessions ?? 0,
+    },
   };
 }
 
@@ -169,6 +180,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
           stats: createInitialStats(),
           vocabularyProgress: [],
           writingTopicHistory: {},
+          listeningHistory: {},
         };
         await accountStore.createAccount({ user: newUser, password });
         setProfile(newUser);
@@ -191,6 +203,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
           stats: prev?.stats ?? createInitialStats(),
           vocabularyProgress: prev?.vocabularyProgress ?? [],
           writingTopicHistory: prev?.writingTopicHistory ?? {},
+          listeningHistory: prev?.listeningHistory ?? {},
           ...answers,
         }));
       },
@@ -223,6 +236,8 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
                 stats.speakingSessions + (activity === "speaking" ? 1 : 0),
               writingSessions:
                 stats.writingSessions + (activity === "writing" ? 1 : 0),
+              listeningSessions:
+                stats.listeningSessions + (activity === "listening" ? 1 : 0),
               currentStreakDays,
               longestStreakDays: Math.max(
                 stats.longestStreakDays,
@@ -288,6 +303,17 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
         setProfile((prev) => {
           if (!prev) return prev;
           return { ...prev, stats: { ...prev.stats, quizzesCompleted: prev.stats.quizzesCompleted + 1 } };
+        });
+      },
+      recordListeningCompletion: (level, recordingIds) => {
+        setProfile((prev) => {
+          if (!prev) return prev;
+          const currentHistory = prev.listeningHistory ?? {};
+          const nextForLevel = recordListeningHistory(currentHistory[level] ?? [], recordingIds);
+          return {
+            ...prev,
+            listeningHistory: { ...currentHistory, [level]: nextForLevel },
+          };
         });
       },
       clearProfile: () => setProfile(null),

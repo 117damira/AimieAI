@@ -29,7 +29,7 @@ function getVoicesAsync(): Promise<SpeechSynthesisVoice[]> {
  * first, then any network voice, then a female-named local voice, then
  * whatever else matches. Returns null if nothing matches the locale at
  * all — callers should degrade silently. */
-async function pickVoice(localePrefix: string): Promise<SpeechSynthesisVoice | null> {
+export async function pickVoice(localePrefix: string): Promise<SpeechSynthesisVoice | null> {
   if (typeof window === "undefined" || !window.speechSynthesis) return null;
   const voices = await getVoicesAsync();
   const matches = voices.filter((v) => v.lang.toLowerCase().startsWith(localePrefix.toLowerCase()));

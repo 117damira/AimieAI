@@ -47,6 +47,7 @@ export interface Dictionary {
   nav: {
     dashboard: string;
     vocabulary: string;
+    listening: string;
     speakingPractice: string;
     writingPractice: string;
     weeklyQuiz: string;
@@ -131,6 +132,11 @@ export interface Dictionary {
       description: string;
       cta: string;
     };
+    listening: {
+      title: string;
+      description: string;
+      cta: string;
+    };
     quiz: {
       title: string;
       description: string;
@@ -143,6 +149,7 @@ export interface Dictionary {
       quizzesDone: string;
       speakingSessions: string;
       writingSessions: string;
+      listeningSessions: string;
     };
   };
 
@@ -522,6 +529,100 @@ export interface Dictionary {
     notSetYet: string;
   };
 
+  listening: {
+    pageTitle: string;
+    pageDescription: string;
+    home: {
+      currentLevel: string;
+      duration: string;
+      minutesUnit: string;
+      recordings: string;
+      recordingsUnit: string;
+      maxRecordingLength: string;
+      maxScore: string;
+      minPassingScore: string;
+    };
+    modes: {
+      fullExamTitle: string;
+      fullExamDescription: string;
+      startFullExam: string;
+      practiceByPartTitle: string;
+      practiceByPartDescription: string;
+      startPractice: string;
+      dailyChallengeTitle: string;
+      dailyChallengeDescription: string;
+      startDailyChallenge: string;
+      completedTodayBadge: string;
+    };
+    player: {
+      play: string;
+      pause: string;
+      replay: string;
+      skipBack: string;
+      skipForward: string;
+      seekLabel: string;
+      volumeLabel: string;
+      loadingVoice: string;
+      unsupported: string;
+    };
+    session: {
+      questionBadge: (n: number) => string;
+      progressLabel: string;
+      submit: string;
+      backToModes: string;
+      generating: string;
+      previous: string;
+      next: string;
+      recordingLabel: (n: number, total: number) => string;
+    };
+    results: {
+      title: string;
+      scoreLabel: string;
+      percentageLabel: string;
+      pass: string;
+      needsImprovement: string;
+      timeSpentLabel: string;
+      accuracyLabel: string;
+      viewFeedback: string;
+      reviewAnswers: string;
+      hideReview: string;
+      newSession: string;
+    };
+    feedback: {
+      title: string;
+      overallPerformance: string;
+      strongestSkills: string;
+      weakestSkills: string;
+      listeningAccuracy: string;
+      understandingMainIdeas: string;
+      understandingDetails: string;
+      understandingNumbers: string;
+      understandingNames: string;
+      understandingDates: string;
+      vocabularyComprehension: string;
+      recommendations: string;
+      estimatedDelfReadiness: string;
+      noneNoted: string;
+    };
+    review: {
+      title: string;
+      yourAnswer: string;
+      correctAnswer: string;
+      whyCorrectQuestion: string;
+      whereInRecording: string;
+      keywords: string;
+      whyCorrect: string;
+      whyIncorrect: string;
+      vocabulary: string;
+      grammarPattern: string;
+      strategy: string;
+    };
+    tips: {
+      title: string;
+      items: string[];
+    };
+  };
+
   studyPlan: {
     pageTitle: string;
     pageDescription: string;
@@ -590,6 +691,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
     nav: {
       dashboard: "Dashboard",
       vocabulary: "Vocabulary",
+      listening: "Listening",
       speakingPractice: "Speaking Practice",
       writingPractice: "Writing Practice",
       weeklyQuiz: "Weekly Quiz",
@@ -686,6 +788,11 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
           "Draft a response and get feedback structured like DELF scoring.",
         cta: "Start writing",
       },
+      listening: {
+        title: "Listening",
+        description: "Practice DELF listening comprehension with original recordings.",
+        cta: "Start listening",
+      },
       quiz: {
         title: "Weekly Quiz",
         description: "Review the vocabulary you've learned so far this week.",
@@ -698,6 +805,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         quizzesDone: "Quizzes done",
         speakingSessions: "Speaking sessions",
         writingSessions: "Writing sessions",
+        listeningSessions: "Listening sessions",
       },
     },
 
@@ -1108,6 +1216,108 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       reviewDailyGoal: (n) => `${n} min / day`,
       notSetYet: "Not set yet",
     },
+    listening: {
+      pageTitle: "Listening",
+      pageDescription: "Practice DELF Compréhension de l'Oral with original AI-generated recordings.",
+      home: {
+        currentLevel: "Current DELF Level",
+        duration: "Listening duration",
+        minutesUnit: "min",
+        recordings: "Recordings",
+        recordingsUnit: "recordings",
+        maxRecordingLength: "Max recording length",
+        maxScore: "Maximum score",
+        minPassingScore: "Minimum passing score",
+      },
+      modes: {
+        fullExamTitle: "Full DELF Listening Exam",
+        fullExamDescription: "A complete simulation of the DELF listening section, timed and scored like the real exam.",
+        startFullExam: "Start full exam",
+        practiceByPartTitle: "Practice by Part",
+        practiceByPartDescription: "Practice a single listening recording and its questions at your own pace.",
+        startPractice: "Start practice",
+        dailyChallengeTitle: "Daily Listening Challenge",
+        dailyChallengeDescription: "A fresh challenge every day — every student at your level gets the same one today.",
+        startDailyChallenge: "Start today's challenge",
+        completedTodayBadge: "Completed today",
+      },
+      player: {
+        play: "Play",
+        pause: "Pause",
+        replay: "Replay",
+        skipBack: "Back 10 seconds",
+        skipForward: "Forward 10 seconds",
+        seekLabel: "Seek",
+        volumeLabel: "Volume",
+        loadingVoice: "Loading audio voice...",
+        unsupported: "Audio playback isn't supported in this browser.",
+      },
+      session: {
+        questionBadge: (n) => `Question ${n}`,
+        progressLabel: "Progress",
+        submit: "Submit",
+        backToModes: "Back",
+        generating: "Generating your listening exercise...",
+        previous: "Previous",
+        next: "Next",
+        recordingLabel: (n, total) => `Recording ${n} of ${total}`,
+      },
+      results: {
+        title: "Results",
+        scoreLabel: "Score",
+        percentageLabel: "Percentage",
+        pass: "Pass",
+        needsImprovement: "Needs improvement",
+        timeSpentLabel: "Time spent",
+        accuracyLabel: "Accuracy",
+        viewFeedback: "View feedback",
+        reviewAnswers: "Review answers",
+        hideReview: "Hide review",
+        newSession: "New session",
+      },
+      feedback: {
+        title: "AI Feedback",
+        overallPerformance: "Overall performance",
+        strongestSkills: "Strongest skills",
+        weakestSkills: "Weakest skills",
+        listeningAccuracy: "Listening accuracy",
+        understandingMainIdeas: "Understanding main ideas",
+        understandingDetails: "Understanding details",
+        understandingNumbers: "Understanding numbers",
+        understandingNames: "Understanding names",
+        understandingDates: "Understanding dates",
+        vocabularyComprehension: "Vocabulary comprehension",
+        recommendations: "Recommendations",
+        estimatedDelfReadiness: "Estimated DELF readiness",
+        noneNoted: "None noted.",
+      },
+      review: {
+        title: "Question Review",
+        yourAnswer: "Your answer",
+        correctAnswer: "Correct answer",
+        whyCorrectQuestion: "Why is this answer correct?",
+        whereInRecording: "Where in the recording",
+        keywords: "Key words and expressions",
+        whyCorrect: "Why this is correct",
+        whyIncorrect: "Why the other options are wrong",
+        vocabulary: "Important vocabulary",
+        grammarPattern: "Grammar pattern",
+        strategy: "Listening strategy",
+      },
+      tips: {
+        title: "Listening Tips",
+        items: [
+          "Read the questions before listening.",
+          "Never leave answers blank.",
+          "Take notes while listening.",
+          "Identify WHO, WHERE and WHAT.",
+          "Listen carefully for numbers, dates and names.",
+          "Practice listening to different French accents.",
+          "Stay focused until the recording ends.",
+          "Practice every day.",
+        ],
+      },
+    },
     studyPlan: {
       pageTitle: "Study Plan",
       pageDescription: "Your exam countdown and a personalized day-by-day practice schedule.",
@@ -1175,6 +1385,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
     nav: {
       dashboard: "Главная",
       vocabulary: "Словарь",
+      listening: "Аудирование",
       speakingPractice: "Практика говорения",
       writingPractice: "Практика письма",
       weeklyQuiz: "Еженедельный тест",
@@ -1271,6 +1482,11 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
           "Напишите ответ и получите оценку в формате DELF.",
         cta: "Начать письмо",
       },
+      listening: {
+        title: "Аудирование",
+        description: "Тренируйте понимание на слух DELF с оригинальными записями.",
+        cta: "Начать аудирование",
+      },
       quiz: {
         title: "Еженедельный тест",
         description: "Повторите слова, изученные на этой неделе.",
@@ -1283,6 +1499,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         quizzesDone: "Тестов пройдено",
         speakingSessions: "Сессий говорения",
         writingSessions: "Сессий письма",
+        listeningSessions: "Сессий аудирования",
       },
     },
 
@@ -1699,6 +1916,108 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       reviewDailyGoal: (n) => `${n} мин / день`,
       notSetYet: "Пока не задано",
     },
+    listening: {
+      pageTitle: "Аудирование",
+      pageDescription: "Тренируйте DELF Compréhension de l'Oral с оригинальными записями, созданными ИИ.",
+      home: {
+        currentLevel: "Текущий уровень DELF",
+        duration: "Продолжительность аудирования",
+        minutesUnit: "мин",
+        recordings: "Записи",
+        recordingsUnit: "записей",
+        maxRecordingLength: "Макс. длина записи",
+        maxScore: "Максимальный балл",
+        minPassingScore: "Минимальный проходной балл",
+      },
+      modes: {
+        fullExamTitle: "Полный экзамен по аудированию DELF",
+        fullExamDescription: "Полная симуляция раздела аудирования DELF, с таймером и оценкой, как на настоящем экзамене.",
+        startFullExam: "Начать полный экзамен",
+        practiceByPartTitle: "Практика по частям",
+        practiceByPartDescription: "Потренируйтесь на одной записи и её вопросах в своём темпе.",
+        startPractice: "Начать практику",
+        dailyChallengeTitle: "Ежедневное задание по аудированию",
+        dailyChallengeDescription: "Новое задание каждый день — все студенты вашего уровня сегодня получают одно и то же.",
+        startDailyChallenge: "Начать сегодняшнее задание",
+        completedTodayBadge: "Выполнено сегодня",
+      },
+      player: {
+        play: "Воспроизвести",
+        pause: "Пауза",
+        replay: "Заново",
+        skipBack: "Назад на 10 секунд",
+        skipForward: "Вперёд на 10 секунд",
+        seekLabel: "Перемотка",
+        volumeLabel: "Громкость",
+        loadingVoice: "Загрузка голоса...",
+        unsupported: "Воспроизведение аудио не поддерживается в этом браузере.",
+      },
+      session: {
+        questionBadge: (n) => `Вопрос ${n}`,
+        progressLabel: "Прогресс",
+        submit: "Отправить",
+        backToModes: "Назад",
+        generating: "Создаём ваше упражнение на аудирование...",
+        previous: "Назад",
+        next: "Далее",
+        recordingLabel: (n, total) => `Запись ${n} из ${total}`,
+      },
+      results: {
+        title: "Результаты",
+        scoreLabel: "Балл",
+        percentageLabel: "Процент",
+        pass: "Сдано",
+        needsImprovement: "Нужно доработать",
+        timeSpentLabel: "Затраченное время",
+        accuracyLabel: "Точность",
+        viewFeedback: "Посмотреть отзыв",
+        reviewAnswers: "Разбор ответов",
+        hideReview: "Скрыть разбор",
+        newSession: "Новая сессия",
+      },
+      feedback: {
+        title: "Отзыв ИИ",
+        overallPerformance: "Общий результат",
+        strongestSkills: "Сильные навыки",
+        weakestSkills: "Слабые навыки",
+        listeningAccuracy: "Точность аудирования",
+        understandingMainIdeas: "Понимание основной мысли",
+        understandingDetails: "Понимание деталей",
+        understandingNumbers: "Понимание чисел",
+        understandingNames: "Понимание имён",
+        understandingDates: "Понимание дат",
+        vocabularyComprehension: "Понимание лексики",
+        recommendations: "Рекомендации",
+        estimatedDelfReadiness: "Примерная готовность к DELF",
+        noneNoted: "Не отмечено.",
+      },
+      review: {
+        title: "Разбор вопросов",
+        yourAnswer: "Ваш ответ",
+        correctAnswer: "Правильный ответ",
+        whyCorrectQuestion: "Почему этот ответ правильный?",
+        whereInRecording: "Где в записи",
+        keywords: "Ключевые слова и выражения",
+        whyCorrect: "Почему это правильно",
+        whyIncorrect: "Почему остальные варианты неверны",
+        vocabulary: "Важная лексика",
+        grammarPattern: "Грамматическая конструкция",
+        strategy: "Стратегия аудирования",
+      },
+      tips: {
+        title: "Советы по аудированию",
+        items: [
+          "Прочитайте вопросы перед прослушиванием.",
+          "Никогда не оставляйте ответы пустыми.",
+          "Делайте заметки во время прослушивания.",
+          "Определяйте КТО, ГДЕ и ЧТО.",
+          "Внимательно слушайте числа, даты и имена.",
+          "Тренируйтесь понимать разные французские акценты.",
+          "Сохраняйте концентрацию до конца записи.",
+          "Занимайтесь каждый день.",
+        ],
+      },
+    },
     studyPlan: {
       pageTitle: "План учёбы",
       pageDescription: "Обратный отсчёт до экзамена и персональный план занятий по дням.",
@@ -1766,6 +2085,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
     nav: {
       dashboard: "Басты бет",
       vocabulary: "Сөздік",
+      listening: "Тыңдалым",
       speakingPractice: "Сөйлеу жаттығуы",
       writingPractice: "Жазу жаттығуы",
       weeklyQuiz: "Апталық тест",
@@ -1861,6 +2181,11 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         description: "Жауап жазып, DELF бағалауы бойынша кері байланыс алыңыз.",
         cta: "Жазуды бастау",
       },
+      listening: {
+        title: "Тыңдалым",
+        description: "Түпнұсқа жазбалармен DELF тыңдалым түсінігін жаттығыңыз.",
+        cta: "Тыңдауды бастау",
+      },
       quiz: {
         title: "Апталық тест",
         description: "Осы аптада үйренген сөздерді қайталаңыз.",
@@ -1873,6 +2198,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         quizzesDone: "Өткен тесттер",
         speakingSessions: "Сөйлеу сессиялары",
         writingSessions: "Жазу сессиялары",
+        listeningSessions: "Тыңдалым сессиялары",
       },
     },
 
@@ -2282,6 +2608,108 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       reviewDailyGoalLabel: "Күндізгі мақсат",
       reviewDailyGoal: (n) => `${n} мин / күн`,
       notSetYet: "Әлі белгіленбеген",
+    },
+    listening: {
+      pageTitle: "Тыңдалым",
+      pageDescription: "ЖИ жасаған түпнұсқа жазбалармен DELF Compréhension de l'Oral бөлімін жаттығыңыз.",
+      home: {
+        currentLevel: "Ағымдағы DELF деңгейі",
+        duration: "Тыңдалым ұзақтығы",
+        minutesUnit: "мин",
+        recordings: "Жазбалар",
+        recordingsUnit: "жазба",
+        maxRecordingLength: "Ең үлкен жазба ұзақтығы",
+        maxScore: "Ең жоғары балл",
+        minPassingScore: "Ең төменгі өту балы",
+      },
+      modes: {
+        fullExamTitle: "DELF тыңдалым бойынша толық емтихан",
+        fullExamDescription: "DELF тыңдалым бөлімінің толық симуляциясы, нақты емтихандағыдай уақыты мен бағасы бар.",
+        startFullExam: "Толық емтиханды бастау",
+        practiceByPartTitle: "Бөлім бойынша жаттығу",
+        practiceByPartDescription: "Бір жазба мен оның сұрақтарын өз қарқыныңызбен жаттығыңыз.",
+        startPractice: "Жаттығуды бастау",
+        dailyChallengeTitle: "Күндізгі тыңдалым тапсырмасы",
+        dailyChallengeDescription: "Күн сайын жаңа тапсырма — сіздің деңгейіңіздегі барлық студенттер бүгін бірдей тапсырма алады.",
+        startDailyChallenge: "Бүгінгі тапсырманы бастау",
+        completedTodayBadge: "Бүгін орындалды",
+      },
+      player: {
+        play: "Ойнату",
+        pause: "Кідірту",
+        replay: "Қайта ойнату",
+        skipBack: "10 секунд артқа",
+        skipForward: "10 секунд алға",
+        seekLabel: "Айналдыру",
+        volumeLabel: "Дыбыс деңгейі",
+        loadingVoice: "Дауыс жүктелуде...",
+        unsupported: "Бұл браузерде аудио ойнату қолдау көрсетілмейді.",
+      },
+      session: {
+        questionBadge: (n) => `${n}-сұрақ`,
+        progressLabel: "Прогресс",
+        submit: "Жіберу",
+        backToModes: "Артқа",
+        generating: "Тыңдалым жаттығуыңыз жасалуда...",
+        previous: "Артқа",
+        next: "Келесі",
+        recordingLabel: (n, total) => `${total}-ден ${n}-жазба`,
+      },
+      results: {
+        title: "Нәтижелер",
+        scoreLabel: "Балл",
+        percentageLabel: "Пайыз",
+        pass: "Өтті",
+        needsImprovement: "Жетілдіру қажет",
+        timeSpentLabel: "Жұмсалған уақыт",
+        accuracyLabel: "Дәлдік",
+        viewFeedback: "Пікірді қарау",
+        reviewAnswers: "Жауаптарды шолу",
+        hideReview: "Шолуды жасыру",
+        newSession: "Жаңа сессия",
+      },
+      feedback: {
+        title: "ЖИ пікірі",
+        overallPerformance: "Жалпы нәтиже",
+        strongestSkills: "Күшті дағдылар",
+        weakestSkills: "Әлсіз дағдылар",
+        listeningAccuracy: "Тыңдалым дәлдігі",
+        understandingMainIdeas: "Негізгі ойды түсіну",
+        understandingDetails: "Детальдерді түсіну",
+        understandingNumbers: "Сандарды түсіну",
+        understandingNames: "Есімдерді түсіну",
+        understandingDates: "Даталарды түсіну",
+        vocabularyComprehension: "Лексиканы түсіну",
+        recommendations: "Ұсыныстар",
+        estimatedDelfReadiness: "DELF-ке болжамды дайындық",
+        noneNoted: "Ештеңе белгіленбеген.",
+      },
+      review: {
+        title: "Сұрақтарды шолу",
+        yourAnswer: "Сіздің жауабыңыз",
+        correctAnswer: "Дұрыс жауап",
+        whyCorrectQuestion: "Бұл жауап неге дұрыс?",
+        whereInRecording: "Жазбаның қай жерінде",
+        keywords: "Түйінді сөздер мен өрнектер",
+        whyCorrect: "Неге бұл дұрыс",
+        whyIncorrect: "Басқа нұсқалар неге қате",
+        vocabulary: "Маңызды сөздік қор",
+        grammarPattern: "Грамматикалық үлгі",
+        strategy: "Тыңдалым стратегиясы",
+      },
+      tips: {
+        title: "Тыңдалым кеңестері",
+        items: [
+          "Тыңдамас бұрын сұрақтарды оқыңыз.",
+          "Жауаптарды бос қалдырмаңыз.",
+          "Тыңдау кезінде жазба жасаңыз.",
+          "КІМ, ҚАЙДА және НЕ екенін анықтаңыз.",
+          "Сандарды, даталарды және есімдерді мұқият тыңдаңыз.",
+          "Әртүрлі француз акценттерін тыңдауды жаттығыңыз.",
+          "Жазба аяқталғанша назарыңызды сақтаңыз.",
+          "Күн сайын жаттығыңыз.",
+        ],
+      },
     },
     studyPlan: {
       pageTitle: "Оқу жоспары",
