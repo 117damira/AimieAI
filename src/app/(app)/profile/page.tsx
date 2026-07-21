@@ -149,7 +149,7 @@ export default function ProfilePage() {
             <span className="font-display text-2xl font-semibold tracking-tight text-foreground">
               {profile.firstName} {profile.lastName}
             </span>
-            <span className="text-sm text-muted">{profile.email || profile.phone}</span>
+            <span className="text-sm text-muted">{profile.email}</span>
             <div className="mt-1 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
               <Badge variant="primary">{t.profile.track(exam.name)}</Badge>
               <Badge variant="neutral">{t.profile.targetLevel(profile.targetLevel)}</Badge>
@@ -181,11 +181,8 @@ export default function ProfilePage() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className={profile.phone ? undefined : "sm:col-span-2"}
+            className="sm:col-span-2"
           />
-          {profile.phone && (
-            <Input label={t.profile.phone} value={profile.phone} disabled />
-          )}
           {error && (
             <p
               className="rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-600 sm:col-span-2"

@@ -22,17 +22,14 @@ const STORAGE_KEY = "aimieai.user.v2";
 interface IdentitySeed {
   firstName: string;
   lastName: string;
-  /** Exactly one of email/phone is set, matching the chosen registration
-   * method — see `register()` below. */
-  email: string | null;
-  phone: string | null;
+  email: string;
 }
 
 export type PracticeActivity = "writing" | "speaking" | "listening";
 
 export type RegisterResult =
   | { ok: true }
-  | { ok: false; reason: "duplicate-email" | "duplicate-phone" };
+  | { ok: false; reason: "duplicate-email" };
 export type LoginResult =
   | { ok: true }
   | { ok: false; reason: "not-found" | "wrong-password" };
@@ -41,15 +38,14 @@ interface UserProfileContextValue {
   profile: User | null;
   isHydrated: boolean;
   /** Registration always happens after onboarding — `onboarding` is that
-   * questionnaire's answers, folded into the new account at creation time. */
+   * questionnaire's answers, folded into the new account at creation time.
+   * Creating the account also immediately logs the user in (sets `profile`). */
   register: (
     identity: IdentitySeed,
     password: string,
     onboarding: OnboardingAnswers
   ) => Promise<RegisterResult>;
-  /** identifier is either an email address or a normalized KZ phone number
-   * ("+7XXXXXXXXXX") — accountStore figures out which. */
-  login: (identifier: string, password: string) => Promise<LoginResult>;
+  login: (email: string, password: string) => Promise<LoginResult>;
   updateProfile: (partial: Partial<User>) => void;
   /** score is the session's exam-readiness estimate normalized to 0-100. */
   recordActivity: (activity: PracticeActivity, score: number) => void;
@@ -103,8 +99,6 @@ function createInitialStats(): UserStats {
 function migrateUser(user: User): User {
   return {
     ...user,
-    phone: user.phone ?? null,
-    registrationMethod: user.registrationMethod ?? "email",
     studyDays: user.studyDays && user.studyDays.length > 0 ? user.studyDays : DEFAULT_STUDY_DAYS,
     vocabularyProgress: user.vocabularyProgress ?? [],
     writingTopicHistory: user.writingTopicHistory ?? {},
@@ -172,19 +166,14 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
       profile,
       isHydrated,
       register: async (identity, password, onboarding) => {
-        if (identity.email && accountStore.emailExists(identity.email)) {
+        if (accountStore.emailExists(identity.email)) {
           return { ok: false, reason: "duplicate-email" };
-        }
-        if (identity.phone && accountStore.phoneExists(identity.phone)) {
-          return { ok: false, reason: "duplicate-phone" };
         }
         const newUser: User = {
           id: `user_${Date.now()}`,
           firstName: identity.firstName,
           lastName: identity.lastName,
-          email: identity.email ?? "",
-          phone: identity.phone ?? null,
-          registrationMethod: identity.phone ? "phone" : "email",
+          email: identity.email,
           examId: onboarding.examId,
           targetLevel: onboarding.targetLevel,
           examDate: onboarding.examDate,
@@ -201,8 +190,8 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
         setProfile(newUser);
         return { ok: true };
       },
-      login: async (identifier, password) => {
-        const result = await accountStore.verifyLogin(identifier, password);
+      login: async (email, password) => {
+        const result = await accountStore.verifyLogin(email, password);
         if (!result.ok) return result;
         setProfile(migrateUser(result.user));
         return { ok: true };

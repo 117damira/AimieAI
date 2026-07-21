@@ -18,7 +18,6 @@ export interface Dictionary {
     hidePassword: string;
     edit: string;
     duplicateEmailError: string;
-    duplicatePhoneError: string;
     passwordTooShortError: string;
     passwordsDoNotMatchError: string;
     invalidCredentials: string;
@@ -393,7 +392,6 @@ export interface Dictionary {
     firstName: string;
     lastName: string;
     email: string;
-    phone: string;
     saveChanges: string;
     changesSaved: string;
     takePhoto: string;
@@ -440,39 +438,12 @@ export interface Dictionary {
       noAccount: string;
       createOne: string;
       forgotPasswordLink: string;
-      duplicateEmailNotice: string;
-      duplicatePhoneNotice: string;
-      identifierLabel: string;
-      identifierPlaceholder: string;
     };
     register: {
       title: string;
       description: string;
-      // Step 1 — identity
-      emailStepDescription: string;
-      methodLabel: string;
-      methodEmail: string;
-      methodPhone: string;
-      phone: string;
-      phonePlaceholder: string;
-      invalidPhoneError: string;
-      continueButton: string;
-      // Step 2 — verify
-      verifyStepTitle: string;
-      verifyStepDescription: (email: string) => string;
-      codeLabel: string;
-      codePlaceholder: string;
-      verifyButton: string;
-      resendCode: string;
-      codeResent: string;
-      devModeCodeNotice: (code: string) => string;
-      devModeSmsNotice: (code: string) => string;
-      invalidCodeError: string;
-      // Step 3 — details
       firstName: string;
-      firstNamePlaceholder: string;
       lastName: string;
-      lastNamePlaceholder: string;
       email: string;
       emailPlaceholder: string;
       password: string;
@@ -480,11 +451,6 @@ export interface Dictionary {
       passwordRequirement: string;
       confirmPassword: string;
       confirmPasswordPlaceholder: string;
-      termsPrefix: string;
-      termsAndConditions: string;
-      termsMiddle: string;
-      privacyPolicy: string;
-      termsRequiredError: string;
       submit: string;
       haveAccount: string;
       logIn: string;
@@ -504,7 +470,6 @@ export interface Dictionary {
       verifyButton: string;
       resendCode: string;
       codeResent: string;
-      devModeCodeNotice: (code: string) => string;
       invalidCodeError: string;
       newPasswordStepTitle: string;
       newPasswordStepDescription: string;
@@ -686,10 +651,9 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       hidePassword: "Hide password",
       edit: "Edit",
       duplicateEmailError: "This email is already registered.",
-      duplicatePhoneError: "This phone number is already registered.",
       passwordTooShortError: "Password must be at least 8 characters.",
       passwordsDoNotMatchError: "Passwords do not match.",
-      invalidCredentials: "Incorrect email/phone or password.",
+      invalidCredentials: "Incorrect email or password.",
     },
 
     topbar: {
@@ -1089,7 +1053,6 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       firstName: "First name",
       lastName: "Last name",
       email: "Email",
-      phone: "Phone number",
       saveChanges: "Save changes",
       changesSaved: "Changes saved.",
       takePhoto: "Take Photo",
@@ -1136,38 +1099,12 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         noAccount: "Don't have an account?",
         createOne: "Create one",
         forgotPasswordLink: "Forgot password?",
-        duplicateEmailNotice: "That email is already registered — sign in below instead.",
-        duplicatePhoneNotice: "That phone number is already registered — sign in below instead.",
-        identifierLabel: "Email or phone number",
-        identifierPlaceholder: "you@example.com or +7 707 123 45 67",
       },
       register: {
         title: "Create your account",
         description: "Start your personalized DELF preparation in a minute.",
-        emailStepDescription: "Tell us who you are and how you'd like to sign in.",
-        methodLabel: "How would you like to sign up?",
-        methodEmail: "Email",
-        methodPhone: "Phone number",
-        phone: "Phone number",
-        phonePlaceholder: "+7 707 123 45 67",
-        invalidPhoneError: "Enter a valid Kazakhstan phone number.",
-        continueButton: "Continue",
-        verifyStepTitle: "Verify your account",
-        verifyStepDescription: (email) => `Enter the 4-digit code we sent to ${email}.`,
-        codeLabel: "Verification code",
-        codePlaceholder: "0000",
-        verifyButton: "Verify",
-        resendCode: "Resend code",
-        codeResent: "A new code was sent.",
-        devModeCodeNotice: (code) =>
-          `No email service is configured in this environment — here's your code for testing: ${code}`,
-        devModeSmsNotice: (code) =>
-          `No SMS provider is configured in this environment — here's your code for testing: ${code}`,
-        invalidCodeError: "That code is incorrect or has expired.",
         firstName: "First name",
-        firstNamePlaceholder: "",
         lastName: "Last name",
-        lastNamePlaceholder: "",
         email: "Email",
         emailPlaceholder: "you@example.com",
         password: "Password",
@@ -1175,11 +1112,6 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         passwordRequirement: "Passwords must be 6–16 characters, containing at least 1 letter and 1 number.",
         confirmPassword: "Confirm password",
         confirmPasswordPlaceholder: "••••••••",
-        termsPrefix: "I agree to the",
-        termsAndConditions: "Terms and Conditions",
-        termsMiddle: "and",
-        privacyPolicy: "Privacy Policy",
-        termsRequiredError: "Please accept the Terms.",
         submit: "Create account",
         haveAccount: "Already have an account?",
         logIn: "Log in",
@@ -1199,8 +1131,6 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         verifyButton: "Verify",
         resendCode: "Resend code",
         codeResent: "A new code was sent.",
-        devModeCodeNotice: (code) =>
-          `No email service is configured in this environment — here's your code for testing: ${code}`,
         invalidCodeError: "That code is incorrect or has expired.",
         newPasswordStepTitle: "Create a new password",
         newPasswordStepDescription: "Choose a new password for your account.",
@@ -1413,10 +1343,9 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       hidePassword: "Скрыть пароль",
       edit: "Изменить",
       duplicateEmailError: "Этот email уже зарегистрирован.",
-      duplicatePhoneError: "Этот номер телефона уже зарегистрирован.",
       passwordTooShortError: "Пароль должен содержать не менее 8 символов.",
       passwordsDoNotMatchError: "Пароли не совпадают.",
-      invalidCredentials: "Неверный email/телефон или пароль.",
+      invalidCredentials: "Неверный email или пароль.",
     },
 
     topbar: {
@@ -1822,7 +1751,6 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       firstName: "Имя",
       lastName: "Фамилия",
       email: "Email",
-      phone: "Номер телефона",
       saveChanges: "Сохранить изменения",
       changesSaved: "Изменения сохранены.",
       takePhoto: "Сделать фото",
@@ -1869,38 +1797,12 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         noAccount: "Нет аккаунта?",
         createOne: "Создать",
         forgotPasswordLink: "Забыли пароль?",
-        duplicateEmailNotice: "Этот email уже зарегистрирован — войдите в систему ниже.",
-        duplicatePhoneNotice: "Этот номер телефона уже зарегистрирован — войдите в систему ниже.",
-        identifierLabel: "Email или номер телефона",
-        identifierPlaceholder: "you@example.com или +7 707 123 45 67",
       },
       register: {
         title: "Создайте аккаунт",
         description: "Начните персонализированную подготовку к DELF за минуту.",
-        emailStepDescription: "Расскажите, кто вы и как хотите входить в систему.",
-        methodLabel: "Как вы хотите зарегистрироваться?",
-        methodEmail: "Email",
-        methodPhone: "Номер телефона",
-        phone: "Номер телефона",
-        phonePlaceholder: "+7 707 123 45 67",
-        invalidPhoneError: "Введите корректный номер телефона Казахстана.",
-        continueButton: "Продолжить",
-        verifyStepTitle: "Подтвердите аккаунт",
-        verifyStepDescription: (email) => `Введите 4-значный код, отправленный на ${email}.`,
-        codeLabel: "Код подтверждения",
-        codePlaceholder: "0000",
-        verifyButton: "Подтвердить",
-        resendCode: "Отправить код повторно",
-        codeResent: "Новый код отправлен.",
-        devModeCodeNotice: (code) =>
-          `В этом окружении почтовый сервис не настроен — вот код для теста: ${code}`,
-        devModeSmsNotice: (code) =>
-          `В этом окружении SMS-провайдер не настроен — вот код для теста: ${code}`,
-        invalidCodeError: "Код неверен или истёк.",
         firstName: "Имя",
-        firstNamePlaceholder: "",
         lastName: "Фамилия",
-        lastNamePlaceholder: "",
         email: "Email",
         emailPlaceholder: "you@example.com",
         password: "Пароль",
@@ -1908,11 +1810,6 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         passwordRequirement: "Пароль должен содержать 6–16 символов, включая минимум 1 букву и 1 цифру.",
         confirmPassword: "Подтвердите пароль",
         confirmPasswordPlaceholder: "••••••••",
-        termsPrefix: "Я согласен(на) с",
-        termsAndConditions: "Условиями использования",
-        termsMiddle: "и",
-        privacyPolicy: "Политикой конфиденциальности",
-        termsRequiredError: "Пожалуйста, примите условия.",
         submit: "Создать аккаунт",
         haveAccount: "Уже есть аккаунт?",
         logIn: "Войти",
@@ -1932,8 +1829,6 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         verifyButton: "Подтвердить",
         resendCode: "Отправить код повторно",
         codeResent: "Новый код отправлен.",
-        devModeCodeNotice: (code) =>
-          `В этом окружении почтовый сервис не настроен — вот код для теста: ${code}`,
         invalidCodeError: "Код неверен или истёк.",
         newPasswordStepTitle: "Создайте новый пароль",
         newPasswordStepDescription: "Задайте новый пароль для вашего аккаунта.",
@@ -2146,10 +2041,9 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       hidePassword: "Құпия сөзді жасыру",
       edit: "Өзгерту",
       duplicateEmailError: "Бұл email бұрын тіркелген.",
-      duplicatePhoneError: "Бұл телефон нөмірі бұрын тіркелген.",
       passwordTooShortError: "Құпия сөз кемінде 8 таңбадан тұруы керек.",
       passwordsDoNotMatchError: "Құпия сөздер сәйкес келмейді.",
-      invalidCredentials: "Email/телефон немесе құпия сөз қате.",
+      invalidCredentials: "Email немесе құпия сөз қате.",
     },
 
     topbar: {
@@ -2548,7 +2442,6 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       firstName: "Аты",
       lastName: "Тегі",
       email: "Email",
-      phone: "Телефон нөмірі",
       saveChanges: "Өзгерістерді сақтау",
       changesSaved: "Өзгерістер сақталды.",
       takePhoto: "Фотоға түсіру",
@@ -2595,38 +2488,12 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         noAccount: "Аккаунтыңыз жоқ па?",
         createOne: "Жасау",
         forgotPasswordLink: "Құпия сөзді ұмыттыңыз ба?",
-        duplicateEmailNotice: "Бұл email бұрын тіркелген — төменде жүйеге кіріңіз.",
-        duplicatePhoneNotice: "Бұл телефон нөмірі бұрын тіркелген — төменде жүйеге кіріңіз.",
-        identifierLabel: "Email немесе телефон нөмірі",
-        identifierPlaceholder: "you@example.com немесе +7 707 123 45 67",
       },
       register: {
         title: "Аккаунт жасаңыз",
         description: "Жеке DELF дайындығыңызды бір минутта бастаңыз.",
-        emailStepDescription: "Кім екеніңізді және қалай кіргіңіз келетінін айтыңыз.",
-        methodLabel: "Қалай тіркелгіңіз келеді?",
-        methodEmail: "Email",
-        methodPhone: "Телефон нөмірі",
-        phone: "Телефон нөмірі",
-        phonePlaceholder: "+7 707 123 45 67",
-        invalidPhoneError: "Жарамды Қазақстан телефон нөмірін енгізіңіз.",
-        continueButton: "Жалғастыру",
-        verifyStepTitle: "Аккаунтты растаңыз",
-        verifyStepDescription: (email) => `${email} мекенжайына жіберілген 4 таңбалы кодты енгізіңіз.`,
-        codeLabel: "Растау коды",
-        codePlaceholder: "0000",
-        verifyButton: "Растау",
-        resendCode: "Кодты қайта жіберу",
-        codeResent: "Жаңа код жіберілді.",
-        devModeCodeNotice: (code) =>
-          `Бұл ортада пошта қызметі бапталмаған — сынау үшін кодыңыз: ${code}`,
-        devModeSmsNotice: (code) =>
-          `Бұл ортада SMS провайдері бапталмаған — сынау үшін кодыңыз: ${code}`,
-        invalidCodeError: "Код қате немесе мерзімі өтіп кеткен.",
         firstName: "Аты",
-        firstNamePlaceholder: "",
         lastName: "Тегі",
-        lastNamePlaceholder: "",
         email: "Email",
         emailPlaceholder: "you@example.com",
         password: "Құпия сөз",
@@ -2634,11 +2501,6 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         passwordRequirement: "Құпия сөз 6–16 таңбадан тұруы керек, кемінде 1 әріп және 1 сан қамтылуы керек.",
         confirmPassword: "Құпия сөзді растаңыз",
         confirmPasswordPlaceholder: "••••••••",
-        termsPrefix: "Мен келісемін",
-        termsAndConditions: "Пайдалану шарттарымен",
-        termsMiddle: "және",
-        privacyPolicy: "Құпиялылық саясатымен",
-        termsRequiredError: "Шарттарды қабылдаңыз.",
         submit: "Аккаунт жасау",
         haveAccount: "Аккаунтыңыз бар ма?",
         logIn: "Кіру",
@@ -2658,8 +2520,6 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         verifyButton: "Растау",
         resendCode: "Кодты қайта жіберу",
         codeResent: "Жаңа код жіберілді.",
-        devModeCodeNotice: (code) =>
-          `Бұл ортада пошта қызметі бапталмаған — сынау үшін кодыңыз: ${code}`,
         invalidCodeError: "Код қате немесе мерзімі өтіп кеткен.",
         newPasswordStepTitle: "Жаңа құпия сөз жасаңыз",
         newPasswordStepDescription: "Аккаунтыңыз үшін жаңа құпия сөз таңдаңыз.",

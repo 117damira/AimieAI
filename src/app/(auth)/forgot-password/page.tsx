@@ -27,7 +27,6 @@ export default function ForgotPasswordPage() {
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [devCode, setDevCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resendNotice, setResendNotice] = useState(false);
@@ -43,7 +42,6 @@ export default function ForgotPasswordPage() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || t.common.somethingWentWrong);
-    setDevCode(data.devCode ?? null);
   }
 
   async function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
@@ -178,11 +176,6 @@ export default function ForgotPasswordPage() {
 
         {step === "verify" && (
           <form className="flex flex-col gap-5" onSubmit={handleVerifySubmit}>
-            {devCode && (
-              <div className="rounded-2xl border border-warning-500/20 bg-warning-50 p-3.5 text-sm leading-relaxed text-warning-600">
-                {t.auth.forgotPassword.devModeCodeNotice(devCode)}
-              </div>
-            )}
             <Input
               label={t.auth.forgotPassword.codeLabel}
               inputMode="numeric"

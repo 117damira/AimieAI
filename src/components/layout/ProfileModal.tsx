@@ -183,7 +183,7 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
               <span className="font-display text-lg font-semibold text-foreground">
                 {profile.firstName} {profile.lastName}
               </span>
-              <span className="text-sm text-muted">{profile.email || profile.phone}</span>
+              <span className="text-sm text-muted">{profile.email}</span>
             </div>
           </div>
 

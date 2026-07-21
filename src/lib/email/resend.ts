@@ -4,9 +4,10 @@ let client: Resend | null = null;
 let attempted = false;
 
 /** Returns a lazily-constructed Resend client, or null if no API key is
- * configured — callers branch on this to fall back to a dev-mode banner
- * (the verification code returned directly in the API response) instead of
- * actually emailing it. Mirrors lib/ai/anthropic.ts's getAnthropicClient(). */
+ * configured — callers branch on this to fall back to a server-only console
+ * log instead of actually emailing the code (never sent to the client, see
+ * app/api/auth/send-code/route.ts). Mirrors lib/ai/anthropic.ts's
+ * getAnthropicClient(). */
 export function getEmailClient(): Resend | null {
   if (!attempted) {
     attempted = true;

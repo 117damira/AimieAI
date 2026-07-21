@@ -44,16 +44,7 @@ export interface User {
   id: string;
   firstName: string;
   lastName: string;
-  /** Empty string when the account was registered with a phone number
-   * instead of an email — see `registrationMethod`. */
   email: string;
-  /** E.164-ish Kazakhstan number ("+7XXXXXXXXXX"), or null when the account
-   * was registered with an email instead. */
-  phone: string | null;
-  /** Which identifier was used to create this account — determines whether
-   * `email` or `phone` is the sign-in identifier and what's shown as the
-   * primary contact method throughout the app. */
-  registrationMethod: "email" | "phone";
   examId: ExamId;
   targetLevel: OnboardingLevel;
   /** ISO yyyy-mm-dd, or null if the user hasn't set an exam date yet. */
