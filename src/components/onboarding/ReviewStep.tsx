@@ -1,16 +1,28 @@
 "use client";
 
 import { EXAMS } from "@/config/exams";
-import { ONBOARDING_LEVEL_LABELS } from "@/config/onboarding";
+import { ONBOARDING_LEVEL_LABELS, STUDY_DAY_ORDER, STUDY_DAY_WEEKDAY_INDEX } from "@/config/onboarding";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import type { ExamId } from "@/types/exam";
-import type { OnboardingLevel } from "@/types/user";
+import type { OnboardingLevel, StudyDay } from "@/types/user";
 
 interface ReviewDraft {
   examId: ExamId | null;
   targetLevel: OnboardingLevel | null;
   examDate: string | null;
   dailyGoalMinutes: number;
+  studyDays: StudyDay[];
+}
+
+function formatStudyDays(
+  days: StudyDay[],
+  weekdaysShort: readonly string[],
+  everyDayLabel: string
+): string {
+  if (days.length === STUDY_DAY_ORDER.length) return everyDayLabel;
+  return STUDY_DAY_ORDER.filter((day) => days.includes(day))
+    .map((day) => weekdaysShort[STUDY_DAY_WEEKDAY_INDEX[day]])
+    .join(", ");
 }
 
 export function ReviewStep({ draft }: { draft: ReviewDraft }) {
@@ -31,6 +43,10 @@ export function ReviewStep({ draft }: { draft: ReviewDraft }) {
       <ReviewRow
         label={t.onboarding.reviewDailyGoalLabel}
         value={t.onboarding.reviewDailyGoal(draft.dailyGoalMinutes)}
+      />
+      <ReviewRow
+        label={t.onboarding.reviewStudyDaysLabel}
+        value={formatStudyDays(draft.studyDays, t.weekdaysShort, t.onboarding.everyDayIntensive)}
       />
     </div>
   );

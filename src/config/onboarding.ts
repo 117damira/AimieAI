@@ -1,4 +1,4 @@
-import type { OnboardingLevel } from "@/types/user";
+import type { OnboardingLevel, StudyDay } from "@/types/user";
 import type { FeedbackLanguage } from "@/types/writing-evaluation";
 
 export const ONBOARDING_LEVEL_ORDER: OnboardingLevel[] = [
@@ -36,3 +36,29 @@ export const ONBOARDING_LEVEL_LABELS: Record<
 };
 
 export const DAILY_GOAL_PRESETS: number[] = [10, 15, 20, 30, 45, 60];
+
+/** Display order (Monday-first, matching the DELF study-week convention),
+ * independent of the Sunday-first index used by `weekdaysShort`/`Date.getDay()`. */
+export const STUDY_DAY_ORDER: StudyDay[] = [
+  "mon",
+  "tue",
+  "wed",
+  "thu",
+  "fri",
+  "sat",
+  "sun",
+];
+
+/** Maps each StudyDay onto `Dictionary.weekdaysShort`'s Sunday-first index. */
+export const STUDY_DAY_WEEKDAY_INDEX: Record<StudyDay, number> = {
+  sun: 0,
+  mon: 1,
+  tue: 2,
+  wed: 3,
+  thu: 4,
+  fri: 5,
+  sat: 6,
+};
+
+/** Every account starts studying every day until they narrow it down. */
+export const DEFAULT_STUDY_DAYS: StudyDay[] = [...STUDY_DAY_ORDER];

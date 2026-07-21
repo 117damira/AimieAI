@@ -19,18 +19,21 @@ import { ExamStep } from "@/components/onboarding/ExamStep";
 import { LevelStep } from "@/components/onboarding/LevelStep";
 import { ExamDateStep } from "@/components/onboarding/ExamDateStep";
 import { DailyGoalStep } from "@/components/onboarding/DailyGoalStep";
+import { StudyDaysStep } from "@/components/onboarding/StudyDaysStep";
 import { ReviewStep } from "@/components/onboarding/ReviewStep";
+import { DEFAULT_STUDY_DAYS } from "@/config/onboarding";
 import type { ExamId } from "@/types/exam";
-import type { OnboardingLevel } from "@/types/user";
+import type { OnboardingLevel, StudyDay } from "@/types/user";
 
 interface Draft {
   examId: ExamId | null;
   targetLevel: OnboardingLevel | null;
   examDate: string | null;
   dailyGoalMinutes: number;
+  studyDays: StudyDay[];
 }
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -43,6 +46,7 @@ export default function OnboardingPage() {
     targetLevel: null,
     examDate: null,
     dailyGoalMinutes: 20,
+    studyDays: DEFAULT_STUDY_DAYS,
   });
 
   const canAdvance =
@@ -58,6 +62,7 @@ export default function OnboardingPage() {
       targetLevel: draft.targetLevel!,
       examDate: draft.examDate,
       dailyGoalMinutes: draft.dailyGoalMinutes,
+      studyDays: draft.studyDays,
     });
     router.push("/dashboard");
   }
@@ -108,7 +113,13 @@ export default function OnboardingPage() {
                 onChange={(dailyGoalMinutes) => setDraft((d) => ({ ...d, dailyGoalMinutes }))}
               />
             )}
-            {step === 5 && <ReviewStep draft={draft} />}
+            {step === 5 && (
+              <StudyDaysStep
+                value={draft.studyDays}
+                onChange={(studyDays) => setDraft((d) => ({ ...d, studyDays }))}
+              />
+            )}
+            {step === 6 && <ReviewStep draft={draft} />}
           </motion.div>
         </AnimatePresence>
       </CardContent>

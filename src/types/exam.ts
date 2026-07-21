@@ -1,4 +1,4 @@
-export type ExamId = "delf" | "topik" | "hsk";
+export type ExamId = "delf" | "topik" | "hsk" | "ielts" | "jlpt" | "toefl";
 
 export type ExamSkillId = "vocabulary" | "speaking" | "writing" | "quiz";
 

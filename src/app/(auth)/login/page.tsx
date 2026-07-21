@@ -32,19 +32,21 @@ function LoginPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const prefillEmail = searchParams.get("email") ?? "";
-  const showDuplicateNotice = searchParams.get("reason") === "duplicate";
+  const prefillIdentifier = searchParams.get("identifier") ?? searchParams.get("email") ?? "";
+  const duplicateReason = searchParams.get("reason");
+  const showDuplicateEmailNotice = duplicateReason === "duplicate-email" || duplicateReason === "duplicate";
+  const showDuplicatePhoneNotice = duplicateReason === "duplicate-phone";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     const formData = new FormData(event.currentTarget);
-    const email = String(formData.get("email") ?? "");
+    const identifier = String(formData.get("identifier") ?? "");
     const password = String(formData.get("password") ?? "");
 
     setIsSubmitting(true);
     try {
-      const result = await login(email, password);
+      const result = await login(identifier, password);
       if (!result.ok) {
         setError(t.common.invalidCredentials);
         return;
@@ -64,19 +66,23 @@ function LoginPageContent() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {showDuplicateNotice && (
+        {showDuplicateEmailNotice && (
           <div className="mb-5 rounded-2xl border border-warning-500/20 bg-warning-50 p-3.5 text-sm leading-relaxed text-warning-600">
             {t.auth.login.duplicateEmailNotice}
           </div>
         )}
+        {showDuplicatePhoneNotice && (
+          <div className="mb-5 rounded-2xl border border-warning-500/20 bg-warning-50 p-3.5 text-sm leading-relaxed text-warning-600">
+            {t.auth.login.duplicatePhoneNotice}
+          </div>
+        )}
         <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
           <Input
-            label={t.auth.login.email}
-            type="email"
-            name="email"
-            defaultValue={prefillEmail}
-            placeholder={t.auth.login.emailPlaceholder}
-            autoComplete="email"
+            label={t.auth.login.identifierLabel}
+            name="identifier"
+            defaultValue={prefillIdentifier}
+            placeholder={t.auth.login.identifierPlaceholder}
+            autoComplete="username"
             required
           />
           <div className="flex flex-col gap-1.5">

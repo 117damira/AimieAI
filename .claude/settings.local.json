@@ -18,7 +18,19 @@
       "Bash(npm run *)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/ --max-time 5)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(npx eslint *)",
+      "Bash(taskkill //PID 4020 //F)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(tasklist //FI \"IMAGENAME eq node.exe\")",
+      "Bash(curl -s -o /tmp/home.html -w \"home: %{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -s -o /tmp/onboarding.html -w \"onboarding: %{http_code}\\\\n\" http://localhost:3000/onboarding)",
+      "Bash(curl -s -o /tmp/register.html -w \"register: %{http_code}\\\\n\" http://localhost:3000/register)",
+      "Bash(curl -s -o /tmp/login.html -w \"login: %{http_code}\\\\n\" http://localhost:3000/login)",
+      "Bash(curl -s -o /tmp/profile.html -w \"profile: %{http_code}\\\\n\" http://localhost:3000/profile)",
+      "Bash(curl -s -o /tmp/settings.html -w \"settings: %{http_code}\\\\n\" http://localhost:3000/settings)"
     ]
   }
 }

@@ -16,17 +16,24 @@ import {
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { isValidPassword } from "@/lib/utils/password";
+import { emailExists, phoneExists } from "@/lib/auth/accountStore";
+import { normalizeKzPhoneDigits, formatKzPhone, isValidKzPhoneDigits, toStoredPhone } from "@/lib/utils/phone";
 import { cn } from "@/lib/utils/cn";
 
-type Step = "email" | "verify" | "details";
+type Step = "identity" | "verify" | "password";
+type Method = "email" | "phone";
 
 export default function RegisterPage() {
   const router = useRouter();
   const { register } = useUserProfile();
   const { t } = useLanguage();
 
-  const [step, setStep] = useState<Step>("email");
+  const [step, setStep] = useState<Step>("identity");
+  const [method, setMethod] = useState<Method>("email");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [phoneDigits, setPhoneDigits] = useState("");
   const [code, setCode] = useState("");
   const [devCode, setDevCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,23 +44,45 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
 
-  async function sendCode(targetEmail: string) {
+  const identifier = method === "email" ? email.trim() : toStoredPhone(phoneDigits);
+
+  async function sendCode() {
     const res = await fetch("/api/auth/send-code", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: targetEmail }),
+      body: JSON.stringify(method === "email" ? { email: email.trim() } : { phone: phoneDigits }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || t.common.somethingWentWrong);
     setDevCode(data.devCode ?? null);
   }
 
-  async function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleIdentitySubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (!firstName.trim() || !lastName.trim()) return;
+
+    if (method === "email") {
+      if (!email.trim() || !email.includes("@")) return;
+      if (emailExists(email.trim())) {
+        router.push(`/login?identifier=${encodeURIComponent(email.trim())}&reason=duplicate-email`);
+        return;
+      }
+    } else {
+      if (!isValidKzPhoneDigits(phoneDigits)) {
+        setError(t.auth.register.invalidPhoneError);
+        return;
+      }
+      if (phoneExists(identifier)) {
+        router.push(`/login?identifier=${encodeURIComponent(identifier)}&reason=duplicate-phone`);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
-      await sendCode(email);
+      await sendCode();
       setStep("verify");
     } catch (err) {
       setError(err instanceof Error ? err.message : t.common.somethingWentWrong);
@@ -70,14 +99,16 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/verify-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code }),
+        body: JSON.stringify(
+          method === "email" ? { email: email.trim(), code } : { phone: phoneDigits, code }
+        ),
       });
       const data = await res.json();
       if (!data.valid) {
         setError(t.auth.register.invalidCodeError);
         return;
       }
-      setStep("details");
+      setStep("password");
     } catch {
       setError(t.common.somethingWentWrong);
     } finally {
@@ -89,20 +120,16 @@ export default function RegisterPage() {
     setError(null);
     setResendNotice(false);
     try {
-      await sendCode(email);
+      await sendCode();
       setResendNotice(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : t.common.somethingWentWrong);
     }
   }
 
-  async function handleDetailsSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-
-    const formData = new FormData(event.currentTarget);
-    const firstName = String(formData.get("firstName") ?? "");
-    const lastName = String(formData.get("lastName") ?? "");
 
     if (!isValidPassword(password)) {
       setError(t.auth.register.passwordRequirement);
@@ -119,12 +146,20 @@ export default function RegisterPage() {
 
     setIsSubmitting(true);
     try {
-      const result = await register({ firstName, lastName, email }, password);
+      const result = await register(
+        {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: method === "email" ? email.trim() : null,
+          phone: method === "phone" ? identifier : null,
+        },
+        password
+      );
       if (!result.ok) {
-        // An account with this email already exists — send the user to
-        // Sign In with the email prefilled rather than letting them retry
-        // registration here, so a duplicate account can never be created.
-        router.push(`/login?email=${encodeURIComponent(email)}&reason=duplicate`);
+        // An account with this identifier already exists — send the user to
+        // Sign In rather than letting them retry registration here, so a
+        // duplicate account can never be created.
+        router.push(`/login?identifier=${encodeURIComponent(identifier)}&reason=${result.reason}`);
         return;
       }
       router.push("/onboarding");
@@ -140,23 +175,87 @@ export default function RegisterPage() {
       <CardHeader>
         <CardTitle>{step === "verify" ? t.auth.register.verifyStepTitle : t.auth.register.title}</CardTitle>
         <CardDescription>
-          {step === "email" && t.auth.register.emailStepDescription}
-          {step === "verify" && t.auth.register.verifyStepDescription(email)}
-          {step === "details" && t.auth.register.description}
+          {step === "identity" && t.auth.register.emailStepDescription}
+          {step === "verify" && t.auth.register.verifyStepDescription(identifier)}
+          {step === "password" && t.auth.register.description}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {step === "email" && (
-          <form className="flex flex-col gap-5" onSubmit={handleEmailSubmit}>
-            <Input
-              label={t.auth.register.email}
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t.auth.register.emailPlaceholder}
-              autoComplete="email"
-              required
-            />
+        {step === "identity" && (
+          <form className="flex flex-col gap-5" onSubmit={handleIdentitySubmit}>
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label={t.auth.register.firstName}
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder={t.auth.register.firstNamePlaceholder}
+                autoComplete="given-name"
+                required
+              />
+              <Input
+                label={t.auth.register.lastName}
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder={t.auth.register.lastNamePlaceholder}
+                autoComplete="family-name"
+                required
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-foreground">{t.auth.register.methodLabel}</span>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMethod("email")}
+                  aria-pressed={method === "email"}
+                  className={cn(
+                    "rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all duration-200 ease-out",
+                    method === "email"
+                      ? "border-primary-400 bg-primary-50 text-primary-700"
+                      : "border-border bg-background text-muted hover:border-primary-200"
+                  )}
+                >
+                  {t.auth.register.methodEmail}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMethod("phone")}
+                  aria-pressed={method === "phone"}
+                  className={cn(
+                    "rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all duration-200 ease-out",
+                    method === "phone"
+                      ? "border-primary-400 bg-primary-50 text-primary-700"
+                      : "border-border bg-background text-muted hover:border-primary-200"
+                  )}
+                >
+                  {t.auth.register.methodPhone}
+                </button>
+              </div>
+            </div>
+
+            {method === "email" ? (
+              <Input
+                label={t.auth.register.email}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t.auth.register.emailPlaceholder}
+                autoComplete="email"
+                required
+              />
+            ) : (
+              <Input
+                label={t.auth.register.phone}
+                type="tel"
+                value={formatKzPhone(phoneDigits)}
+                onChange={(e) => setPhoneDigits(normalizeKzPhoneDigits(e.target.value))}
+                placeholder={t.auth.register.phonePlaceholder}
+                autoComplete="tel"
+                required
+              />
+            )}
+
             {error && (
               <p className="text-sm text-danger-600" role="alert">
                 {error}
@@ -172,7 +271,9 @@ export default function RegisterPage() {
           <form className="flex flex-col gap-5" onSubmit={handleVerifySubmit}>
             {devCode && (
               <div className="rounded-2xl border border-warning-500/20 bg-warning-50 p-3.5 text-sm leading-relaxed text-warning-600">
-                {t.auth.register.devModeCodeNotice(devCode)}
+                {method === "email"
+                  ? t.auth.register.devModeCodeNotice(devCode)
+                  : t.auth.register.devModeSmsNotice(devCode)}
               </div>
             )}
             <Input
@@ -203,25 +304,13 @@ export default function RegisterPage() {
           </form>
         )}
 
-        {step === "details" && (
-          <form className="flex flex-col gap-5" onSubmit={handleDetailsSubmit}>
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label={t.auth.register.firstName}
-                name="firstName"
-                placeholder={t.auth.register.firstNamePlaceholder}
-                autoComplete="given-name"
-                required
-              />
-              <Input
-                label={t.auth.register.lastName}
-                name="lastName"
-                placeholder={t.auth.register.lastNamePlaceholder}
-                autoComplete="family-name"
-                required
-              />
-            </div>
-            <Input label={t.auth.register.email} type="email" value={email} disabled />
+        {step === "password" && (
+          <form className="flex flex-col gap-5" onSubmit={handlePasswordSubmit}>
+            <Input
+              label={method === "email" ? t.auth.register.email : t.auth.register.phone}
+              value={method === "email" ? email : formatKzPhone(phoneDigits)}
+              disabled
+            />
             <div className="flex flex-col gap-1.5">
               <Input
                 label={t.auth.register.password}

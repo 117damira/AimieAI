@@ -38,6 +38,36 @@ export const EXAMS: Record<ExamId, ExamConfig> = {
     isActive: false,
     supportedSkills: [],
   },
+  ielts: {
+    id: "ielts",
+    name: "IELTS",
+    fullName: "International English Language Testing System",
+    language: "English",
+    level: "Band 1 – 9",
+    description: "Planned for a future release.",
+    isActive: false,
+    supportedSkills: [],
+  },
+  jlpt: {
+    id: "jlpt",
+    name: "JLPT",
+    fullName: "Japanese-Language Proficiency Test",
+    language: "Japanese",
+    level: "N5 – N1",
+    description: "Planned for a future release.",
+    isActive: false,
+    supportedSkills: [],
+  },
+  toefl: {
+    id: "toefl",
+    name: "TOEFL",
+    fullName: "Test of English as a Foreign Language",
+    language: "English",
+    level: "0 – 120",
+    description: "Planned for a future release.",
+    isActive: false,
+    supportedSkills: [],
+  },
 };
 
 /** The exam active in this MVP build. Every page currently targets this exam. */

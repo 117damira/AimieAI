@@ -1,17 +1,24 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Badge, Input, Button, ToggleRow } from "@/components/ui";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { EXAMS } from "@/config/exams";
-import { APP_NAME } from "@/config/app";
 import { cn } from "@/lib/utils/cn";
 
 export default function SettingsPage() {
-  const { profile } = useUserProfile();
+  const { profile, updateProfile } = useUserProfile();
   const { t } = useLanguage();
+  const [goalDraft, setGoalDraft] = useState(profile?.dailyGoalMinutes ?? 20);
+  const [goalSaved, setGoalSaved] = useState(false);
   if (!profile) return null;
+
+  function handleSaveGoal() {
+    updateProfile({ dailyGoalMinutes: goalDraft });
+    setGoalSaved(true);
+  }
 
   return (
     <div className="flex flex-col gap-6 sm:gap-7">
@@ -19,16 +26,6 @@ export default function SettingsPage() {
         title={t.settings.pageTitle}
         description={t.settings.pageDescription}
       />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t.settings.account}</CardTitle>
-          <CardDescription>{t.settings.accountDescription(APP_NAME)}</CardDescription>
-        </CardHeader>
-        <CardContent className="max-w-sm">
-          <Input label={t.settings.email} type="email" defaultValue={profile.email} disabled />
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>
@@ -41,11 +38,20 @@ export default function SettingsPage() {
           <Input
             label={t.settings.minutesPerDay}
             type="number"
-            defaultValue={profile.dailyGoalMinutes}
+            min={5}
+            max={240}
+            value={goalDraft}
+            onChange={(e) => {
+              setGoalSaved(false);
+              setGoalDraft(Number(e.target.value) || 0);
+            }}
           />
         </CardContent>
-        <CardFooter className="justify-end">
-          <Button disabled>{t.settings.saveGoal}</Button>
+        <CardFooter className="justify-end gap-3">
+          {goalSaved && (
+            <span className="text-sm font-medium text-success-600">{t.settings.goalSaved}</span>
+          )}
+          <Button onClick={handleSaveGoal}>{t.settings.saveGoal}</Button>
         </CardFooter>
       </Card>
 

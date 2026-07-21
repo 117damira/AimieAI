@@ -16,7 +16,9 @@ export interface Dictionary {
     closeMenu: string;
     showPassword: string;
     hidePassword: string;
+    edit: string;
     duplicateEmailError: string;
+    duplicatePhoneError: string;
     passwordTooShortError: string;
     passwordsDoNotMatchError: string;
     invalidCredentials: string;
@@ -74,6 +76,7 @@ export interface Dictionary {
     currentLevel: string;
     studyGoal: string;
     minPerDay: (n: number) => string;
+    studyDays: string;
     account: string;
     profileLink: string;
     settingsLink: string;
@@ -390,10 +393,19 @@ export interface Dictionary {
     firstName: string;
     lastName: string;
     email: string;
+    phone: string;
     saveChanges: string;
     changesSaved: string;
     takePhoto: string;
     chooseFromLibrary: string;
+    levelTitle: string;
+    levelDescription: string;
+    studyGoalTitle: string;
+    studyGoalDescription: string;
+    studyDaysTitle: string;
+    studyDaysDescription: string;
+    accountTitle: string;
+    accountDescription: string;
   };
 
   settings: {
@@ -406,6 +418,7 @@ export interface Dictionary {
     dailyGoalDescription: string;
     minutesPerDay: string;
     saveGoal: string;
+    goalSaved: string;
     exam: string;
     examDescription: string;
     selected: string;
@@ -428,12 +441,21 @@ export interface Dictionary {
       createOne: string;
       forgotPasswordLink: string;
       duplicateEmailNotice: string;
+      duplicatePhoneNotice: string;
+      identifierLabel: string;
+      identifierPlaceholder: string;
     };
     register: {
       title: string;
       description: string;
-      // Step 1 — email
+      // Step 1 — identity
       emailStepDescription: string;
+      methodLabel: string;
+      methodEmail: string;
+      methodPhone: string;
+      phone: string;
+      phonePlaceholder: string;
+      invalidPhoneError: string;
       continueButton: string;
       // Step 2 — verify
       verifyStepTitle: string;
@@ -444,6 +466,7 @@ export interface Dictionary {
       resendCode: string;
       codeResent: string;
       devModeCodeNotice: (code: string) => string;
+      devModeSmsNotice: (code: string) => string;
       invalidCodeError: string;
       // Step 3 — details
       firstName: string;
@@ -526,6 +549,8 @@ export interface Dictionary {
     reviewExamDate: string;
     reviewDailyGoalLabel: string;
     reviewDailyGoal: (n: number) => string;
+    reviewStudyDaysLabel: string;
+    everyDayIntensive: string;
     notSetYet: string;
   };
 
@@ -659,10 +684,12 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       closeMenu: "Close menu",
       showPassword: "Show password",
       hidePassword: "Hide password",
+      edit: "Edit",
       duplicateEmailError: "This email is already registered.",
+      duplicatePhoneError: "This phone number is already registered.",
       passwordTooShortError: "Password must be at least 8 characters.",
       passwordsDoNotMatchError: "Passwords do not match.",
-      invalidCredentials: "Incorrect email or password.",
+      invalidCredentials: "Incorrect email/phone or password.",
     },
 
     topbar: {
@@ -730,6 +757,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       currentLevel: "Current level",
       studyGoal: "Study goal",
       minPerDay: (n) => `${n} min/day`,
+      studyDays: "Study days",
       account: "Account",
       profileLink: "Profile",
       settingsLink: "Settings",
@@ -1061,10 +1089,19 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       firstName: "First name",
       lastName: "Last name",
       email: "Email",
+      phone: "Phone number",
       saveChanges: "Save changes",
       changesSaved: "Changes saved.",
       takePhoto: "Take Photo",
       chooseFromLibrary: "Choose from Library",
+      levelTitle: "Current level",
+      levelDescription: "Changing this updates your dashboard, study plan, and every practice module.",
+      studyGoalTitle: "Study goal",
+      studyGoalDescription: "How many minutes per day you want to practice.",
+      studyDaysTitle: "Study days",
+      studyDaysDescription: "Which days of the week you plan to study.",
+      accountTitle: "Account",
+      accountDescription: "Sign-out and account management.",
     },
 
     settings: {
@@ -1077,6 +1114,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       dailyGoalDescription: "How many minutes per day you want to practice.",
       minutesPerDay: "Minutes per day",
       saveGoal: "Save goal",
+      goalSaved: "Goal saved.",
       exam: "Exam",
       examDescription: "Choose which exam you're preparing for.",
       selected: "Selected",
@@ -1099,13 +1137,22 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         createOne: "Create one",
         forgotPasswordLink: "Forgot password?",
         duplicateEmailNotice: "That email is already registered — sign in below instead.",
+        duplicatePhoneNotice: "That phone number is already registered — sign in below instead.",
+        identifierLabel: "Email or phone number",
+        identifierPlaceholder: "you@example.com or +7 707 123 45 67",
       },
       register: {
         title: "Create your account",
         description: "Start your personalized DELF preparation in a minute.",
-        emailStepDescription: "Enter your email to get started — we'll send a verification code.",
+        emailStepDescription: "Tell us who you are and how you'd like to sign in.",
+        methodLabel: "How would you like to sign up?",
+        methodEmail: "Email",
+        methodPhone: "Phone number",
+        phone: "Phone number",
+        phonePlaceholder: "+7 707 123 45 67",
+        invalidPhoneError: "Enter a valid Kazakhstan phone number.",
         continueButton: "Continue",
-        verifyStepTitle: "Verify your email",
+        verifyStepTitle: "Verify your account",
         verifyStepDescription: (email) => `Enter the 4-digit code we sent to ${email}.`,
         codeLabel: "Verification code",
         codePlaceholder: "0000",
@@ -1114,6 +1161,8 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         codeResent: "A new code was sent.",
         devModeCodeNotice: (code) =>
           `No email service is configured in this environment — here's your code for testing: ${code}`,
+        devModeSmsNotice: (code) =>
+          `No SMS provider is configured in this environment — here's your code for testing: ${code}`,
         invalidCodeError: "That code is incorrect or has expired.",
         firstName: "First name",
         firstNamePlaceholder: "",
@@ -1199,6 +1248,10 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
           description: "A realistic daily target you can stick to.",
         },
         {
+          title: "Which days will you study?",
+          description: "Pick your rhythm — you can change this anytime in your profile.",
+        },
+        {
           title: "You're all set",
           description: "Review your answers before we build your dashboard.",
         },
@@ -1207,7 +1260,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       continueButton: "Continue",
       getStarted: "Get started",
       comingSoon: "Coming soon",
-      examLanguageNames: { French: "French", English: "English", Korean: "Korean", Chinese: "Chinese" },
+      examLanguageNames: { French: "French", English: "English", Korean: "Korean", Chinese: "Chinese", Japanese: "Japanese" },
       examDateLabel: "Exam date",
       notSureYet: "Not sure yet",
       minPerDayUnit: "min/day",
@@ -1217,6 +1270,8 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       reviewExamDate: "Exam date",
       reviewDailyGoalLabel: "Daily goal",
       reviewDailyGoal: (n) => `${n} min / day`,
+      reviewStudyDaysLabel: "Study days",
+      everyDayIntensive: "🔥 Every Day (Intensive)",
       notSetYet: "Not set yet",
     },
     listening: {
@@ -1356,10 +1411,12 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       closeMenu: "Закрыть меню",
       showPassword: "Показать пароль",
       hidePassword: "Скрыть пароль",
+      edit: "Изменить",
       duplicateEmailError: "Этот email уже зарегистрирован.",
+      duplicatePhoneError: "Этот номер телефона уже зарегистрирован.",
       passwordTooShortError: "Пароль должен содержать не менее 8 символов.",
       passwordsDoNotMatchError: "Пароли не совпадают.",
-      invalidCredentials: "Неверный email или пароль.",
+      invalidCredentials: "Неверный email/телефон или пароль.",
     },
 
     topbar: {
@@ -1427,6 +1484,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       currentLevel: "Текущий уровень",
       studyGoal: "Цель занятий",
       minPerDay: (n) => `${n} мин/день`,
+      studyDays: "Дни занятий",
       account: "Аккаунт",
       profileLink: "Профиль",
       settingsLink: "Настройки",
@@ -1764,10 +1822,19 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       firstName: "Имя",
       lastName: "Фамилия",
       email: "Email",
+      phone: "Номер телефона",
       saveChanges: "Сохранить изменения",
       changesSaved: "Изменения сохранены.",
       takePhoto: "Сделать фото",
       chooseFromLibrary: "Выбрать из галереи",
+      levelTitle: "Текущий уровень",
+      levelDescription: "Изменение обновит панель управления, план занятий и все модули практики.",
+      studyGoalTitle: "Цель занятий",
+      studyGoalDescription: "Сколько минут в день вы хотите заниматься.",
+      studyDaysTitle: "Дни занятий",
+      studyDaysDescription: "В какие дни недели вы планируете заниматься.",
+      accountTitle: "Аккаунт",
+      accountDescription: "Выход и управление аккаунтом.",
     },
 
     settings: {
@@ -1780,6 +1847,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       dailyGoalDescription: "Сколько минут в день вы хотите заниматься.",
       minutesPerDay: "Минут в день",
       saveGoal: "Сохранить цель",
+      goalSaved: "Цель сохранена.",
       exam: "Экзамен",
       examDescription: "Выберите экзамен, к которому вы готовитесь.",
       selected: "Выбрано",
@@ -1802,13 +1870,22 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         createOne: "Создать",
         forgotPasswordLink: "Забыли пароль?",
         duplicateEmailNotice: "Этот email уже зарегистрирован — войдите в систему ниже.",
+        duplicatePhoneNotice: "Этот номер телефона уже зарегистрирован — войдите в систему ниже.",
+        identifierLabel: "Email или номер телефона",
+        identifierPlaceholder: "you@example.com или +7 707 123 45 67",
       },
       register: {
         title: "Создайте аккаунт",
         description: "Начните персонализированную подготовку к DELF за минуту.",
-        emailStepDescription: "Введите email, чтобы начать — мы отправим код подтверждения.",
+        emailStepDescription: "Расскажите, кто вы и как хотите входить в систему.",
+        methodLabel: "Как вы хотите зарегистрироваться?",
+        methodEmail: "Email",
+        methodPhone: "Номер телефона",
+        phone: "Номер телефона",
+        phonePlaceholder: "+7 707 123 45 67",
+        invalidPhoneError: "Введите корректный номер телефона Казахстана.",
         continueButton: "Продолжить",
-        verifyStepTitle: "Подтвердите email",
+        verifyStepTitle: "Подтвердите аккаунт",
         verifyStepDescription: (email) => `Введите 4-значный код, отправленный на ${email}.`,
         codeLabel: "Код подтверждения",
         codePlaceholder: "0000",
@@ -1817,6 +1894,8 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         codeResent: "Новый код отправлен.",
         devModeCodeNotice: (code) =>
           `В этом окружении почтовый сервис не настроен — вот код для теста: ${code}`,
+        devModeSmsNotice: (code) =>
+          `В этом окружении SMS-провайдер не настроен — вот код для теста: ${code}`,
         invalidCodeError: "Код неверен или истёк.",
         firstName: "Имя",
         firstNamePlaceholder: "",
@@ -1902,6 +1981,10 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
           description: "Реалистичная ежедневная цель, которой вы сможете придерживаться.",
         },
         {
+          title: "В какие дни вы будете заниматься?",
+          description: "Выберите свой ритм — вы всегда можете изменить это в профиле.",
+        },
+        {
           title: "Всё готово",
           description: "Проверьте свои ответы перед тем, как мы создадим вашу панель управления.",
         },
@@ -1910,7 +1993,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       continueButton: "Продолжить",
       getStarted: "Начать",
       comingSoon: "Скоро",
-      examLanguageNames: { French: "Французский", English: "Английский", Korean: "Корейский", Chinese: "Китайский" },
+      examLanguageNames: { French: "Французский", English: "Английский", Korean: "Корейский", Chinese: "Китайский", Japanese: "Японский" },
       examDateLabel: "Дата экзамена",
       notSureYet: "Пока не знаю",
       minPerDayUnit: "мин/день",
@@ -1920,6 +2003,8 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       reviewExamDate: "Дата экзамена",
       reviewDailyGoalLabel: "Дневная цель",
       reviewDailyGoal: (n) => `${n} мин / день`,
+      reviewStudyDaysLabel: "Дни занятий",
+      everyDayIntensive: "🔥 Каждый день (интенсив)",
       notSetYet: "Пока не задано",
     },
     listening: {
@@ -2059,10 +2144,12 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       closeMenu: "Мәзірді жабу",
       showPassword: "Құпия сөзді көрсету",
       hidePassword: "Құпия сөзді жасыру",
+      edit: "Өзгерту",
       duplicateEmailError: "Бұл email бұрын тіркелген.",
+      duplicatePhoneError: "Бұл телефон нөмірі бұрын тіркелген.",
       passwordTooShortError: "Құпия сөз кемінде 8 таңбадан тұруы керек.",
       passwordsDoNotMatchError: "Құпия сөздер сәйкес келмейді.",
-      invalidCredentials: "Email немесе құпия сөз қате.",
+      invalidCredentials: "Email/телефон немесе құпия сөз қате.",
     },
 
     topbar: {
@@ -2130,6 +2217,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       currentLevel: "Ағымдағы деңгей",
       studyGoal: "Жаттығу мақсаты",
       minPerDay: (n) => `${n} мин/күн`,
+      studyDays: "Жаттығу күндері",
       account: "Аккаунт",
       profileLink: "Профиль",
       settingsLink: "Баптаулар",
@@ -2460,10 +2548,19 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       firstName: "Аты",
       lastName: "Тегі",
       email: "Email",
+      phone: "Телефон нөмірі",
       saveChanges: "Өзгерістерді сақтау",
       changesSaved: "Өзгерістер сақталды.",
       takePhoto: "Фотоға түсіру",
       chooseFromLibrary: "Кітапханадан таңдау",
+      levelTitle: "Ағымдағы деңгей",
+      levelDescription: "Мұны өзгерту бақылау тақтасын, оқу жоспарын және барлық жаттығу модульдерін жаңартады.",
+      studyGoalTitle: "Жаттығу мақсаты",
+      studyGoalDescription: "Күніне қанша минут жаттығу керек екенін таңдаңыз.",
+      studyDaysTitle: "Жаттығу күндері",
+      studyDaysDescription: "Апта ішінде қай күндері жаттығатыныңыз.",
+      accountTitle: "Аккаунт",
+      accountDescription: "Жүйеден шығу және аккаунтты басқару.",
     },
 
     settings: {
@@ -2476,6 +2573,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       dailyGoalDescription: "Күніне қанша минут жаттығу керек екенін таңдаңыз.",
       minutesPerDay: "Күніне минут",
       saveGoal: "Мақсатты сақтау",
+      goalSaved: "Мақсат сақталды.",
       exam: "Емтихан",
       examDescription: "Дайындалып жатқан емтиханыңызды таңдаңыз.",
       selected: "Таңдалды",
@@ -2498,13 +2596,22 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         createOne: "Жасау",
         forgotPasswordLink: "Құпия сөзді ұмыттыңыз ба?",
         duplicateEmailNotice: "Бұл email бұрын тіркелген — төменде жүйеге кіріңіз.",
+        duplicatePhoneNotice: "Бұл телефон нөмірі бұрын тіркелген — төменде жүйеге кіріңіз.",
+        identifierLabel: "Email немесе телефон нөмірі",
+        identifierPlaceholder: "you@example.com немесе +7 707 123 45 67",
       },
       register: {
         title: "Аккаунт жасаңыз",
         description: "Жеке DELF дайындығыңызды бір минутта бастаңыз.",
-        emailStepDescription: "Бастау үшін email енгізіңіз — біз растау кодын жібереміз.",
+        emailStepDescription: "Кім екеніңізді және қалай кіргіңіз келетінін айтыңыз.",
+        methodLabel: "Қалай тіркелгіңіз келеді?",
+        methodEmail: "Email",
+        methodPhone: "Телефон нөмірі",
+        phone: "Телефон нөмірі",
+        phonePlaceholder: "+7 707 123 45 67",
+        invalidPhoneError: "Жарамды Қазақстан телефон нөмірін енгізіңіз.",
         continueButton: "Жалғастыру",
-        verifyStepTitle: "Email-ді растаңыз",
+        verifyStepTitle: "Аккаунтты растаңыз",
         verifyStepDescription: (email) => `${email} мекенжайына жіберілген 4 таңбалы кодты енгізіңіз.`,
         codeLabel: "Растау коды",
         codePlaceholder: "0000",
@@ -2513,6 +2620,8 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         codeResent: "Жаңа код жіберілді.",
         devModeCodeNotice: (code) =>
           `Бұл ортада пошта қызметі бапталмаған — сынау үшін кодыңыз: ${code}`,
+        devModeSmsNotice: (code) =>
+          `Бұл ортада SMS провайдері бапталмаған — сынау үшін кодыңыз: ${code}`,
         invalidCodeError: "Код қате немесе мерзімі өтіп кеткен.",
         firstName: "Аты",
         firstNamePlaceholder: "",
@@ -2598,6 +2707,10 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
           description: "Ұстана алатын шынайы күндізгі мақсат.",
         },
         {
+          title: "Қай күндері жаттығасыз?",
+          description: "Өз ырғағыңызды таңдаңыз — мұны кез келген уақытта профильде өзгерте аласыз.",
+        },
+        {
           title: "Бәрі дайын",
           description: "Бақылау тақтаңызды жасамас бұрын жауаптарыңызды тексеріңіз.",
         },
@@ -2606,7 +2719,7 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       continueButton: "Жалғастыру",
       getStarted: "Бастау",
       comingSoon: "Жақында",
-      examLanguageNames: { French: "Французша", English: "Ағылшынша", Korean: "Корейше", Chinese: "Қытайша" },
+      examLanguageNames: { French: "Французша", English: "Ағылшынша", Korean: "Корейше", Chinese: "Қытайша", Japanese: "Жапонша" },
       examDateLabel: "Емтихан күні",
       notSureYet: "Әлі білмеймін",
       minPerDayUnit: "мин/күн",
@@ -2616,6 +2729,8 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       reviewExamDate: "Емтихан күні",
       reviewDailyGoalLabel: "Күндізгі мақсат",
       reviewDailyGoal: (n) => `${n} мин / күн`,
+      reviewStudyDaysLabel: "Жаттығу күндері",
+      everyDayIntensive: "🔥 Күн сайын (интенсив)",
       notSetYet: "Әлі белгіленбеген",
     },
     listening: {

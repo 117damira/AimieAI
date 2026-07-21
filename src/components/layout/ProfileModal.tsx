@@ -14,12 +14,14 @@ import {
   GraduationCap,
   BarChart3,
   Target,
+  CalendarDays,
 } from "lucide-react";
 import { Modal, Avatar, Input, Button, ToggleRow } from "@/components/ui";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { EXAMS } from "@/config/exams";
 import { updateAccountPassword } from "@/lib/auth/accountStore";
+import { STUDY_DAY_ORDER, STUDY_DAY_WEEKDAY_INDEX } from "@/config/onboarding";
 import { LogoutConfirmDialog } from "./LogoutConfirmDialog";
 import { DeleteAccountConfirmDialog } from "./DeleteAccountConfirmDialog";
 
@@ -181,7 +183,7 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
               <span className="font-display text-lg font-semibold text-foreground">
                 {profile.firstName} {profile.lastName}
               </span>
-              <span className="text-sm text-muted">{profile.email}</span>
+              <span className="text-sm text-muted">{profile.email || profile.phone}</span>
             </div>
           </div>
 
@@ -196,6 +198,17 @@ export function ProfileModal({ open, onClose }: ProfileModalProps) {
               icon={Target}
               label={t.profileModal.studyGoal}
               value={t.profileModal.minPerDay(profile.dailyGoalMinutes)}
+            />
+            <InfoRow
+              icon={CalendarDays}
+              label={t.profileModal.studyDays}
+              value={
+                profile.studyDays.length === STUDY_DAY_ORDER.length
+                  ? t.onboarding.everyDayIntensive
+                  : STUDY_DAY_ORDER.filter((day) => profile.studyDays.includes(day))
+                      .map((day) => t.weekdaysShort[STUDY_DAY_WEEKDAY_INDEX[day]])
+                      .join(", ")
+              }
             />
           </div>
 

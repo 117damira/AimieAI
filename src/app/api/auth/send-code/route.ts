@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEmailClient, VERIFICATION_EMAIL_FROM } from "@/lib/email/resend";
 import { generateCode, storeCode } from "@/lib/auth/verificationStore";
+import { normalizeKzPhoneDigits, isValidKzPhoneDigits, toStoredPhone } from "@/lib/utils/phone";
 
 /**
- * Sends a 4-digit email verification code (used by both registration and
- * forgot-password). Sends a real email when RESEND_API_KEY is configured;
- * otherwise returns the code directly so the client can show it in a
- * clearly-labeled dev-mode banner — the verification step still fully
- * works end to end with zero setup, same as every AI feature in this app.
+ * Sends a 4-digit verification code to either an email or a Kazakhstan
+ * phone number (used by registration and forgot-password). Email sends a
+ * real message when RESEND_API_KEY is configured, otherwise (and always for
+ * phone, since no SMS provider is wired up) returns the code directly so
+ * the client can show it in a clearly-labeled dev-mode banner — the
+ * verification step still fully works end to end with zero setup, same as
+ * every AI feature in this app.
  */
 interface SendCodeRequest {
-  email: string;
+  email?: string;
+  phone?: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -21,7 +25,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { email } = body;
+  const { email, phone } = body;
+
+  if (phone) {
+    const digits = normalizeKzPhoneDigits(phone);
+    if (!isValidKzPhoneDigits(digits)) {
+      return NextResponse.json({ error: "A valid Kazakhstan phone number is required" }, { status: 400 });
+    }
+    const identifier = toStoredPhone(digits);
+    const code = generateCode();
+    storeCode(identifier, code);
+    // No SMS provider is configured — always return the code (mocked SMS).
+    return NextResponse.json({ sent: true, devCode: code });
+  }
+
   if (!email || !email.trim() || !email.includes("@")) {
     return NextResponse.json({ error: "A valid email is required" }, { status: 400 });
   }

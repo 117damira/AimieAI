@@ -7,6 +7,10 @@ import type { DelfLevel } from "./writing-evaluation";
  * lib/utils/level.ts for how "Beginner" maps onto it. */
 export type OnboardingLevel = "Beginner" | "A1" | "A2" | "B1" | "B2";
 
+/** A day of the week a student has chosen to study on. Indices match
+ * JS `Date.getDay()` (0 = Sunday) so labels can reuse `weekdaysShort`. */
+export type StudyDay = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
+
 /** One completed practice session, used to derive streaks, history, and
  * exam-readiness estimates. */
 export interface ActivityLogEntry {
@@ -40,12 +44,23 @@ export interface User {
   id: string;
   firstName: string;
   lastName: string;
+  /** Empty string when the account was registered with a phone number
+   * instead of an email — see `registrationMethod`. */
   email: string;
+  /** E.164-ish Kazakhstan number ("+7XXXXXXXXXX"), or null when the account
+   * was registered with an email instead. */
+  phone: string | null;
+  /** Which identifier was used to create this account — determines whether
+   * `email` or `phone` is the sign-in identifier and what's shown as the
+   * primary contact method throughout the app. */
+  registrationMethod: "email" | "phone";
   examId: ExamId;
   targetLevel: OnboardingLevel;
   /** ISO yyyy-mm-dd, or null if the user hasn't set an exam date yet. */
   examDate: string | null;
   dailyGoalMinutes: number;
+  /** Days of the week the student plans to study — always at least one. */
+  studyDays: StudyDay[];
   /** Uploaded avatar photo as a data URL, or null to fall back to computed
    * initials — see getInitials() in lib/utils/initials.ts. */
   avatarPhotoDataUrl: string | null;
