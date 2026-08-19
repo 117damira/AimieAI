@@ -15,6 +15,7 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { getTopikWordOfTheDay } from "@/lib/mock/topik-word-of-the-day";
 import { defaultLevelForTrack } from "@/lib/utils/topikLevel";
+import { estimateCurrentTopikLevel } from "@/lib/topik/estimateLevel";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import type { VocabularySentenceFeedback } from "@/types/vocabulary";
@@ -58,11 +59,16 @@ export function TopikVocabularyPage() {
     );
   }
 
-  const wordOfTheDay = getTopikWordOfTheDay(level);
+  // Today's Word tracks the account's real, performance-estimated level
+  // (same estimate the Progress page shows) rather than the static level
+  // chosen at onboarding, so vocabulary difficulty rises as the learner
+  // actually improves.
+  const wordOfDayLevel = estimateCurrentTopikLevel(profile) ?? level;
+  const wordOfTheDay = getTopikWordOfTheDay(wordOfDayLevel);
   const vocabularyProgress = profile.topikVocabularyProgress ?? [];
 
   async function handleGetFeedback() {
-    if (!sentence.trim() || isSubmitting || !profile || !level) return;
+    if (!sentence.trim() || isSubmitting || !profile || !wordOfDayLevel) return;
     setIsSubmitting(true);
     setError(null);
     try {
@@ -73,7 +79,7 @@ export function TopikVocabularyPage() {
           word: wordOfTheDay.word,
           definition: wordOfTheDay.definition[language],
           sentence,
-          level,
+          level: wordOfDayLevel,
           language,
         }),
       });

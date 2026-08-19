@@ -1,4 +1,5 @@
 import type { TopikLevel, TopikTrack } from "@/types/topik";
+import type { User } from "@/types/user";
 import { defaultLevelForTrack } from "@/lib/utils/topikLevel";
 
 /**
@@ -74,4 +75,23 @@ export function estimateTopikLevel(
   const averagePercent = recentScores.reduce((sum, s) => sum + s, 0) / recentScores.length;
   const rawTotal = Math.round((averagePercent / 100) * TRACK_MAX_TOTAL[track]);
   return bucketRawTotal(track, rawTotal);
+}
+
+/**
+ * Convenience wrapper around `estimateTopikLevel` for the common case of
+ * "what level is this account really performing at right now" — reused by
+ * both the Progress page's level badge and the Today's Word difficulty
+ * selection, so the two never disagree and the estimate logic lives in one
+ * place. Returns null only when the account has no TOPIK track selected.
+ */
+export function estimateCurrentTopikLevel(
+  profile: Pick<User, "topikTrack" | "topikLevel" | "topikStats">
+): TopikLevel | null {
+  const track = profile.topikTrack;
+  if (!track) return null;
+  return estimateTopikLevel(
+    track,
+    profile.topikStats.history.map((entry) => entry.score),
+    profile.topikLevel ?? defaultLevelForTrack(track)
+  );
 }

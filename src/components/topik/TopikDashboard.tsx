@@ -27,6 +27,7 @@ import {
 } from "@/components/ui";
 import { getTopikWordOfTheDay } from "@/lib/mock/topik-word-of-the-day";
 import { defaultLevelForTrack } from "@/lib/utils/topikLevel";
+import { estimateCurrentTopikLevel } from "@/lib/topik/estimateLevel";
 import { EXAMS } from "@/config/exams";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
@@ -76,7 +77,12 @@ export function TopikDashboard() {
   // rather than showing a fabricated number.
   const minutesDoneToday = 0;
 
-  const wordOfTheDay = level ? getTopikWordOfTheDay(level) : null;
+  // Today's Word tracks the account's real, performance-estimated level
+  // (same estimate the Progress page shows) rather than the static level
+  // chosen at onboarding, so vocabulary difficulty rises as the learner
+  // actually improves.
+  const wordOfDayLevel = estimateCurrentTopikLevel(profile) ?? level;
+  const wordOfTheDay = wordOfDayLevel ? getTopikWordOfTheDay(wordOfDayLevel) : null;
   const vocabularyProgress = profile.topikVocabularyProgress ?? [];
 
   const listeningAvg = average(stats.history.filter((h) => h.activity === "listening").map((h) => h.score));

@@ -21,6 +21,7 @@ import {
 } from "@/components/topik/listening/TopikListeningResultsSummary";
 import { TopikListeningQuestionReview } from "@/components/topik/listening/TopikListeningQuestionReview";
 import { TopikListeningTipsCard } from "@/components/topik/listening/TopikListeningTipsCard";
+import { TopikAnswerReviewModal } from "@/components/topik/TopikAnswerReviewModal";
 import type {
   TopikListeningFeedback,
   TopikListeningMode,
@@ -221,29 +222,32 @@ export function TopikListeningPage() {
           <TopikListeningFeedbackCard feedback={feedback} />
 
           <div className="flex flex-wrap gap-3">
-            <Button variant="secondary" onClick={() => setShowReview((s) => !s)}>
-              {showReview ? t.listening.results.hideReview : t.listening.results.reviewAnswers}
+            <Button variant="secondary" onClick={() => setShowReview(true)}>
+              {t.listening.results.reviewAnswers}
             </Button>
             <Button onClick={handleBackToModes}>{t.listening.results.newSession}</Button>
           </div>
 
-          {showReview && (
-            <div className="flex flex-col gap-4">
-              {set.questions.map((q, i) => {
-                const qResult = result.questionResults.find((qr) => qr.questionId === q.id);
-                if (!qResult) return null;
-                return (
-                  <TopikListeningQuestionReview
-                    key={q.id}
-                    question={q}
-                    questionNumber={i + 1}
-                    selectedOptionIds={qResult.selectedOptionIds}
-                    isCorrect={qResult.isCorrect}
-                  />
-                );
-              })}
-            </div>
-          )}
+          <TopikAnswerReviewModal
+            open={showReview}
+            onClose={() => setShowReview(false)}
+            title={t.listening.results.reviewAnswers}
+            hideLabel={t.listening.results.hideReview}
+          >
+            {set.questions.map((q, i) => {
+              const qResult = result.questionResults.find((qr) => qr.questionId === q.id);
+              if (!qResult) return null;
+              return (
+                <TopikListeningQuestionReview
+                  key={q.id}
+                  question={q}
+                  questionNumber={i + 1}
+                  selectedOptionIds={qResult.selectedOptionIds}
+                  isCorrect={qResult.isCorrect}
+                />
+              );
+            })}
+          </TopikAnswerReviewModal>
         </div>
       )}
     </div>

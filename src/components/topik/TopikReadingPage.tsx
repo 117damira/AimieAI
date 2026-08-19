@@ -24,6 +24,7 @@ import { TopikReadingVocabularyCard } from "@/components/topik/reading/TopikRead
 import { TopikReadingProgressComparison } from "@/components/topik/reading/TopikReadingProgressComparison";
 import { TopikReadingQuestionReview } from "@/components/topik/reading/TopikReadingQuestionReview";
 import { TopikReadingTipsCard } from "@/components/topik/reading/TopikReadingTipsCard";
+import { TopikAnswerReviewModal } from "@/components/topik/TopikAnswerReviewModal";
 import type {
   TopikReadingFeedback,
   TopikReadingMode,
@@ -277,33 +278,36 @@ export function TopikReadingPage() {
           {progressComparison && <TopikReadingProgressComparison comparison={progressComparison} />}
 
           <div className="flex flex-wrap gap-3">
-            <Button variant="secondary" onClick={() => setShowReview((s) => !s)}>
-              {showReview ? t.reading.results.hideReview : t.reading.results.reviewAnswers}
+            <Button variant="secondary" onClick={() => setShowReview(true)}>
+              {t.reading.results.reviewAnswers}
             </Button>
             <Button onClick={handleBackToModes}>{t.reading.results.newSession}</Button>
           </div>
 
-          {showReview && (
-            <div className="flex flex-col gap-4">
-              {set.questions.map((q, i) => {
-                const qResult = result.questionResults.find((qr) => qr.questionId === q.id);
-                if (!qResult) return null;
-                const passageForQuestion = set.passages.find((p) => p.id === q.passageId);
-                return (
-                  <TopikReadingQuestionReview
-                    key={q.id}
-                    question={q}
-                    questionNumber={i + 1}
-                    selectedOptionIds={qResult.selectedOptionIds}
-                    isCorrect={qResult.isCorrect}
-                    pointsEarned={qResult.isCorrect ? Math.round(pointsPossible * 10) / 10 : 0}
-                    pointsPossible={Math.round(pointsPossible * 10) / 10}
-                    passage={passageForQuestion}
-                  />
-                );
-              })}
-            </div>
-          )}
+          <TopikAnswerReviewModal
+            open={showReview}
+            onClose={() => setShowReview(false)}
+            title={t.reading.results.reviewAnswers}
+            hideLabel={t.reading.results.hideReview}
+          >
+            {set.questions.map((q, i) => {
+              const qResult = result.questionResults.find((qr) => qr.questionId === q.id);
+              if (!qResult) return null;
+              const passageForQuestion = set.passages.find((p) => p.id === q.passageId);
+              return (
+                <TopikReadingQuestionReview
+                  key={q.id}
+                  question={q}
+                  questionNumber={i + 1}
+                  selectedOptionIds={qResult.selectedOptionIds}
+                  isCorrect={qResult.isCorrect}
+                  pointsEarned={qResult.isCorrect ? Math.round(pointsPossible * 10) / 10 : 0}
+                  pointsPossible={Math.round(pointsPossible * 10) / 10}
+                  passage={passageForQuestion}
+                />
+              );
+            })}
+          </TopikAnswerReviewModal>
         </div>
       )}
     </div>

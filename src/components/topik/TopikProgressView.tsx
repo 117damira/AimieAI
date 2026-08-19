@@ -24,8 +24,7 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { defaultLevelForTrack } from "@/lib/utils/topikLevel";
-import { estimateTopikLevel } from "@/lib/topik/estimateLevel";
+import { estimateCurrentTopikLevel } from "@/lib/topik/estimateLevel";
 import type { ActivityLogEntry } from "@/types/user";
 
 function toIso(date: Date): string {
@@ -102,9 +101,7 @@ export function TopikProgressView() {
   const readingReadiness = average(stats.history.filter((e) => e.activity === "reading").map((e) => e.score));
   const writingReadiness = average(stats.history.filter((e) => e.activity === "writing").map((e) => e.score));
 
-  const estimatedLevel = track
-    ? estimateTopikLevel(track, stats.history.map((e) => e.score), profile.topikLevel ?? defaultLevelForTrack(track))
-    : null;
+  const estimatedLevel = estimateCurrentTopikLevel(profile);
 
   const recentHistory: ActivityLogEntry[] = [...stats.history].reverse().slice(0, 10);
 
