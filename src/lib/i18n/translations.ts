@@ -775,6 +775,55 @@ export interface Dictionary {
       listeningDescription: string;
       readingDescription: string;
       writingDescription: string;
+      whereAmITitle: string;
+      whatToKnowTitle: string;
+      whatNextTitle: string;
+      progressTitle: string;
+      progressDescription: string;
+    };
+    examCountdown: {
+      cardTitle: string;
+      viewStudyPlan: string;
+    };
+    announcements: {
+      title: string;
+      description: string;
+      emptyTitle: string;
+      emptyDescription: string;
+      officialSiteCta: string;
+      sourceLinkLabel: string;
+      categories: {
+        registration: string;
+        examDate: string;
+        results: string;
+        announcement: string;
+        change: string;
+      };
+    };
+    recommendation: {
+      title: string;
+      noDataTitle: string;
+      noDataDescription: string;
+      weakestSkillIntro: (skill: string, pct: number) => string;
+      allStrongMessage: string;
+      ctaLabel: (skill: string) => string;
+      skillLabels: { listening: string; reading: string; writing: string };
+    };
+    buddy: {
+      cardTitle: string;
+      cardSubtitle: string;
+      cardDescription: string;
+      launchCta: string;
+      modalTitle: string;
+      greeting: (firstName: string) => string;
+      inputPlaceholder: string;
+      send: string;
+      thinking: string;
+      errorGeneric: string;
+      disclaimer: string;
+      suggestedPrompt1: string;
+      suggestedPrompt2: string;
+      suggestedPrompt3: string;
     };
     listening: {
       pageDescription: string;
@@ -1653,6 +1702,56 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         listeningDescription: "Practice TOPIK listening comprehension with original recordings.",
         readingDescription: "Practice TOPIK reading comprehension with original AI-generated texts.",
         writingDescription: "Draft a response and get feedback structured like official TOPIK scoring.",
+        whereAmITitle: "Where am I?",
+        whatToKnowTitle: "What do I need to know?",
+        whatNextTitle: "What should I do next?",
+        progressTitle: "Your Progress",
+        progressDescription: "Your real practice results across every TOPIK skill.",
+      },
+      examCountdown: {
+        cardTitle: "Exam Countdown",
+        viewStudyPlan: "View Study Plan",
+      },
+      announcements: {
+        title: "TOPIK Announcements",
+        description: "Official registration, exam, and results dates.",
+        emptyTitle: "No official announcements connected yet",
+        emptyDescription:
+          "AimieAI doesn't have a live connection to an official TOPIK data source yet, so nothing is shown here rather than risking an out-of-date or incorrect date.",
+        officialSiteCta: "Check the official TOPIK website",
+        sourceLinkLabel: "Official source",
+        categories: {
+          registration: "Registration",
+          examDate: "Exam date",
+          results: "Results",
+          announcement: "Announcement",
+          change: "Recent change",
+        },
+      },
+      recommendation: {
+        title: "Recommended for you",
+        noDataTitle: "Complete a session to get a personalized tip",
+        noDataDescription: "Once you've practiced Listening, Reading, or Writing, this will recommend where to focus based on your real accuracy.",
+        weakestSkillIntro: (skill, pct) => `${skill} is your weakest area right now, around ${pct}% accuracy. That's the highest-value place to focus today.`,
+        allStrongMessage: "Your accuracy is solid across every skill you've practiced — keep your streak going with a fresh session.",
+        ctaLabel: (skill) => `Practice ${skill}`,
+        skillLabels: { listening: "Listening", reading: "Reading", writing: "Writing" },
+      },
+      buddy: {
+        cardTitle: "Aimie Buddy",
+        cardSubtitle: "Your AI Study Mentor",
+        cardDescription: "Ask about grammar, vocabulary, your mistakes, or what to study today — grounded in your real progress.",
+        launchCta: "Ask Aimie Buddy",
+        modalTitle: "Aimie Buddy — Your AI Study Mentor",
+        greeting: (firstName) => `Hi ${firstName}! I'm Aimie Buddy, your TOPIK study mentor. Ask me anything about grammar, vocabulary, your progress, or what to study today.`,
+        inputPlaceholder: "Ask Aimie Buddy anything about your TOPIK prep...",
+        send: "Send",
+        thinking: "Thinking...",
+        errorGeneric: "Aimie Buddy couldn't reply just now. Please try again.",
+        disclaimer: "Aimie Buddy uses your real progress data, but always verify official exam details on the official TOPIK website.",
+        suggestedPrompt1: "What should I study today?",
+        suggestedPrompt2: "Explain when to use 은/는 vs 이/가",
+        suggestedPrompt3: "I'm feeling overwhelmed — help me make a plan",
       },
       listening: {
         pageDescription: "Practice TOPIK listening comprehension with original AI-generated recordings.",
@@ -2533,6 +2632,56 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         listeningDescription: "Тренируйте понимание на слух TOPIK с оригинальными записями.",
         readingDescription: "Тренируйте понимание письменного текста TOPIK с оригинальными текстами от ИИ.",
         writingDescription: "Напишите ответ и получите оценку в формате официального TOPIK.",
+        whereAmITitle: "Где я нахожусь?",
+        whatToKnowTitle: "Что мне нужно знать?",
+        whatNextTitle: "Что делать дальше?",
+        progressTitle: "Ваш прогресс",
+        progressDescription: "Ваши реальные результаты по каждому навыку TOPIK.",
+      },
+      examCountdown: {
+        cardTitle: "Отсчёт до экзамена",
+        viewStudyPlan: "Смотреть план обучения",
+      },
+      announcements: {
+        title: "Объявления TOPIK",
+        description: "Официальные даты регистрации, экзамена и результатов.",
+        emptyTitle: "Официальные объявления пока не подключены",
+        emptyDescription:
+          "У AimieAI пока нет живого подключения к официальному источнику данных TOPIK, поэтому здесь ничего не показано — это лучше, чем показать устаревшую или неверную дату.",
+        officialSiteCta: "Проверить на официальном сайте TOPIK",
+        sourceLinkLabel: "Официальный источник",
+        categories: {
+          registration: "Регистрация",
+          examDate: "Дата экзамена",
+          results: "Результаты",
+          announcement: "Объявление",
+          change: "Недавнее изменение",
+        },
+      },
+      recommendation: {
+        title: "Рекомендуем вам",
+        noDataTitle: "Пройдите тренировку, чтобы получить персональный совет",
+        noDataDescription: "После тренировки по Аудированию, Чтению или Письму здесь появится рекомендация, на чём сосредоточиться, основанная на вашей реальной точности.",
+        weakestSkillIntro: (skill, pct) => `${skill} — сейчас ваше самое слабое место, точность около ${pct}%. Это самое ценное направление для сегодняшней тренировки.`,
+        allStrongMessage: "Ваша точность стабильно высока по всем навыкам, которые вы тренировали — продолжайте серию новой тренировкой.",
+        ctaLabel: (skill) => `Тренировать «${skill}»`,
+        skillLabels: { listening: "Аудирование", reading: "Чтение", writing: "Письмо" },
+      },
+      buddy: {
+        cardTitle: "Aimie Buddy",
+        cardSubtitle: "Ваш ИИ-наставник по учёбе",
+        cardDescription: "Спросите про грамматику, лексику, свои ошибки или что учить сегодня — с опорой на ваш реальный прогресс.",
+        launchCta: "Спросить Aimie Buddy",
+        modalTitle: "Aimie Buddy — Ваш ИИ-наставник по учёбе",
+        greeting: (firstName) => `Привет, ${firstName}! Я Aimie Buddy, ваш наставник по подготовке к TOPIK. Спрашивайте что угодно о грамматике, лексике, прогрессе или о том, что изучать сегодня.`,
+        inputPlaceholder: "Спросите Aimie Buddy о подготовке к TOPIK...",
+        send: "Отправить",
+        thinking: "Печатает...",
+        errorGeneric: "Aimie Buddy сейчас не смог ответить. Попробуйте ещё раз.",
+        disclaimer: "Aimie Buddy использует ваши реальные данные о прогрессе, но всегда проверяйте официальные детали экзамена на официальном сайте TOPIK.",
+        suggestedPrompt1: "Что мне изучать сегодня?",
+        suggestedPrompt2: "Объясни разницу между 은/는 и 이/가",
+        suggestedPrompt3: "Я чувствую себя перегруженным — помоги составить план",
       },
       listening: {
         pageDescription: "Тренируйте понимание на слух TOPIK с оригинальными записями, созданными ИИ.",
@@ -3406,6 +3555,56 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
         listeningDescription: "Түпнұсқа жазбалармен TOPIK тыңдалым түсінігін жаттығыңыз.",
         readingDescription: "ЖИ жасаған түпнұсқа мәтіндермен TOPIK оқылым түсінігін жаттығыңыз.",
         writingDescription: "Жауап жазып, ресми TOPIK бағалауы бойынша кері байланыс алыңыз.",
+        whereAmITitle: "Мен қай жердемін?",
+        whatToKnowTitle: "Не білуім керек?",
+        whatNextTitle: "Ары қарай не істеймін?",
+        progressTitle: "Сіздің прогресіңіз",
+        progressDescription: "Әр TOPIK дағдысы бойынша нақты жаттығу нәтижелеріңіз.",
+      },
+      examCountdown: {
+        cardTitle: "Емтиханға дейінгі санақ",
+        viewStudyPlan: "Оқу жоспарын қарау",
+      },
+      announcements: {
+        title: "TOPIK хабарландырулары",
+        description: "Ресми тіркелу, емтихан және нәтиже күндері.",
+        emptyTitle: "Ресми хабарландырулар әлі қосылмаған",
+        emptyDescription:
+          "AimieAI-де әзірге TOPIK-тің ресми деректер көзімен тікелей байланыс жоқ, сондықтан ескірген немесе қате күнді көрсеткенше, мұнда ештеңе көрсетілмейді.",
+        officialSiteCta: "Ресми TOPIK сайтынан тексеріңіз",
+        sourceLinkLabel: "Ресми дереккөз",
+        categories: {
+          registration: "Тіркелу",
+          examDate: "Емтихан күні",
+          results: "Нәтижелер",
+          announcement: "Хабарландыру",
+          change: "Соңғы өзгеріс",
+        },
+      },
+      recommendation: {
+        title: "Сізге ұсыныс",
+        noDataTitle: "Жеке кеңес алу үшін жаттығуды аяқтаңыз",
+        noDataDescription: "Тыңдалым, Оқылым немесе Жазылымнан жаттыққаннан кейін, мұнда нақты дәлдігіңізге негізделген назар аудару керек бағыт ұсынылады.",
+        weakestSkillIntro: (skill, pct) => `${skill} қазір сіздің ең әлсіз жеріңіз, дәлдігі шамамен ${pct}%. Бүгін осыған назар аударудың мәні зор.`,
+        allStrongMessage: "Жаттыққан барлық дағдыларыңыз бойынша дәлдігіңіз тұрақты жоғары — жаңа жаттығумен серияңызды жалғастырыңыз.",
+        ctaLabel: (skill) => `«${skill}» жаттығу`,
+        skillLabels: { listening: "Тыңдалым", reading: "Оқылым", writing: "Жазылым" },
+      },
+      buddy: {
+        cardTitle: "Aimie Buddy",
+        cardSubtitle: "Сіздің ЖИ оқу тәлімгеріңіз",
+        cardDescription: "Грамматика, лексика, қателеріңіз немесе бүгін не оқу керектігі туралы сұраңыз — нақты прогресіңізге негізделген.",
+        launchCta: "Aimie Buddy-ден сұрау",
+        modalTitle: "Aimie Buddy — Сіздің ЖИ оқу тәлімгеріңіз",
+        greeting: (firstName) => `Сәлем, ${firstName}! Мен Aimie Buddy, сіздің TOPIK дайындық тәлімгеріңізбін. Грамматика, лексика, прогресс немесе бүгін не оқу керектігі туралы кез келген сұрақ қойыңыз.`,
+        inputPlaceholder: "Aimie Buddy-ден TOPIK дайындығы туралы кез келген нәрсені сұраңыз...",
+        send: "Жіберу",
+        thinking: "Жазып жатыр...",
+        errorGeneric: "Aimie Buddy қазір жауап бере алмады. Қайталап көріңіз.",
+        disclaimer: "Aimie Buddy сіздің нақты прогресс деректеріңізді пайдаланады, бірақ ресми емтихан мәліметтерін әрдайым ресми TOPIK сайтынан тексеріңіз.",
+        suggestedPrompt1: "Бүгін не оқуым керек?",
+        suggestedPrompt2: "은/는 мен 이/가 айырмашылығын түсіндір",
+        suggestedPrompt3: "Мен қысымда сезінемін — жоспар құруға көмектес",
       },
       listening: {
         pageDescription: "ЖИ жасаған түпнұсқа жазбалармен TOPIK тыңдалым түсінігін жаттығыңыз.",
