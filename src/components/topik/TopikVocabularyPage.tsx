@@ -1,0 +1,340 @@
+"use client";
+
+import { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { CheckCircle2, XCircle, Quote, Sparkles, Loader2, AlertCircle, BookOpen } from "lucide-react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  Badge,
+  Button,
+} from "@/components/ui";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { getTopikWordOfTheDay } from "@/lib/mock/topik-word-of-the-day";
+import { defaultLevelForTrack } from "@/lib/utils/topikLevel";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useUserProfile } from "@/lib/profile/UserProfileContext";
+import type { VocabularySentenceFeedback } from "@/types/vocabulary";
+
+const MASTERY_VARIANT = {
+  new: "primary",
+  learning: "warning",
+  mastered: "success",
+} as const;
+
+/** TOPIK equivalent of app/(app)/vocabulary/page.tsx (the DELF vocabulary
+ * page) — same UI structure, but sourced entirely from profile.topikLevel /
+ * profile.topikVocabularyProgress and the separate TOPIK word bank + AI
+ * evaluator, never touching DELF's data or content. */
+export function TopikVocabularyPage() {
+  const { t, language } = useLanguage();
+  const { profile, recordTopikVocabularyPractice } = useUserProfile();
+  const [sentence, setSentence] = useState("");
+  const [feedback, setFeedback] = useState<VocabularySentenceFeedback | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const shouldReduceMotion = useReducedMotion();
+
+  if (!profile) return null;
+
+  // A TOPIK account should always have a track/level chosen at onboarding,
+  // but this stays defensive rather than crashing if one is somehow null.
+  const level = profile.topikLevel ?? (profile.topikTrack ? defaultLevelForTrack(profile.topikTrack) : null);
+
+  if (!level) {
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader title={t.vocabulary.pageTitle} description={t.vocabulary.pageDescription} />
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <BookOpen className="h-8 w-8 text-muted" />
+            <CardDescription>{t.vocabulary.aiFeedbackEmptyState}</CardDescription>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const wordOfTheDay = getTopikWordOfTheDay(level);
+  const vocabularyProgress = profile.topikVocabularyProgress ?? [];
+
+  async function handleGetFeedback() {
+    if (!sentence.trim() || isSubmitting || !profile || !level) return;
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/topik/vocabulary/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          word: wordOfTheDay.word,
+          definition: wordOfTheDay.definition[language],
+          sentence,
+          level,
+          language,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t.vocabulary.aiFeedbackErrorGeneric);
+      const nextFeedback = data.feedback as VocabularySentenceFeedback;
+      setFeedback(nextFeedback);
+      recordTopikVocabularyPractice(wordOfTheDay.word, wordOfTheDay.definition, nextFeedback.status === "correct");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t.vocabulary.aiFeedbackErrorGeneric);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={t.vocabulary.pageTitle}
+        description={t.vocabulary.pageDescription}
+      />
+
+      {/* Word card */}
+      <Card>
+        <CardContent className="flex flex-col gap-6 sm:flex-row sm:items-start">
+          <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-3xl bg-primary-50 text-4xl shadow-inner shadow-primary-900/[0.03]">
+            {wordOfTheDay.icon}
+          </span>
+          <div className="flex flex-1 flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="font-display text-2xl font-semibold text-foreground">
+                {wordOfTheDay.word}
+              </h2>
+              <Badge variant="neutral">{wordOfTheDay.partOfSpeech}</Badge>
+              <span className="text-sm text-muted">
+                {wordOfTheDay.romanization}
+              </span>
+            </div>
+            <p className="text-sm leading-6 text-muted">
+              {wordOfTheDay.definition[language]}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Contexts */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-[18px] w-[18px] text-success-600" />
+              <CardTitle>{t.vocabulary.useItWhen}</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ul className="flex flex-col gap-2">
+              {wordOfTheDay.goodContexts[language].map((context) => (
+                <li
+                  key={context}
+                  className="flex items-start gap-2 rounded-xl bg-success-50/60 px-3 py-2 text-sm text-foreground"
+                >
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success-600" />
+                  {context}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <XCircle className="h-[18px] w-[18px] text-danger-600" />
+              <CardTitle>{t.vocabulary.avoidItWhen}</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ul className="flex flex-col gap-2">
+              {wordOfTheDay.badContexts[language].map((context) => (
+                <li
+                  key={context}
+                  className="flex items-start gap-2 rounded-xl bg-danger-50/60 px-3 py-2 text-sm text-foreground"
+                >
+                  <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-danger-600" />
+                  {context}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Example sentences */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t.vocabulary.exampleSentences}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {wordOfTheDay.exampleSentences.map((sentence) => (
+            <div
+              key={sentence}
+              className="flex items-start gap-3 rounded-2xl bg-background p-4"
+            >
+              <Quote className="mt-0.5 h-4 w-4 shrink-0 text-primary-400" />
+              <p className="text-sm leading-6 text-foreground">{sentence}</p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Student's own sentence + AI feedback */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t.vocabulary.yourTurn}</CardTitle>
+            <CardDescription>
+              {t.vocabulary.yourTurnDescription(wordOfTheDay.word)}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <textarea
+              rows={4}
+              value={sentence}
+              onChange={(e) => setSentence(e.target.value)}
+              placeholder={t.vocabulary.sentencePlaceholder(wordOfTheDay.word)}
+              className="w-full resize-none rounded-xl border border-border bg-surface px-4 py-3 text-sm leading-6 text-foreground placeholder:text-muted transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-primary-400/50 focus:border-primary-400"
+            />
+            {error && (
+              <div className="flex items-center gap-2 rounded-xl bg-danger-50 px-4 py-3 text-sm text-danger-600">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {error}
+              </div>
+            )}
+            <Button
+              className="self-start"
+              onClick={handleGetFeedback}
+              disabled={!sentence.trim() || isSubmitting}
+            >
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t.vocabulary.getAiFeedback}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-dashed">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-[18px] w-[18px] text-primary-500" />
+              <CardTitle>{t.vocabulary.aiFeedback}</CardTitle>
+              {feedback && (
+                <Badge variant={feedback.status === "correct" ? "success" : "danger"}>
+                  {feedback.status === "correct"
+                    ? t.vocabulary.usedCorrectlyBadge
+                    : feedback.status === "not-used"
+                      ? t.vocabulary.notUsedBadge
+                      : t.vocabulary.incorrectUsageBadge}
+                </Badge>
+              )}
+            </div>
+            <CardDescription>{t.vocabulary.aiFeedbackDescription}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {feedback ? (
+              <motion.div
+                className="flex flex-col gap-4"
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <div className="flex flex-col gap-1.5 rounded-2xl bg-background p-4">
+                  <span className="text-xs font-semibold text-foreground">
+                    {t.vocabulary.correctedSentenceLabel}
+                  </span>
+                  {feedback.correctedSentence ? (
+                    <p className="text-sm italic leading-6 text-foreground">
+                      &ldquo;{feedback.correctedSentence}&rdquo;
+                    </p>
+                  ) : (
+                    <p className="flex items-center gap-1.5 text-sm text-success-600">
+                      <CheckCircle2 className="h-4 w-4 shrink-0" />
+                      {t.vocabulary.noCorrectionsNeeded}
+                    </p>
+                  )}
+                </div>
+                {feedback.mistakes.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs font-semibold text-foreground">{t.vocabulary.mistakesLabel}</span>
+                    {feedback.mistakes.map((mistake, i) => (
+                      <div
+                        key={i}
+                        className="flex flex-col gap-1.5 rounded-xl border border-border bg-background p-3"
+                      >
+                        <div className="flex flex-wrap items-center gap-2 text-sm">
+                          <XCircle className="h-3.5 w-3.5 shrink-0 text-danger-500" />
+                          <span className="text-foreground line-through decoration-danger-500">
+                            {mistake.original}
+                          </span>
+                          <span className="font-medium text-success-600">{mistake.correction}</span>
+                        </div>
+                        <p className="text-xs text-muted">
+                          <span className="font-medium text-foreground">{t.vocabulary.whyWrongLabel}: </span>
+                          {mistake.whyWrong}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {feedback.naturalSuggestion && (
+                  <div className="flex flex-col gap-1.5 rounded-2xl bg-background p-4">
+                    <span className="text-xs font-semibold text-foreground">
+                      {t.vocabulary.naturalSuggestionLabel}
+                    </span>
+                    <p className="text-sm text-muted">{feedback.naturalSuggestion}</p>
+                  </div>
+                )}
+                <div className="flex flex-col gap-1.5 rounded-2xl bg-background p-4">
+                  <span className="text-xs font-semibold text-foreground">{t.vocabulary.explanationLabel}</span>
+                  <p className="text-sm text-muted">{feedback.explanation}</p>
+                </div>
+                <p className="text-sm font-medium text-primary-600">{feedback.encouragement}</p>
+              </motion.div>
+            ) : (
+              <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-background text-center text-sm text-muted">
+                <Sparkles className="h-5 w-5 text-primary-300" />
+                {t.vocabulary.aiFeedbackEmptyState}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Vocabulary history */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t.vocabulary.yourVocabulary}</CardTitle>
+          <CardDescription>
+            {t.vocabulary.yourVocabularyDescription}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col divide-y divide-border">
+          {vocabularyProgress.length === 0 ? (
+            <div className="flex h-24 items-center justify-center text-center text-sm text-muted">
+              {t.vocabulary.yourVocabularyEmptyState}
+            </div>
+          ) : (
+            vocabularyProgress.map((entry) => (
+              <div
+                key={entry.id}
+                className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
+              >
+                <div className="flex flex-col">
+                  <span className="font-medium text-foreground">{entry.word}</span>
+                  <span className="text-sm text-muted">{entry.definition[language]}</span>
+                </div>
+                <Badge variant={MASTERY_VARIANT[entry.mastery]}>
+                  {t.vocabulary.masteryLabels[entry.mastery]}
+                </Badge>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

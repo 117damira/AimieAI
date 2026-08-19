@@ -24,9 +24,10 @@ export const EXAMS: Record<ExamId, ExamConfig> = {
     fullName: "Test of Proficiency in Korean",
     language: "Korean",
     level: "Level 1 – 6",
-    description: "Planned for a future release.",
-    isActive: false,
-    supportedSkills: [],
+    description:
+      "Official Korean proficiency test. TOPIK I (Levels 1–2) covers Listening and Reading; TOPIK II (Levels 3–6) adds Writing.",
+    isActive: true,
+    supportedSkills: ["vocabulary", "listening", "reading", "writing", "quiz"],
   },
   hsk: {
     id: "hsk",
@@ -69,6 +70,3 @@ export const EXAMS: Record<ExamId, ExamConfig> = {
     supportedSkills: [],
   },
 };
-
-/** The exam active in this MVP build. Every page currently targets this exam. */
-export const ACTIVE_EXAM: ExamConfig = EXAMS.delf;

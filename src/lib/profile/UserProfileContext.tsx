@@ -12,6 +12,7 @@ import type { User, UserStats } from "@/types/user";
 import type { VocabularyEntry } from "@/types/vocabulary";
 import type { DelfLevel, FeedbackLanguage } from "@/types/writing-evaluation";
 import type { ReadingSessionRecord } from "@/types/reading";
+import type { TopikLevel } from "@/types/topik";
 import * as accountStore from "@/lib/auth/accountStore";
 import { recordWritingTopicHistory } from "@/lib/writing/topicRotation";
 import { recordListeningHistory } from "@/lib/listening/rotation";
@@ -55,6 +56,10 @@ interface UserProfileContextValue {
   updateProfile: (partial: Partial<User>) => void;
   /** score is the session's exam-readiness estimate normalized to 0-100. */
   recordActivity: (activity: PracticeActivity, score: number) => void;
+  /** TOPIK equivalent of recordActivity, writing into profile.topikStats
+   * instead of profile.stats — TOPIK never passes "speaking" (not part of
+   * the TOPIK exam). */
+  recordTopikActivity: (activity: PracticeActivity, score: number) => void;
   /** Records one real AI-graded sentence attempt for a vocabulary word,
    * advancing its mastery: 1st correct practice -> "learning", 3rd
    * cumulative correct practice -> "mastered". Never called for anything
@@ -88,6 +93,20 @@ interface UserProfileContextValue {
    * mastery "new". Distinct from recordVocabularyPractice, which grades an
    * actual submitted sentence; this just adds the word to track. */
   addVocabularyWord: (word: string, definition: Record<FeedbackLanguage, string>) => void;
+
+  /** TOPIK equivalents of the six methods above — fully separate storage
+   * (profile.topik*), never touching the DELF fields. */
+  recordTopikVocabularyPractice: (
+    word: string,
+    definition: Record<FeedbackLanguage, string>,
+    wasCorrect: boolean
+  ) => void;
+  recordTopikWritingTopic: (level: TopikLevel, promptId: string) => void;
+  recordTopikQuizCompletion: () => void;
+  recordTopikListeningCompletion: (level: TopikLevel, recordingIds: string[]) => void;
+  recordTopikReadingCompletion: (level: TopikLevel, passageIds: string[], session: ReadingSessionRecord) => void;
+  addTopikVocabularyWord: (word: string, definition: Record<FeedbackLanguage, string>) => void;
+
   clearProfile: () => void;
 }
 
@@ -131,6 +150,13 @@ function migrateUser(user: User): User {
       readingSessions: user.stats.readingSessions ?? 0,
       readingSessionHistory: user.stats.readingSessionHistory ?? [],
     },
+    topikTrack: user.topikTrack ?? null,
+    topikLevel: user.topikLevel ?? null,
+    topikStats: user.topikStats ?? createInitialStats(),
+    topikVocabularyProgress: user.topikVocabularyProgress ?? [],
+    topikWritingTopicHistory: user.topikWritingTopicHistory ?? {},
+    topikListeningHistory: user.topikListeningHistory ?? {},
+    topikReadingHistory: user.topikReadingHistory ?? {},
   };
 }
 
@@ -210,6 +236,13 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
           writingTopicHistory: {},
           listeningHistory: {},
           readingHistory: {},
+          topikTrack: onboarding.topikTrack,
+          topikLevel: onboarding.topikLevel,
+          topikStats: createInitialStats(),
+          topikVocabularyProgress: [],
+          topikWritingTopicHistory: {},
+          topikListeningHistory: {},
+          topikReadingHistory: {},
         };
         await accountStore.createAccount({ user: newUser, password });
         setProfile(newUser);
@@ -245,6 +278,47 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
           return {
             ...prev,
             stats: {
+              ...stats,
+              speakingSessions:
+                stats.speakingSessions + (activity === "speaking" ? 1 : 0),
+              writingSessions:
+                stats.writingSessions + (activity === "writing" ? 1 : 0),
+              listeningSessions:
+                stats.listeningSessions + (activity === "listening" ? 1 : 0),
+              readingSessions:
+                stats.readingSessions + (activity === "reading" ? 1 : 0),
+              currentStreakDays,
+              longestStreakDays: Math.max(
+                stats.longestStreakDays,
+                currentStreakDays
+              ),
+              lastPracticeDate: today,
+              history: [...stats.history, { date: today, activity, score }],
+            },
+          };
+        });
+      },
+      recordTopikActivity: (activity, score) => {
+        setProfile((prev) => {
+          if (!prev) return prev;
+          const today = todayIso();
+          const stats = prev.topikStats;
+
+          let currentStreakDays: number;
+          if (stats.lastPracticeDate === today) {
+            currentStreakDays = stats.currentStreakDays;
+          } else if (
+            stats.lastPracticeDate &&
+            isYesterday(stats.lastPracticeDate, today)
+          ) {
+            currentStreakDays = stats.currentStreakDays + 1;
+          } else {
+            currentStreakDays = 1;
+          }
+
+          return {
+            ...prev,
+            topikStats: {
               ...stats,
               speakingSessions:
                 stats.speakingSessions + (activity === "speaking" ? 1 : 0),
@@ -367,6 +441,108 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
             timesCorrect: 0,
           };
           return { ...prev, vocabularyProgress: [newEntry, ...currentProgress] };
+        });
+      },
+      recordTopikVocabularyPractice: (word, definition, wasCorrect) => {
+        setProfile((prev) => {
+          if (!prev) return prev;
+          const today = todayIso();
+          const currentProgress = prev.topikVocabularyProgress ?? [];
+          const existing = currentProgress.find(
+            (entry) => entry.word.toLowerCase() === word.toLowerCase()
+          );
+
+          let nextEntry: VocabularyEntry;
+          if (existing) {
+            const timesPracticed = existing.timesPracticed + 1;
+            const timesCorrect = existing.timesCorrect + (wasCorrect ? 1 : 0);
+            const mastery: VocabularyEntry["mastery"] =
+              timesCorrect >= 3 ? "mastered" : timesCorrect >= 1 ? "learning" : existing.mastery;
+            nextEntry = { ...existing, timesPracticed, timesCorrect, mastery };
+          } else {
+            nextEntry = {
+              id: `topik_vocab_${Date.now()}`,
+              word,
+              definition,
+              learnedOn: today,
+              mastery: wasCorrect ? "learning" : "new",
+              timesPracticed: 1,
+              timesCorrect: wasCorrect ? 1 : 0,
+            };
+          }
+
+          const topikVocabularyProgress = existing
+            ? currentProgress.map((entry) => (entry.id === nextEntry.id ? nextEntry : entry))
+            : [nextEntry, ...currentProgress];
+
+          const wordsLearned = topikVocabularyProgress.filter((entry) => entry.mastery === "mastered").length;
+
+          return { ...prev, topikVocabularyProgress, topikStats: { ...prev.topikStats, wordsLearned } };
+        });
+      },
+      recordTopikWritingTopic: (level, promptId) => {
+        setProfile((prev) => {
+          if (!prev) return prev;
+          const currentHistory = prev.topikWritingTopicHistory ?? {};
+          const nextForLevel = recordWritingTopicHistory(currentHistory[level] ?? [], promptId);
+          return {
+            ...prev,
+            topikWritingTopicHistory: { ...currentHistory, [level]: nextForLevel },
+          };
+        });
+      },
+      recordTopikQuizCompletion: () => {
+        setProfile((prev) => {
+          if (!prev) return prev;
+          return { ...prev, topikStats: { ...prev.topikStats, quizzesCompleted: prev.topikStats.quizzesCompleted + 1 } };
+        });
+      },
+      recordTopikListeningCompletion: (level, recordingIds) => {
+        setProfile((prev) => {
+          if (!prev) return prev;
+          const currentHistory = prev.topikListeningHistory ?? {};
+          const nextForLevel = recordListeningHistory(currentHistory[level] ?? [], recordingIds);
+          return {
+            ...prev,
+            topikListeningHistory: { ...currentHistory, [level]: nextForLevel },
+          };
+        });
+      },
+      recordTopikReadingCompletion: (level, passageIds, session) => {
+        setProfile((prev) => {
+          if (!prev) return prev;
+          const currentHistory = prev.topikReadingHistory ?? {};
+          const nextForLevel = recordReadingHistory(currentHistory[level] ?? [], passageIds);
+          const readingSessionHistory = [...(prev.topikStats.readingSessionHistory ?? []), session].slice(
+            -READING_SESSION_HISTORY_LIMIT
+          );
+          return {
+            ...prev,
+            topikReadingHistory: { ...currentHistory, [level]: nextForLevel },
+            topikStats: { ...prev.topikStats, readingSessionHistory },
+          };
+        });
+      },
+      addTopikVocabularyWord: (word, definition) => {
+        setProfile((prev) => {
+          if (!prev) return prev;
+          const today = todayIso();
+          const currentProgress = prev.topikVocabularyProgress ?? [];
+          const alreadySaved = currentProgress.some(
+            (entry) => entry.word.toLowerCase() === word.toLowerCase()
+          );
+          if (alreadySaved) return prev;
+
+          const newEntry: VocabularyEntry = {
+            id: `topik_vocab_${Date.now()}`,
+            word,
+            definition,
+            learnedOn: today,
+            mastery: "new",
+            timesPracticed: 0,
+            timesCorrect: 0,
+          };
+          return { ...prev, topikVocabularyProgress: [newEntry, ...currentProgress] };
         });
       },
       clearProfile: () => setProfile(null),

@@ -764,6 +764,54 @@ export interface Dictionary {
     examPastLabel: string;
     moreTasksLabel: (n: number) => string;
   };
+
+  /** TOPIK-specific overrides for the handful of UI strings that mention a
+   * specific exam by name — everything else (buttons, result labels, review
+   * copy) is shared verbatim from the listening/reading/writing/quiz/
+   * progress/studyPlan namespaces above, since that copy is already
+   * exam-agnostic. */
+  topik: {
+    dashboard: {
+      listeningDescription: string;
+      readingDescription: string;
+      writingDescription: string;
+    };
+    listening: {
+      pageDescription: string;
+      currentLevelLabel: string;
+      fullExamTitle: string;
+      fullExamDescription: string;
+      estimatedReadiness: string;
+    };
+    reading: {
+      pageDescription: string;
+      currentLevelLabel: string;
+      fullExamTitle: string;
+      fullExamDescription: string;
+      recommendedTimeLabel: string;
+      skillBreakdownDescription: string;
+      readinessLabel: string;
+    };
+    writing: {
+      pageDescription: string;
+      examReadinessDescription: string;
+      aiEvaluationDescription: string;
+      comingSoonTitle: string;
+      comingSoonDescription: string;
+    };
+    progress: {
+      pageDescription: string;
+    };
+    studyPlan: {
+      daysUntilExam: (n: number) => string;
+      examTodayLabel: string;
+      examPastLabel: string;
+    };
+    track: {
+      i: string;
+      ii: string;
+    };
+  };
 }
 
 export const TRANSLATIONS: Record<Language, Dictionary> = {
@@ -1598,6 +1646,46 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       examTodayLabel: "Your DELF exam is today",
       examPastLabel: "Your DELF exam date has passed",
       moreTasksLabel: (n) => `+${n} more`,
+    },
+
+    topik: {
+      dashboard: {
+        listeningDescription: "Practice TOPIK listening comprehension with original recordings.",
+        readingDescription: "Practice TOPIK reading comprehension with original AI-generated texts.",
+        writingDescription: "Draft a response and get feedback structured like official TOPIK scoring.",
+      },
+      listening: {
+        pageDescription: "Practice TOPIK listening comprehension with original AI-generated recordings.",
+        currentLevelLabel: "Current TOPIK Level",
+        fullExamTitle: "Full TOPIK Listening Exam",
+        fullExamDescription: "A complete simulation of the TOPIK listening section, timed and scored like the real exam.",
+        estimatedReadiness: "Estimated TOPIK readiness",
+      },
+      reading: {
+        pageDescription: "Practice TOPIK reading comprehension with original AI-generated texts.",
+        currentLevelLabel: "Current TOPIK Level",
+        fullExamTitle: "Full TOPIK Reading Exam",
+        fullExamDescription: "A complete simulation of the TOPIK reading section, timed and scored like the real exam.",
+        recommendedTimeLabel: "Recommended TOPIK time",
+        skillBreakdownDescription: "Your performance across the core TOPIK reading skills.",
+        readinessLabel: "Estimated TOPIK readiness",
+      },
+      writing: {
+        pageDescription: "Draft a response to a TOPIK II writing task and get AI feedback structured like official TOPIK scoring.",
+        examReadinessDescription: "Estimated TOPIK Writing score for this response.",
+        aiEvaluationDescription: "Submit your response to get feedback on task completion, organization, coherence, vocabulary, grammar, and estimated TOPIK score.",
+        comingSoonTitle: "Writing practice coming soon",
+        comingSoonDescription: "TOPIK Writing is available for TOPIK II. Switch your track in Settings to unlock it.",
+      },
+      progress: {
+        pageDescription: "Track how your TOPIK preparation is coming along.",
+      },
+      studyPlan: {
+        daysUntilExam: (n) => `${n} day${n === 1 ? "" : "s"} until your TOPIK exam`,
+        examTodayLabel: "Your TOPIK exam is today",
+        examPastLabel: "Your TOPIK exam date has passed",
+      },
+      track: { i: "TOPIK I", ii: "TOPIK II" },
     },
   },
 
@@ -2439,6 +2527,46 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       examPastLabel: "Дата вашего экзамена DELF уже прошла",
       moreTasksLabel: (n) => `+${n} ещё`,
     },
+
+    topik: {
+      dashboard: {
+        listeningDescription: "Тренируйте понимание на слух TOPIK с оригинальными записями.",
+        readingDescription: "Тренируйте понимание письменного текста TOPIK с оригинальными текстами от ИИ.",
+        writingDescription: "Напишите ответ и получите оценку в формате официального TOPIK.",
+      },
+      listening: {
+        pageDescription: "Тренируйте понимание на слух TOPIK с оригинальными записями, созданными ИИ.",
+        currentLevelLabel: "Текущий уровень TOPIK",
+        fullExamTitle: "Полный экзамен по аудированию TOPIK",
+        fullExamDescription: "Полная симуляция раздела аудирования TOPIK, с таймером и оценкой, как на настоящем экзамене.",
+        estimatedReadiness: "Примерная готовность к TOPIK",
+      },
+      reading: {
+        pageDescription: "Тренируйте понимание письменного текста TOPIK с оригинальными текстами, созданными ИИ.",
+        currentLevelLabel: "Текущий уровень TOPIK",
+        fullExamTitle: "Полный экзамен по чтению TOPIK",
+        fullExamDescription: "Полная симуляция раздела чтения TOPIK, с таймером и оценкой, как на настоящем экзамене.",
+        recommendedTimeLabel: "Рекомендованное время TOPIK",
+        skillBreakdownDescription: "Ваши результаты по основным навыкам чтения TOPIK.",
+        readinessLabel: "Примерная готовность к TOPIK",
+      },
+      writing: {
+        pageDescription: "Напишите ответ на задание письменной части TOPIK II и получите отзыв ИИ в формате официального оценивания TOPIK.",
+        examReadinessDescription: "Примерная оценка письменной части TOPIK за этот ответ.",
+        aiEvaluationDescription: "Отправьте ответ, чтобы получить отзыв о выполнении задания, структуре, связности, словарном запасе, грамматике и примерной оценке TOPIK.",
+        comingSoonTitle: "Практика письма скоро появится",
+        comingSoonDescription: "Письменная часть TOPIK доступна для TOPIK II. Смените уровень в настройках, чтобы открыть её.",
+      },
+      progress: {
+        pageDescription: "Отслеживайте, как продвигается ваша подготовка к TOPIK.",
+      },
+      studyPlan: {
+        daysUntilExam: (n) => `${n} дн${n === 1 ? "ень" : n >= 2 && n <= 4 ? "я" : "ей"} до экзамена TOPIK`,
+        examTodayLabel: "Ваш экзамен TOPIK сегодня",
+        examPastLabel: "Дата вашего экзамена TOPIK уже прошла",
+      },
+      track: { i: "TOPIK I", ii: "TOPIK II" },
+    },
   },
 
   kz: {
@@ -3271,6 +3399,46 @@ export const TRANSLATIONS: Record<Language, Dictionary> = {
       examTodayLabel: "DELF емтиханыңыз бүгін",
       examPastLabel: "DELF емтихан күніңіз өтіп кетті",
       moreTasksLabel: (n) => `тағы +${n}`,
+    },
+
+    topik: {
+      dashboard: {
+        listeningDescription: "Түпнұсқа жазбалармен TOPIK тыңдалым түсінігін жаттығыңыз.",
+        readingDescription: "ЖИ жасаған түпнұсқа мәтіндермен TOPIK оқылым түсінігін жаттығыңыз.",
+        writingDescription: "Жауап жазып, ресми TOPIK бағалауы бойынша кері байланыс алыңыз.",
+      },
+      listening: {
+        pageDescription: "ЖИ жасаған түпнұсқа жазбалармен TOPIK тыңдалым түсінігін жаттығыңыз.",
+        currentLevelLabel: "Ағымдағы TOPIK деңгейі",
+        fullExamTitle: "TOPIK тыңдалым бойынша толық емтихан",
+        fullExamDescription: "TOPIK тыңдалым бөлімінің толық симуляциясы, нақты емтихандағыдай уақыты мен бағасы бар.",
+        estimatedReadiness: "TOPIK-ке болжамды дайындық",
+      },
+      reading: {
+        pageDescription: "ЖИ жасаған түпнұсқа мәтіндермен TOPIK оқылым түсінігін жаттығыңыз.",
+        currentLevelLabel: "Ағымдағы TOPIK деңгейі",
+        fullExamTitle: "TOPIK оқылым бойынша толық емтихан",
+        fullExamDescription: "TOPIK оқылым бөлімінің толық симуляциясы, нақты емтихандағыдай уақыты мен бағасы бар.",
+        recommendedTimeLabel: "Ұсынылған TOPIK уақыты",
+        skillBreakdownDescription: "TOPIK оқылымының негізгі дағдылары бойынша нәтижеңіз.",
+        readinessLabel: "TOPIK-ке болжамды дайындық",
+      },
+      writing: {
+        pageDescription: "TOPIK II жазбаша тапсырмасына жауап жазып, ресми TOPIK бағалауы форматындағы ЖИ пікірін алыңыз.",
+        examReadinessDescription: "Осы жауап үшін TOPIK жазбаша бөлімінің болжамды бағасы.",
+        aiEvaluationDescription: "Тапсырманы орындау, құрылым, байланыстылық, сөздік қоры, грамматика және болжамды TOPIK бағасы туралы пікір алу үшін жауабыңызды жіберіңіз.",
+        comingSoonTitle: "Жазу жаттығуы жақында қосылады",
+        comingSoonDescription: "TOPIK жазбаша бөлімі TOPIK II үшін қолжетімді. Оны ашу үшін параметрлерде деңгейіңізді ауыстырыңыз.",
+      },
+      progress: {
+        pageDescription: "TOPIK дайындығыңыздың қалай өрлеп жатқанын қадағалаңыз.",
+      },
+      studyPlan: {
+        daysUntilExam: (n) => `TOPIK емтиханыңызға ${n} күн қалды`,
+        examTodayLabel: "TOPIK емтиханыңыз бүгін",
+        examPastLabel: "TOPIK емтихан күніңіз өтіп кетті",
+      },
+      track: { i: "TOPIK I", ii: "TOPIK II" },
     },
   },
 };

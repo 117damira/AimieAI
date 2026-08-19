@@ -1,6 +1,6 @@
 export type ExamId = "delf" | "topik" | "hsk" | "ielts" | "jlpt" | "toefl";
 
-export type ExamSkillId = "vocabulary" | "speaking" | "writing" | "quiz";
+export type ExamSkillId = "vocabulary" | "speaking" | "writing" | "reading" | "listening" | "quiz";
 
 export interface ExamConfig {
   id: ExamId;
@@ -9,7 +9,7 @@ export interface ExamConfig {
   language: string;
   level: string;
   description: string;
-  /** Only DELF is implemented for the MVP; others are reserved for future scaling. */
+  /** Whether this exam is selectable in onboarding; inactive exams are reserved for future scaling. */
   isActive: boolean;
   supportedSkills: ExamSkillId[];
 }

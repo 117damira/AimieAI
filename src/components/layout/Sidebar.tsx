@@ -5,10 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { GraduationCap, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { SIDEBAR_NAV, SIDEBAR_FOOTER_NAV, type NavItem } from "@/config/navigation";
-import { ACTIVE_EXAM } from "@/config/exams";
+import { SIDEBAR_FOOTER_NAV, getSidebarNav, type NavItem } from "@/config/navigation";
+import { EXAMS } from "@/config/exams";
 import { APP_NAME } from "@/config/app";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useUserProfile } from "@/lib/profile/UserProfileContext";
 import { LogoutConfirmDialog } from "./LogoutConfirmDialog";
 
 function NavLink({
@@ -49,7 +50,11 @@ function NavLink({
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const { t } = useLanguage();
+  const { profile } = useUserProfile();
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+
+  const examId = profile?.examId ?? "delf";
+  const sidebarNav = getSidebarNav(examId, profile?.topikTrack ?? null);
 
   return (
     <>
@@ -61,12 +66,12 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <span className="font-display text-base font-semibold text-foreground">
             {APP_NAME}
           </span>
-          <span className="text-xs text-muted">{t.sidebar.track(ACTIVE_EXAM.name)}</span>
+          <span className="text-xs text-muted">{t.sidebar.track(EXAMS[examId].name)}</span>
         </div>
       </Link>
 
       <nav className="mt-8 flex flex-1 flex-col gap-1">
-        {SIDEBAR_NAV.map((item) => (
+        {sidebarNav.map((item) => (
           <NavLink
             key={item.href}
             href={item.href}

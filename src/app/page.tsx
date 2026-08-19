@@ -17,8 +17,14 @@ import {
 } from "lucide-react";
 import { PublicNavbar } from "@/components/layout/PublicNavbar";
 import { Card, CardContent, Badge, ProgressBar, buttonVariants } from "@/components/ui";
-import { EXAMS, ACTIVE_EXAM } from "@/config/exams";
+import { EXAMS } from "@/config/exams";
 import { APP_NAME } from "@/config/app";
+
+function joinNatural(items: string[]): string {
+  if (items.length <= 1) return items.join("");
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
 
 const WHY_AIMIE = [
   {
@@ -75,6 +81,10 @@ export default function HomePage() {
         viewport: { once: true, margin: "-80px" },
       };
 
+  const activeExams = Object.values(EXAMS).filter((exam) => exam.isActive);
+  const activeExamNames = joinNatural(activeExams.map((exam) => exam.name));
+  const activeExamFullNames = joinNatural(activeExams.map((exam) => exam.fullName));
+
   return (
     <div className="flex flex-1 flex-col">
       <PublicNavbar />
@@ -90,7 +100,7 @@ export default function HomePage() {
           >
             <Badge variant="primary">
               <Sparkles className="h-3.5 w-3.5" />
-              Currently focused on {ACTIVE_EXAM.name}
+              Now supporting {activeExamNames}
             </Badge>
             <h1 className="font-display max-w-xl text-4xl font-semibold tracking-tight text-balance text-foreground sm:text-5xl">
               Your{" "}
@@ -102,8 +112,8 @@ export default function HomePage() {
             <p className="max-w-xl text-lg leading-8 text-muted">
               {APP_NAME} gives students personalized, AI-powered preparation —
               a study plan built around your goals, and examiner-grade
-              feedback on speaking and writing. Our MVP currently supports
-              DELF, with more international exams on the way.
+              feedback on speaking and writing. Our MVP currently supports{" "}
+              {activeExamNames}, with more international exams on the way.
             </p>
             <div className="mt-2 flex flex-col gap-3 sm:flex-row">
               <Link
@@ -227,7 +237,7 @@ export default function HomePage() {
               Supported Exams
             </h2>
             <p className="max-w-xl text-sm leading-6 text-muted">
-              We&apos;re starting with {ACTIVE_EXAM.fullName} to perfect our
+              We&apos;re starting with {activeExamFullNames} to perfect our
               AI feedback before expanding to other exams.
             </p>
           </motion.div>
@@ -293,7 +303,7 @@ export default function HomePage() {
       <footer className="border-t border-border py-8">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-3 px-6 text-sm text-muted sm:flex-row">
           <span>© 2026 {APP_NAME}. Built for language learners.</span>
-          <span>Made for the {ACTIVE_EXAM.name} MVP</span>
+          <span>Made for the {activeExamNames} MVP</span>
         </div>
       </footer>
     </div>

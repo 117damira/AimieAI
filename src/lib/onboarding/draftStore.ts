@@ -1,14 +1,19 @@
 import type { ExamId } from "@/types/exam";
 import type { OnboardingLevel, StudyDay } from "@/types/user";
+import type { TopikLevel, TopikTrack } from "@/types/topik";
 
 const DRAFT_KEY = "aimieai.onboarding-draft.v1";
 
 /** Answers collected by the onboarding questionnaire, before an account
  * exists — registration now happens after onboarding, so these are held
- * here until register() folds them into the new account. */
+ * here until register() folds them into the new account. `targetLevel` is
+ * DELF-specific (ignored for topik); `topikTrack`/`topikLevel` are only set
+ * when `examId === "topik"`. */
 export interface OnboardingAnswers {
   examId: ExamId;
   targetLevel: OnboardingLevel;
+  topikTrack: TopikTrack | null;
+  topikLevel: TopikLevel | null;
   examDate: string | null;
   dailyGoalMinutes: number;
   studyDays: StudyDay[];

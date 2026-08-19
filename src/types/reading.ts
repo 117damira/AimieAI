@@ -183,10 +183,14 @@ export interface ReadingFeedback {
 }
 
 /** One completed Reading session's real numbers — used for Personal Best and
- * Progress Comparison. Never seeded with placeholder data. */
+ * Progress Comparison. Never seeded with placeholder data. `level` is a
+ * plain string (not DelfLevel) because this shape is also reused by TOPIK's
+ * topikStats.readingSessionHistory, whose levels are "1"-"6" — nothing in
+ * this app currently reads `.level` off a session record, so widening it is
+ * a safe, non-breaking change. */
 export interface ReadingSessionRecord {
   date: string; // yyyy-mm-dd
-  level: DelfLevel;
+  level: string;
   mode: ReadingMode;
   score: number;
   scoreOutOf: number;

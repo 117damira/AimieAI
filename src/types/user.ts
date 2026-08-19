@@ -2,6 +2,7 @@ import type { ExamId } from "./exam";
 import type { VocabularyEntry } from "./vocabulary";
 import type { DelfLevel } from "./writing-evaluation";
 import type { ReadingSessionRecord } from "./reading";
+import type { TopikLevel, TopikTrack } from "./topik";
 
 /** Self-reported proficiency level collected during onboarding. Only
  * "A1"-"B2" have real DELF content — see resolvePracticeLevel() in
@@ -53,6 +54,10 @@ export interface User {
   lastName: string;
   email: string;
   examId: ExamId;
+  /** DELF-specific target level. Meaningless/unused for TOPIK accounts
+   * (defaulted at registration) — TOPIK accounts use topikTrack/topikLevel
+   * instead. Kept required rather than made optional to avoid touching
+   * every existing DELF call site. */
   targetLevel: OnboardingLevel;
   /** ISO yyyy-mm-dd, or null if the user hasn't set an exam date yet. */
   examDate: string | null;
@@ -83,4 +88,17 @@ export interface User {
    * rotation avoid repeating the same passage(s). Starts empty for every
    * new account; never preloaded. */
   readingHistory: Partial<Record<DelfLevel, string[]>>;
+
+  /** null until a TOPIK account picks a track at onboarding; always null
+   * for DELF accounts. Every TOPIK field below is fully separate storage
+   * from its DELF equivalent above — never read/written by DELF code, never
+   * mixed with DELF progress. */
+  topikTrack: TopikTrack | null;
+  /** The account's current practice/estimated level within topikTrack. */
+  topikLevel: TopikLevel | null;
+  topikStats: UserStats;
+  topikVocabularyProgress: VocabularyEntry[];
+  topikWritingTopicHistory: Partial<Record<TopikLevel, string[]>>;
+  topikListeningHistory: Partial<Record<TopikLevel, string[]>>;
+  topikReadingHistory: Partial<Record<TopikLevel, string[]>>;
 }

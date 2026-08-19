@@ -16,6 +16,7 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { OnboardingStepper } from "@/components/onboarding/OnboardingStepper";
 import { ExamStep } from "@/components/onboarding/ExamStep";
 import { LevelStep } from "@/components/onboarding/LevelStep";
+import { TopikTrackLevelStep } from "@/components/onboarding/TopikTrackLevelStep";
 import { ExamDateStep } from "@/components/onboarding/ExamDateStep";
 import { DailyGoalStep } from "@/components/onboarding/DailyGoalStep";
 import { StudyDaysStep } from "@/components/onboarding/StudyDaysStep";
@@ -24,10 +25,13 @@ import { DEFAULT_STUDY_DAYS } from "@/config/onboarding";
 import { saveOnboardingDraft } from "@/lib/onboarding/draftStore";
 import type { ExamId } from "@/types/exam";
 import type { OnboardingLevel, StudyDay } from "@/types/user";
+import type { TopikLevel, TopikTrack } from "@/types/topik";
 
 interface Draft {
   examId: ExamId | null;
   targetLevel: OnboardingLevel | null;
+  topikTrack: TopikTrack | null;
+  topikLevel: TopikLevel | null;
   examDate: string | null;
   dailyGoalMinutes: number;
   studyDays: StudyDay[];
@@ -43,13 +47,22 @@ export default function OnboardingPage() {
   const [draft, setDraft] = useState<Draft>({
     examId: null,
     targetLevel: null,
+    topikTrack: null,
+    topikLevel: null,
     examDate: null,
     dailyGoalMinutes: 20,
     studyDays: DEFAULT_STUDY_DAYS,
   });
 
+  const isTopik = draft.examId === "topik";
   const canAdvance =
-    step === 1 ? draft.examId !== null : step === 2 ? draft.targetLevel !== null : true;
+    step === 1
+      ? draft.examId !== null
+      : step === 2
+        ? isTopik
+          ? draft.topikTrack !== null && draft.topikLevel !== null
+          : draft.targetLevel !== null
+        : true;
 
   function handleNext() {
     if (step < TOTAL_STEPS) {
@@ -60,7 +73,11 @@ export default function OnboardingPage() {
     // answers into the new account it creates. See RegisterPage.
     saveOnboardingDraft({
       examId: draft.examId!,
-      targetLevel: draft.targetLevel!,
+      // targetLevel is DELF-specific; TOPIK accounts get a harmless default
+      // since no TOPIK code path ever reads it.
+      targetLevel: isTopik ? "A1" : draft.targetLevel!,
+      topikTrack: isTopik ? draft.topikTrack : null,
+      topikLevel: isTopik ? draft.topikLevel : null,
       examDate: draft.examDate,
       dailyGoalMinutes: draft.dailyGoalMinutes,
       studyDays: draft.studyDays,
@@ -96,7 +113,15 @@ export default function OnboardingPage() {
                 onChange={(examId) => setDraft((d) => ({ ...d, examId }))}
               />
             )}
-            {step === 2 && (
+            {step === 2 && isTopik && (
+              <TopikTrackLevelStep
+                track={draft.topikTrack}
+                level={draft.topikLevel}
+                onChangeTrack={(topikTrack) => setDraft((d) => ({ ...d, topikTrack }))}
+                onChangeLevel={(topikLevel) => setDraft((d) => ({ ...d, topikLevel }))}
+              />
+            )}
+            {step === 2 && !isTopik && (
               <LevelStep
                 value={draft.targetLevel}
                 onChange={(targetLevel) => setDraft((d) => ({ ...d, targetLevel }))}

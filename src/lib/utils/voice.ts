@@ -82,6 +82,10 @@ export function stopSpeaking(): void {
  * the UI's feedback language. */
 export const EXAM_SPEECH_LOCALE = "fr";
 
+/** TOPIK listening recordings are always Korean, regardless of the UI's
+ * feedback language. */
+export const TOPIK_SPEECH_LOCALE = "ko";
+
 /** BCP-47 prefixes for the app's feedback languages — "kz" (app code) maps
  * to the "kk" (Kazakh) locale tag; a matching voice is rarely installed, in
  * which case `speak()` silently no-ops. */
