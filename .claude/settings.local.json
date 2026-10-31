@@ -39,7 +39,16 @@
       "Bash(rmdir src/lib/sms)",
       "Bash(git check-ignore *)",
       "Bash(echo \"exit:$?\")",
-      "Bash(xargs -I{} echo {})"
+      "Bash(xargs -I{} echo {})",
+      "Bash(git status *)",
+      "Bash(netstat -ano)",
+      "Bash(chromium-cli --help)",
+      "Bash(npx --yes playwright install chromium)",
+      "Bash(npm install *)",
+      "Bash(node .tmp-verify/verify.js)",
+      "Bash(powershell -NoProfile -Command \"Stop-Process -Id \\(Get-NetTCPConnection -LocalPort 3000 -State Listen\\).OwningProcess -Force\")",
+      "Bash(timeout 40 bash -c 'until curl -sf http://localhost:3000 >/dev/null; do sleep 1; done')",
+      "Bash(node .tmp-verify/verify-dashboard.js)"
     ]
   }
 }

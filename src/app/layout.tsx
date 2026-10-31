@@ -4,7 +4,7 @@ import { LanguageProvider } from "@/lib/i18n/LanguageContext";
 import { UserProfileProvider } from "@/lib/profile/UserProfileContext";
 import { APP_NAME } from "@/config/app";
 import "./globals.css";
-
+import { Analytics } from "@vercel/analytics/react";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin", "cyrillic", "cyrillic-ext"],
@@ -34,6 +34,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <LanguageProvider>
           <UserProfileProvider>{children}</UserProfileProvider>
+          <Analytics />
         </LanguageProvider>
       </body>
     </html>
